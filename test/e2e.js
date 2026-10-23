@@ -518,7 +518,7 @@ c.save()`]);
     check(yd.f === '2024-11-15|FBADS-568-103903145|Meta Platforms Ireland Limited|IE9692928F|TRY|10866|kredi|reklam' && yd.url, 'yurt dışı PDF faturası okundu (tarih, fatura no, satıcı, VAT, tutar, kart) ve ilk sayfa görüntüsü çıkarıldı (' + yd.f + ')');
     // PDF okuyucu güvenliği (Görev 12, CVE-2024-4367): her getDocument çağrısı isEvalSupported:false ile; banka ekstresi PDF'i yine okunur
     { const kaynak = fs.readFileSync(path.join(APP, 'renderer', 'index.html'), 'utf8');
-      const cagri = kaynak.match(/pdfjsLib\.getDocument\(\{[^)]*\}\)/g) || [];
+      const cagri = kaynak.match(/pdfjsLib\.getDocument\(\{.*?\}\)\.promise/g) || [];
       check(cagri.length >= 3 && cagri.every(c => /isEvalSupported:false/.test(c)), 'pdf.js: her getDocument çağrısında isEvalSupported:false (' + cagri.length + ' çağrı)');
       const ekstrePdf = path.join(gorsel, 'ekstre.pdf');
       require('child_process').execFileSync('python3', ['-c', `
@@ -531,7 +531,7 @@ for t, a, tu, b in [('Tarih', 'Açıklama', 'Tutar', 'Bakiye'), ('01.09.2026', '
     c.drawString(40, y, t); c.drawString(120, y, a); c.drawString(360, y, tu); c.drawString(460, y, b); y -= 18
 c.save()`]);
       const pdfSatir = await w.evaluate(async b64 => { const u = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-        return (await readPdfLines(new File([u], 'ekstre.pdf'))).map(l => l.t); }, fs.readFileSync(ekstrePdf).toString('base64'));
+        return (await window.__app.readPdfLines(new File([u], 'ekstre.pdf'))).map(l => l.t); }, fs.readFileSync(ekstrePdf).toString('base64'));
       check(pdfSatir.some(t => /01\.09\.2026/.test(t) && /ÖRNEK KİRA ÖDEMESİ/.test(t) && /-12\.500,00/.test(t)) && pdfSatir.some(t => /DEMO A\.Ş\. EFT GELEN/.test(t)),
         'banka ekstresi PDF satırları okundu (isEvalSupported:false ile) (' + pdfSatir.length + ' satır)'); }
     check(yd.L === '760.10:B12783.53 191.20:B2556.71 360.05:A1917.53 360.06:A2556.71 300.01:A10866' && !yd.err.length, 'yurt dışı fişi: brüt gider 760, sorumlu KDV 191 borç / 360 alacak, %15 stopaj 360, ödeme net (' + yd.L + ')');
