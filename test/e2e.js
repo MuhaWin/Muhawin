@@ -23,6 +23,7 @@ async function oturum(fatura, o = {}) {
     env: { ...process.env, EKSTRE_TEST_SB: fake.url, XDG_CONFIG_HOME: cfg, MUHAWIN_NO_SPLASH: '1' }
   });
   const w = await app.firstWindow();
+  global.__csp = global.__csp || []; w.on('console', m => { if (/Content Security Policy|Refused to (execute|load)/i.test(m.text())) global.__csp.push(m.text().slice(0, 160)); });
   await w.waitForLoadState('domcontentloaded');
   await w.waitForSelector('#authGate:not([hidden]) input[type=email]', { timeout: 15000 });
   if (!global.__authFoto) { global.__authFoto = 1; await w.waitForTimeout(600); await w.screenshot({ path: OUT + '/0-giris.png' }); global.__authUpd = await w.isVisible('#updBtnAuth'); }
@@ -572,9 +573,14 @@ c.save()`]);
     console.log('YD', JSON.stringify(yd));
     check(yd.f === '2024-11-15|FBADS-568-103903145|Meta Platforms Ireland Limited|IE9692928F|TRY|10866|kredi|reklam' && yd.url, 'yurt dışı PDF faturası okundu (tarih, fatura no, satıcı, VAT, tutar, kart) ve ilk sayfa görüntüsü çıkarıldı (' + yd.f + ')');
     // PDF okuyucu güvenliği (Görev 12, CVE-2024-4367): her getDocument çağrısı isEvalSupported:false ile; banka ekstresi PDF'i yine okunur
-    { const kaynak = fs.readFileSync(path.join(APP, 'renderer', 'index.html'), 'utf8');
+    { const kaynak = fs.readFileSync(path.join(APP, 'renderer', 'app.js'), 'utf8');   // Görev 28: arayüz betiği index.html'den app.js'e taşındı
       const cagri = kaynak.match(/pdfjsLib\.getDocument\(\{.*?\}\)\.promise/g) || [];
       check(cagri.length >= 3 && cagri.every(c => /isEvalSupported:false/.test(c)), 'pdf.js: her getDocument çağrısında isEvalSupported:false (' + cagri.length + ' çağrı)');
+      // Görev 28: satır içi betik yok; CSP script-src 'unsafe-inline' içermiyor ve oturum boyunca CSP ihlali yok
+      const csp = f => ((fs.readFileSync(path.join(APP, 'renderer', f), 'utf8').match(/Content-Security-Policy" content="([^"]*)"/) || [])[1] || '');
+      const satirIci = f => /<script(?![^>]*\bsrc=)[^>]*>/i.test(fs.readFileSync(path.join(APP, 'renderer', f), 'utf8')) || /\son[a-z]+\s*=\s*["']/i.test(fs.readFileSync(path.join(APP, 'renderer', f), 'utf8'));
+      check(['index.html', 'splash.html'].every(f => { const c = csp(f); return /script-src 'self'/.test(c) && !/script-src[^;]*unsafe-inline/.test(c) && !satirIci(f); }), "CSP: index.html ve splash.html'de satır içi betik yok, script-src 'unsafe-inline' yok");
+      check(!global.__csp.length, 'CSP ihlali yok (' + (global.__csp[0] || '') + ')');
       const ekstrePdf = path.join(gorsel, 'ekstre.pdf');
       require('child_process').execFileSync('python3', ['-c', `
 from reportlab.pdfgen import canvas
@@ -1229,6 +1235,9 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
       let sp = null;
       for (let i = 0; i < 20 && !sp; i++) { sp = app2.windows().find(x => /splash\.html/.test(x.url())); if (!sp) await new Promise(r => setTimeout(r, 100)); }
       check(!!sp, 'başlangıç ekranı açıldı');
+      await sp.waitForLoadState('domcontentloaded').catch(() => {});
+      { const d = await sp.evaluate(() => ({ v: document.getElementById('v').textContent, f: typeof window.setDurum, y: document.getElementById('y').textContent })).catch(e => ({ hata: String(e) }));
+        check(/^Sürüm \d/.test(d.v || '') && d.f === 'function' && /^%\d+$/.test(d.y || ''), "başlangıç ekranı betiği (splash.js) çalıştı: sürüm ve ilerleme yazıyor (" + JSON.stringify(d) + ')'); }
       await sp.waitForTimeout(400); await sp.screenshot({ path: OUT + '/0-baslangic.png' });
       await new Promise(r => setTimeout(r, 2500));
       const urls = app2.windows().map(x => x.url());
