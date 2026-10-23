@@ -75,7 +75,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 
 5. **Test ortamı** (rapor-03 ortam notu): Bulutta Playwright 1.63.0'a sabitlenmeli (hazır Chromium 1243); `fk/requirements-test.txt` (pytest, httpx, pillow, reportlab) yok; `test/ornek/` ve `fk/tests/veri_*.xlsx` depoda yok, bu yüzden e2e 250 yerine 204 test çalışıyor (1 düşüyor) ve pytest 2 düşüyor. Sahte örnek verilerle yeniden üretme görevi Yazılımcı'ya açılacak.
 
-6. **Güvenlik düzeltme sırası** (rapor-02): 05 (G-A) → 06 (G-C) → test örnek verileri → Görev 01 birleştikten sonra G-B (pdf.js `isEvalSupported:false`, `renderer/index.html`) ve G-J (CSP) → G-D, G-F, G-E, G-I, G-G. **Kullanıcı kararı bekleyen:** O7 (ofis lisansında kullanıcı sınırı olsun mu), G-H (kod imzalama sertifikası, yıllık ücretli). `supabase-kurulum.sql` depoda yok; temel tabloların RLS'i denetlenemedi, kullanıcıdan alınmalı.
+6. **Güvenlik düzeltme sırası** (rapor-02): 05 (G-A) → 06 (G-C) → test örnek verileri → Görev 01 birleştikten sonra G-B (pdf.js `isEvalSupported:false`, `renderer/index.html`) ve G-J (CSP) → G-D, G-F, G-E, G-I, G-G. **Kullanıcı kararı (23.10.2026):** O7 → ofis başına en fazla **10 kullanıcı** (G-E lisans sıkılaştırma görevine eklenecek). **Bekleyen:** G-H (kod imzalama sertifikası; OV yaklaşık 215–300 USD/yıl, Azure Artifact Signing Türkiye'den kullanılamıyor). `supabase-kurulum.sql` depoda yok; temel tabloların RLS'i denetlenemedi, kullanıcıdan alınmalı.
 7. **Test örnek dosyaları** (23.10.2026): Kullanıcıda dosya yok. Yazılımcı, kodun beklediği sütun düzenine göre sahte örnek dosyalar üretecek (Görev 06'dan sonra).
 
 ## Önerilen eklentiler
