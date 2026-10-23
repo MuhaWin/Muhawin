@@ -127,6 +127,13 @@ function createWindow() {
     return { action: 'deny' };
   });
   win.webContents.on('did-create-window', child => { child.removeMenu(); child.webContents.setWindowOpenHandler(({ url }) => (fk && fk.isOwnUrl(url)) ? { action: 'allow' } : (shell.openExternal(url), { action: 'deny' })); });
+  // ana pencere yalnız kendi sayfasında kalır: başka adrese gidilirse preload köprüsü (window.desktop) o sayfaya geçerdi
+  const anaSayfa = require('url').pathToFileURL(path.join(__dirname, 'renderer', 'index.html')).href;
+  win.webContents.on('will-navigate', (e, hedef) => {
+    if (String(hedef).split(/[?#]/)[0] === anaSayfa) return;
+    e.preventDefault();
+    if (/^https:\/\//i.test(hedef)) shell.openExternal(hedef);
+  });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   // sağ üstteki ✕ ile yanlışlıkla kapatmaya karşı sor
   win.on('close', e => {
@@ -188,7 +195,10 @@ ipcMain.handle('update-check', async () => { if (!guncelleme) return { ...update
 ipcMain.handle('update-install', () => ({ ok: !!(guncelleme && guncelleme.kur()) }));
 
 app.on('window-all-closed', () => app.quit());
-app.on('will-quit', () => { if (fk) fk.stop(); });
+// geçici fatura / PDF / WhatsApp görüntüleri çıkışta silinir (WhatsApp fişleri önce hesabın okc klasörüne kopyalanır)
+const GECICI = ['MuhaWin-pdf', 'MuhaWin-faturalar', 'MuhaWin-wa'];
+function geciciTemizle() { for (const ad of GECICI) { try { fs.rmSync(path.join(app.getPath('temp'), ad), { recursive: true, force: true }); } catch (e) {} } }
+app.on('will-quit', () => { if (fk) fk.stop(); geciciTemizle(); });
 
 // Fatura Kontrol: hesap klasörü ve MuhaWin Ayarlar'ındaki Luca bilgileri Python modülüne verilir.
 function fkEnv() {
@@ -350,13 +360,18 @@ ipcMain.handle('okc-pdf-oku', (e, img) => { okcLicensed(); const p = path.resolv
 ipcMain.handle('store-mizan', (e, fid) => ds.getMizan(fid));
 ipcMain.handle('data-info', () => ds.info());
 ipcMain.handle('open-data-folder', () => shell.openPath(ds.root()));
-ipcMain.handle('open-mail', (e, url) => shell.openExternal(url));
+// yalnız e-posta (mailto:) ve https bağlantıları; başka protokol işleyicisi açılmaz
+ipcMain.handle('open-mail', (e, url) => {
+  const u = String(url || '');
+  if (u.length > 4000 || !/^(mailto:|https:\/\/)/i.test(u)) throw new Error('Geçersiz bağlantı.');
+  return shell.openExternal(u);
+});
 ipcMain.handle('data-export', async () => {
   const name = 'ekstre-luca-veri-' + new Date().toISOString().slice(0, 10) + '.json';
   const r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('documents'), name), filters: [{ name: 'Ekstre Luca veri', extensions: ['json'] }] });
   if (r.canceled || !r.filePath) return { ok: false };
   const b = ds.bundle(); fs.writeFileSync(r.filePath, JSON.stringify(b));
-  return { ok: true, path: r.filePath, firms: Object.keys(b.firms).length };
+  return { ok: true, path: yazildi(r.filePath), firms: Object.keys(b.firms).length };
 });
 let pendingImport = null;
 ipcMain.handle('data-import-pick', async () => {
@@ -376,12 +391,22 @@ ipcMain.handle('data-use-shared', (e, dir, mode) => { const r = ds.useShared(dir
 ipcMain.handle('data-use-local', () => { const r = ds.useLocal(); ds.watch(); return r; });
 
 // --- dosya kaydet ---
+// "Klasörde göster" yalnız programın kaydettiği dosyalar ve veri klasörü için (arayüzden gelen rastgele yol açılmaz)
+const yazilanlar = new Set();
+const yazildi = p => { yazilanlar.add(path.resolve(p)); return p; };
+function gosterilebilir(p) {
+  const r = path.resolve(String(p || ''));
+  return yazilanlar.has(r) || [userDir(), acctDir].filter(Boolean).some(k => r === path.resolve(k) || r.startsWith(path.resolve(k) + path.sep));
+}
 ipcMain.handle('save-file', async (e, { filename, data }) => {
   const r = await dialog.showSaveDialog(win, { defaultPath: path.join(app.getPath('documents'), filename), filters: [{ name: 'Excel', extensions: ['xlsx'] }] });
   if (r.canceled || !r.filePath) return { ok: false };
-  fs.writeFileSync(r.filePath, Buffer.from(data)); return { ok: true, path: r.filePath };
+  fs.writeFileSync(r.filePath, Buffer.from(data)); return { ok: true, path: yazildi(r.filePath) };
 });
-ipcMain.handle('show-in-folder', (e, p) => shell.showItemInFolder(p));
+ipcMain.handle('show-in-folder', (e, p) => {
+  if (!gosterilebilir(p)) throw new Error('Bu dosya klasörde gösterilemez.');
+  shell.showItemInFolder(path.resolve(String(p)));
+});
 
 // --- lisans ---
 ipcMain.handle('license-status', () => auth.licenseStatus());
@@ -437,7 +462,7 @@ ipcMain.handle('admin-kod-uret', async (e, a) => {
   const sonuc = await auth.admin('admin_codes_add', { p_hashes: kodlar.map(k => kodOzet(k)), p_days: gun, p_module: mod, p_batch: parti });
   const csv = ['sira;modul;gun;parti;kod', ...kodlar.map((k, i) => `${i + 1};${mod};${gun};${parti};${kodGrupla(k)}`)].join('\r\n');
   fs.writeFileSync(r.filePath, '\ufeff' + csv);
-  return { ok: true, added: (sonuc && sonuc.added) || 0, path: r.filePath, parti, kodlar: adet <= 20 ? kodlar.map(kodGrupla) : null };
+  return { ok: true, added: (sonuc && sonuc.added) || 0, path: yazildi(r.filePath), parti, kodlar: adet <= 20 ? kodlar.map(kodGrupla) : null };
 });
 ipcMain.handle('app-info', () => ({ version: app.getVersion(), dataDir: userDir() }));
 // Hata günlüğü: arayüz hataları ve ana süreç hataları Belgeler\MuhaWin Günlük\hatalar.log'a yazılır
