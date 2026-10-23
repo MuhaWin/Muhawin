@@ -387,11 +387,16 @@ wb.save(${JSON.stringify(mzx)})`]);
     const cekSira = await app.evaluate(() => global.__cek.join(','));
     check(/^muavin:2026-\d\d,plan,muavin:2026-\d\d,mizan$/.test(cekSira) && await w.isVisible('#mmPanel'), 'Tümünü Luca\'dan çek: hesap planı → muavin → mizan sırayla (' + cekSira + ')');
     // hesap planında hesaba tıklayınca o hesabın muavini (mizandaki gibi)
-    await w.click('[data-mmtab=plan]'); await w.waitForTimeout(700);
-    await w.click('#mmTable tbody tr[data-kod="320.01"] td >> nth=1').catch(() => {}); await w.waitForTimeout(800);
+    // (Görev 24) sabit beklemeler yerine koşul beklenir: "Tümünü Çek" bitmeden / plan tablosu çizilmeden tıklanınca tıklama boşa gidiyordu
+    await w.waitForSelector('#mwBusy', { state: 'hidden', timeout: 20000 }).catch(() => {});
+    await w.click('[data-mmtab=plan]');
+    await w.waitForSelector('#mmTable tbody tr[data-kod="320.01"]', { timeout: 15000 }).catch(() => {});
+    await w.click('#mmTable tbody tr[data-kod="320.01"] td >> nth=1').catch(() => {});
+    await w.waitForFunction(() => /320\.01/.test((document.querySelector('#mmBar .mmhesap') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
     { const hb = await w.textContent('#mmBar .mmhesap').catch(() => ''); const geri = await w.textContent('[data-mmgeri]').catch(() => '');
       check(/320\.01/.test(hb) && /hesap planına/i.test(geri) && await w.getAttribute('[data-mmtab=muavin]', 'aria-pressed') === 'true', 'hesap planında hesaba tıklayınca o hesabın muavini açıldı (' + hb.trim() + ')');
-      await w.click('[data-mmgeri]').catch(() => {}); await w.waitForTimeout(500);
+      await w.click('[data-mmgeri]').catch(() => {});
+      await w.waitForSelector('[data-mmtab=plan][aria-pressed=true]', { timeout: 10000 }).catch(() => {});
       check(await w.getAttribute('[data-mmtab=plan]', 'aria-pressed') === 'true', '"Hesap planına dön" ile plana dönüldü'); }
     await w.click('[data-mmtab=muavin]'); await w.waitForTimeout(700);
     await w.click('[data-mmhx]').catch(() => {}); await w.waitForTimeout(400);
