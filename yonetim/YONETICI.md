@@ -10,7 +10,7 @@ Belge 23.10.2026'da Cowork projesinden ("Luca Fatura Muavin Kontrolü") depoya t
   - Derleme ve sürüm yayınlama artık Güncelleme oturumunun işidir.
   - Eski 75 commit'lik geçmiş, Cowork'teki ilk "Ana depo" oturumunda arşiv olarak duruyor; GitHub'a taşınmadı.
 - **Güncelleme** (kalıcı işçi, oturum adı "Güncelleme"): Programı derler, deneme sürümünü kullanıcıya gönderir ya da `muhawin/muhawin-surumler` deposuna yayınlar. Kartı: `gorevler/guncelleyici.md`. Yönetici her derleme için kartın "İş kayıtları" tablosuna bir satır ekler. Kullanıcı oturumu açıp şunu yazar: `Güncelleme oturumusun. yonetim/YONETICI.md ve yonetim/gorevler/guncelleyici.md dosyalarını oku, açık işi uygula.`
-- **İşçi:** Tek bir görev kartını uygular. Kendi dalında çalışır, PR açar ve raporunu `yonetim/raporlar/rapor-NN.md` dosyasına yazar (aynı PR içinde).
+- **İşçi:** Tek bir görev kartını uygular. Kullanıcı kararı (23.10.2026): Yönetici altında yalnız üç oturum vardır: **Ana Depo**, **Güncelleme**, **Menü Düzenleme**. Yeni görevler bu oturumlara verilir; yönetici işi oturuma doğrudan mesajla iletir. Kendi dalında çalışır, PR açar ve raporunu `yonetim/raporlar/rapor-NN.md` dosyasına yazar (aynı PR içinde).
 
 ## Klasör düzeni
 - `yonetim/YONETICI.md`: bu belge.
@@ -53,7 +53,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 |---|---|---|---|
 | 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | İşçi oturumu: **Menü Düzenleme**. Kod yazılmadı. Ara rapor: `raporlar/rapor-01.md` |
 | 02 | Güvenlik denetimi (yalnız okuma) | `gorevler/gorev-02-guvenlik-denetimi.md` | Açık |
-| 03 | Açılışta güncelleme sorusu ("Şimdi kur / Sonra") | `gorevler/gorev-03-guncelleme-sorusu.md` | Açık. İşçi oturumu: **Güncelleme Sorusu**. Görev 01 ile paralel yürüyebilir (`renderer/index.html`'e dokunmaz) |
+| 03 | Açılışta güncelleme sorusu ("Şimdi kur / Sonra") | `gorevler/gorev-03-guncelleme-sorusu.md` | Açık. Uygulayan: **Ana Depo** (kullanıcı kararı: yeni oturum açılmaz). Görev 01 ile paralel yürüyebilir (`renderer/index.html`'e dokunmaz) |
 | G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | G-01: 2.9.13 deneme derlemesi, açık |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
 
