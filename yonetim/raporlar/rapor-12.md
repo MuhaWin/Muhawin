@@ -57,7 +57,7 @@
 ## Testler
 | Test | Sonuç |
 |---|---|
-| `xvfb-run -a node test/e2e.js` | PR açıklamasında |
+| `xvfb-run -a node test/e2e.js` | **265 geçti, 0 başarısız**, çıkış kodu 0 (Görev 11 sonrası taban 263 + 2 yeni denetim). İlk koşuda yeni denetimlerin ikisi testin kendi hatası yüzünden kırıldı (regex, `readPdfLines` erişimi); düzeltildi |
 | PDF adımları | yurt dışı PDF faturası (metin + ilk sayfa çizimi) ve banka ekstresi PDF satırları `isEvalSupported:false` ile okunuyor |
 | pytest, mobil | Çalıştırılmadı: `fk/` ve `mobil-yonetim/` değişmedi |
 
