@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import html
 import re
 import zipfile
@@ -16,7 +17,7 @@ from .fatura_okuyucu import xml_oku
 ARAC_CUBUGU = """<div class="fk-arac" style="position:sticky;top:0;z-index:9999;display:flex;gap:10px;align-items:center;
  padding:8px 14px;background:#1f3864;color:#fff;font:14px 'Segoe UI',sans-serif">
  <b style="flex:1">{baslik}</b>
- <button onclick="window.print()" style="padding:6px 14px;border:0;border-radius:6px;background:#fff;color:#1f3864;
+ <button onclick="{yazdir}" style="padding:6px 14px;border:0;border-radius:6px;background:#fff;color:#1f3864;
   font-weight:600;cursor:pointer">🖨 Yazdır / PDF olarak kaydet</button></div>
 <style>@media print{{.fk-arac{{display:none!important}}}}</style>"""
 
@@ -58,19 +59,41 @@ def _sade(veri: bytes) -> str:
             + "</table><p style='color:#667085'>Bu belgede görsel şablon bulunmadığı için sade görünüm gösteriliyor.</p></div>")
 
 
+# Faturaya gömülü şablon güvenilmez girdidir: dosya/ağ erişimi kapalı (DENY_ALL), uzantı elemanı bildirimi
+# (exsl:document vb.) baştan reddedilir. Şablondaki <script> çıktıya geçebilir; yanıttaki CSP onu çalıştırmaz.
+_UZANTI = re.compile(rb"extension-element-prefixes", re.I)
+# Yazdır düğmesinin tek satır içi işleyicisi; CSP'de yalnız bu ifadeye izin verilir.
+YAZDIR_JS = "window.print()"
+
+
+def _xslt_uygula(sablon: bytes, veri: bytes) -> str | None:
+    if _UZANTI.search(sablon):
+        return None
+    from lxml import etree
+    parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False, huge_tree=False)
+    donustur = etree.XSLT(etree.fromstring(sablon, parser),
+                          access_control=etree.XSLTAccessControl.DENY_ALL)
+    return str(donustur(etree.fromstring(veri, parser)))
+
+
+def goruntu_csp() -> str:
+    """Görüntü yanıtının CSP'si: şablondaki script, olay öznitelikleri ve javascript: adresleri çalışmaz."""
+    ozet = base64.b64encode(hashlib.sha256(YAZDIR_JS.encode()).digest()).decode()
+    return (f"script-src 'unsafe-hashes' 'sha256-{ozet}'; object-src 'none'; base-uri 'none'; "
+            "form-action 'none'; frame-src 'none'; connect-src 'none'")
+
+
 def goruntu_html(veri: bytes, baslik: str) -> str:
     govde = None
     sablon = _xslt(veri)
     if sablon:
         try:
-            from lxml import etree
-            donustur = etree.XSLT(etree.fromstring(sablon))
-            govde = str(donustur(etree.fromstring(veri)))
+            govde = _xslt_uygula(sablon, veri)
         except Exception:
             govde = None
     if not govde:
         govde = _sade(veri)
-    arac = ARAC_CUBUGU.format(baslik=html.escape(baslik))
+    arac = ARAC_CUBUGU.format(baslik=html.escape(baslik), yazdir=YAZDIR_JS)
     if re.search(r"<body[^>]*>", govde, re.I):
         return re.sub(r"(<body[^>]*>)", lambda m: m.group(1) + arac, govde, count=1, flags=re.I)
     return f"<!doctype html><meta charset='utf-8'><title>{html.escape(baslik)}</title>{arac}{govde}"
