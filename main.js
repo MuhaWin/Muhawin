@@ -536,11 +536,13 @@ ipcMain.handle('fk-fatura-pdf', async (e, a) => {
   const o = a || {}; await fk.start(); const base = fk.info().url;
   if (!base) throw new Error('Fatura Kontrol modülü çalışmıyor.');
   const belge = String(o.belge || '');
-  const w = new BrowserWindow({ show: false, width: 1000, height: 1400, webPreferences: { sandbox: true, contextIsolation: true } });
+  // faturaya gömülü şablon güvenilmez: bu pencerede JavaScript kapalı (yalnız PDF'e yazdırılır)
+  const w = new BrowserWindow({ show: false, width: 1000, height: 1400, webPreferences: { sandbox: true, contextIsolation: true, javascript: false } });
   try {
+    let kod = 0; w.webContents.on('did-navigate', (ev, url, c) => { kod = c; });
     await w.loadURL(base + '/api/fatura/goruntu?id=' + encodeURIComponent(String(o.id || '')) + '&belge=' + encodeURIComponent(belge));
-    const durum = await w.webContents.executeJavaScript('document.title + "|" + (document.body ? document.body.innerText.slice(0, 80) : "")');
-    if (/Fatura dosyası bulunamadı|Rapor bulunamadı|"detail"/.test(durum)) throw new Error('Faturanın kendisi (XML) bu dönemin arşivinde bulunamadı.');
+    if (kod === 404) throw new Error('Faturanın kendisi (XML) bu dönemin arşivinde bulunamadı.');
+    if (kod !== 200) throw new Error('Fatura görüntülenemedi (HTTP ' + kod + ').');
     const pdf = await w.webContents.printToPDF({ printBackground: true, pageSize: 'A4', margins: { marginType: 'default' } });
     const dir = path.join(app.getPath('temp'), 'MuhaWin-faturalar'); fs.mkdirSync(dir, { recursive: true });
     const dosya = path.join(dir, 'Fatura_' + belge.replace(/[^\w.-]+/g, '_') + '.pdf');
