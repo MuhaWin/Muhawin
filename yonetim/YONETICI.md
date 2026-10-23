@@ -7,9 +7,9 @@ Belge 23.10.2026'da Cowork projesinden ("Luca Fatura Muavin Kontrolü") depoya t
 - **Yönetici:** İşleri parçalara böler ve her parça için görev kartı yazar (`yonetim/gorevler/gorev-NN-<konu>.md`). PR'ları inceler, kabul ya da ret kararı verir, kabul edilenleri birleştirir. `yonetim/` klasörünü günceller.
 - **Ana Depo 2 (MuhaWin/Muhawin)** (`session_01HKMyx49yrftMV598oVTfLH`):
   - Depo kurulumunu yapar, `main` dalının bakımını üstlenir.
-  - Derleme ve sürüm yayınlama artık Güncelleyici'nin işidir.
+  - Derleme ve sürüm yayınlama artık Güncelleme oturumunun işidir.
   - Eski 75 commit'lik geçmiş, Cowork'teki ilk "Ana depo" oturumunda arşiv olarak duruyor; GitHub'a taşınmadı.
-- **Güncelleyici** (kalıcı işçi, oturum adı "Güncelleyici"): Programı derler, deneme sürümünü kullanıcıya gönderir ya da `muhawin/muhawin-surumler` deposuna yayınlar. Kartı: `gorevler/guncelleyici.md`. Yönetici her derleme için kartın "İş kayıtları" tablosuna bir satır ekler. Kullanıcı oturumu açıp şunu yazar: `Güncelleyicisin. yonetim/YONETICI.md ve yonetim/gorevler/guncelleyici.md dosyalarını oku, açık işi uygula.`
+- **Güncelleme** (kalıcı işçi, oturum adı "Güncelleme"): Programı derler, deneme sürümünü kullanıcıya gönderir ya da `muhawin/muhawin-surumler` deposuna yayınlar. Kartı: `gorevler/guncelleyici.md`. Yönetici her derleme için kartın "İş kayıtları" tablosuna bir satır ekler. Kullanıcı oturumu açıp şunu yazar: `Güncelleme oturumusun. yonetim/YONETICI.md ve yonetim/gorevler/guncelleyici.md dosyalarını oku, açık işi uygula.`
 - **İşçi:** Tek bir görev kartını uygular. Kendi dalında çalışır, PR açar ve raporunu `yonetim/raporlar/rapor-NN.md` dosyasına yazar (aynı PR içinde).
 
 ## Klasör düzeni
@@ -24,7 +24,7 @@ Belge 23.10.2026'da Cowork projesinden ("Luca Fatura Muavin Kontrolü") depoya t
 3. İşçi `gorev-NN-<konu>` dalında çalışır, testleri çalıştırır, push eder ve PR açar.
 4. Yönetici PR'ı inceler (diff, testler, kapsam) ve PR'a yorum yazar: `KABUL` ya da `RET + gerekçe`. Kabul edilen PR **squash merge** ile birleştirilir.
 5. Paralel çalışma yalnız farklı dosyalara dokunan görevlerde yapılır. Aynı dosyaya dokunan görevler sırayla yürür. Bu dosyalar: `renderer/index.html`, `luca.js`, `main.js`, `fk/fatura_kontrol/web/toplu_api.py`. Sıradaki görev, önceki merge'ten sonra `main` üzerine rebase edilir.
-6. Kullanıcıya derlenmiş sürüm gerektiğinde yönetici `gorevler/guncelleyici.md` tablosuna iş yazar; Güncelleyici `main` dalını derler. Sürüm commit'i (`package.json` sürümü + OKUBENI) `surum-<sürüm>` dalından PR ile gelir. Yayın dosyaları `muhawin/muhawin-surumler` deposuna yüklenir.
+6. Kullanıcıya derlenmiş sürüm gerektiğinde yönetici `gorevler/guncelleyici.md` tablosuna iş yazar; Güncelleme oturumu `main` dalını derler. Sürüm commit'i (`package.json` sürümü + OKUBENI) `surum-<sürüm>` dalından PR ile gelir. Yayın dosyaları `muhawin/muhawin-surumler` deposuna yüklenir.
 
 ## İşçi oturum kuralları
 Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
@@ -36,7 +36,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
    - 20. mesajda yeni iş alma; kullanıcıya "Oturum sınırı doldu, yeni işçi oturumu açın" de.
    - Devam eden bir işi yarım bırakma; sınır yaklaşınca işi küçült.
 3. **GitHub kuralları:**
-   - Yalnız kendi `gorev-NN-*` dalına push et (Güncelleyici: `surum-<sürüm>`).
+   - Yalnız kendi `gorev-NN-*` dalına push et (Güncelleme oturumu: `surum-<sürüm>`).
    - `main` dalına push, force-push, merge ya da etiket yapma.
    - PR başlığı `Görev NN: <konu>` biçiminde olur. Açıklamada test sonuçları (sayılarla) ve rapor yolu bulunur.
 4. **`yonetim/` klasörüne yalnız kendi rapor dosyanı yaz.** YONETICI.md ve görev kartlarını değiştirme.

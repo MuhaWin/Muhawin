@@ -40,7 +40,7 @@
 ## Kabul ölçütleri
 - `node test/guncelleme.js`: en az şu durumlar sınanır: yeni sürüm yok → soru yok; yeni sürüm var + "Şimdi kur" → `downloadUpdate` ve indirme bitince `quitAndInstall`; "Sonra" → indirme yok, aynı oturumda ikinci denetimde soru yok; elle denetim → "Sonra" sonrası da soru var; indirme hatası → hata mesajı, çökme yok.
 - `xvfb-run -a node test/e2e.js` (250) ve `node test/mobil.js` (42) geçer.
-- Elle deneme gerçek bir GitHub sürümüyle yapılamaz; raporda belirt. Kurulu programda deneme, Güncelleyici'nin ilk yayınından sonra kullanıcıyla yapılacak.
+- Elle deneme gerçek bir GitHub sürümüyle yapılamaz; raporda belirt. Kurulu programda deneme, Güncelleme oturumunun ilk yayınından sonra kullanıcıyla yapılacak.
 - Commit'ler Türkçe ve adım adım olmalı. **Derleme yapılmaz.**
 
 ## Teslim
