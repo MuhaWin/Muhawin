@@ -14,7 +14,8 @@ Dal: `claude/beautiful-bohr-c7x9ij`. Oturum ortamı bu dalı zorunlu kılıyor; 
 ## Commit'ler
 - `0d3c913` MuhaWin web sitesi ve web'de Mikro Denetim
 - `3f751fb` Görev 04 Aşama A: web sağlayıcı önerisi
-- (bu commit) Görev 04 Aşama C: web modülleri analizi, tarayıcı denemesi, rapor
+- `81bc14a` Görev 04 Aşama C: web modülleri analizi, tarayıcı denemesi, rapor
+- `4b195d8` main birleştirildi; (son commit) site yeni sürüm deposuna geçti
 
 ## Değişen dosyalar
 - Yeni:
@@ -58,8 +59,8 @@ Dal: `claude/beautiful-bohr-c7x9ij`. Oturum ortamı bu dalı zorunlu kılıyor; 
 - **Ağ politikası:** Bu oturumdan WHOIS/RDAP, trabis.gov.tr, GitHub web/API, Pyodide CDN'i ve resmî fiyat sayfaları açılamadı. Bu yüzden:
   - alan adı uygunluğu sorgulanmadı;
   - fiyatlar üçüncü taraf kaynaklardan alındı;
-  - `McLk007/muhawin-surumler` deposunun herkese açık olduğu doğrulanamadı.
-- **Sürüm deposu adresi:** Site indirme adresini `package.json`'daki depodan (`McLk007/muhawin-surumler`) üretiyor. Depo `muhawin/muhawin-surumler`'e taşınınca (açık konu 4) `package.json` güncellenir, `node tools/site_uret.js` yeniden çalıştırılır ve site kendiliğinden yeni adrese geçer. `site.js` ve `indir.html`'deki yedek bağlantılar da o zaman değiştirilmeli.
+  - sürüm deposunun herkese açık olduğu doğrulanamadı.
+- **Sürüm deposu adresi:** `main` birleştirildi; site artık `package.json`'daki yeni depoyu (`muhawin/muhawin-surumler`) kullanıyor (`surum.json` ve yedek bağlantılar). Depo taşınana kadar (açık konu 4) indirme bağlantısı GitHub yönlendirmesine bağlı.
 
 ## Devir notu
 - Sonraki iş (karar T ise):

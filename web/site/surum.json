@@ -1,8 +1,8 @@
 {
   "surum": "2.9.12",
   "dosya": "MuhaWin-Kurulum-2.9.12.exe",
-  "depo": "McLk007/muhawin-surumler",
-  "indir": "https://github.com/McLk007/muhawin-surumler/releases/download/v2.9.12/MuhaWin-Kurulum-2.9.12.exe",
+  "depo": "muhawin/muhawin-surumler",
+  "indir": "https://github.com/muhawin/muhawin-surumler/releases/download/v2.9.12/MuhaWin-Kurulum-2.9.12.exe",
   "moduller": [
     "Muhasebe İşlemleri",
     "Banka İşlemleri",
@@ -235,7 +235,7 @@
       "surum": "2.9.5",
       "maddeler": [
         {
-          "metin": "Otomatik güncelleme GitHub'daki McLk007/muhawin-surumler deposundan yapılır. 2.9.5'i her bilgisayara BİR KEZ elle kurun; sonraki sürümler program açıkken kendiliğinden indirilir (Ayarlar → Hakkında → Güncellemeleri Denetle).",
+          "metin": "Otomatik güncelleme GitHub'daki muhawin/muhawin-surumler deposundan yapılır. 2.9.5'i her bilgisayara BİR KEZ elle kurun; sonraki sürümler program açıkken kendiliğinden indirilir (Ayarlar → Hakkında → Güncellemeleri Denetle).",
           "alt": []
         }
       ]
