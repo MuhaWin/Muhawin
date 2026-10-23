@@ -3,7 +3,7 @@
 Bu belgenin sahibi yönetici oturumudur. Diğer oturumlar belgeyi **okur, değiştirmez**; önerilerini raporlarına yazar.
 Belge 23.10.2026'da Cowork projesinden ("Luca Fatura Muavin Kontrolü") depoya taşındı. Cowork projesi artık arşivdir; güncel kaynak bu klasördür.
 
-## Roller ve oturumlar (tümü Code bölümünde, `McLk007/muhawin` deposuna bağlı)
+## Roller ve oturumlar (tümü Code bölümünde, `MuhaWin/Muhawin` deposuna bağlı)
 - **Yönetici:** İşleri parçalara böler ve her parça için görev kartı yazar (`yonetim/gorevler/gorev-NN-<konu>.md`). PR'ları inceler, kabul ya da ret kararı verir, kabul edilenleri birleştirir. `yonetim/` klasörünü günceller.
 - **Ana Depo 2 (MuhaWin/Muhawin)** (`session_01HKMyx49yrftMV598oVTfLH`):
   - Depo kurulumunu yapar, `main` dalının bakımını üstlenir.
@@ -23,7 +23,7 @@ Belge 23.10.2026'da Cowork projesinden ("Luca Fatura Muavin Kontrolü") depoya t
 3. İşçi `gorev-NN-<konu>` dalında çalışır, testleri çalıştırır, push eder ve PR açar.
 4. Yönetici PR'ı inceler (diff, testler, kapsam) ve PR'a yorum yazar: `KABUL` ya da `RET + gerekçe`. Kabul edilen PR **squash merge** ile birleştirilir.
 5. Paralel çalışma yalnız farklı dosyalara dokunan görevlerde yapılır. Aynı dosyaya dokunan görevler sırayla yürür. Bu dosyalar: `renderer/index.html`, `luca.js`, `main.js`, `fk/fatura_kontrol/web/toplu_api.py`. Sıradaki görev, önceki merge'ten sonra `main` üzerine rebase edilir.
-6. Kullanıcıya derlenmiş sürüm gerektiğinde Ana Depo 2 `main` dalını derler ve `v<sürüm>` etiketi koyar. Sürüm dosyaları `McLk007/muhawin-surumler` deposuna yüklenir.
+6. Kullanıcıya derlenmiş sürüm gerektiğinde Ana Depo 2 `main` dalını derler ve `v<sürüm>` etiketi koyar. Sürüm dosyaları `muhawin/muhawin-surumler` deposuna yüklenir.
 
 ## İşçi oturum kuralları
 Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
@@ -50,14 +50,18 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 ## Görev kayıtları
 | No | Konu | Kart | Durum |
 |---|---|---|---|
-| 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | Kod yazılmadı. Ara rapor: `raporlar/rapor-01.md` |
+| 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | İşçi oturumu: **Menü Düzenleme**. Kod yazılmadı. Ara rapor: `raporlar/rapor-01.md` |
 | 02 | Güvenlik denetimi (yalnız okuma) | `gorevler/gorev-02-guvenlik-denetimi.md` | Açık |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
+
+## Sürüm planı
+**Sonraki derleme (kullanıcı kararı, 23.10.2026):** Görev 01 (menü düzeni) birleştirildikten **ve** sürüm deposu taşındıktan (açık konu 4) sonra program derlenir. Bu ilk sürüm yeni depoya (`muhawin/muhawin-surumler`) yayınlanır. Derleme Ana Depo 2'nin işidir ve kullanıcı "derle" dediğinde yapılır.
 
 ## Açık konular
 1. **Luca sayfa yönetimi** (rapor-01 madde 4, Görev 01 kapsamı dışında kaldı): "Luca'da Çalış" ayrı pencerede açılsın; aynı anda ek bir iş başlarsa yeni Luca sayfası açılsın. Bu iş `luca.js` ve Playwright'a dokunuyor. Görev 01 birleştirildikten sonra ayrı görev olarak açılacak.
 2. **`test/ornek/`** (`logo_musteri`, `mizan_inka`, `mizan_savor`, `mikro_*`, `okc_fis*`): Gerçek müşteri verisi olabilir. Kullanıcı doğrulamalı. Gerçekse sahte verilerle değiştirme görevi açılacak; bu dosyalar depoya girmez.
 3. **Hesap geçişi:** Kullanıcı Team hesabından kişisel Max 20x hesabına geçmeyi düşünüyor. Depo hesaptan bağımsız; geçişte yalnız GitHub bağlantısı yeniden kurulur. Max planında Claude Code "Projects" özelliği de var; bu düzen için uygun.
+4. **Sürüm deposu taşınıyor** (23.10.2026): `McLk007/muhawin-surumler` → `muhawin/muhawin-surumler`. `package.json` → `build.publish` güncellendi. Kurulu sürümler adresi derlemede `app-update.yml`'ye yazılmış haliyle (eski depo) arar. **Karar:** Eski depo GitHub "Transfer ownership" ile taşınacak; GitHub yönlendirmesi sayesinde köprü sürüm gerekmez. Yeni açılan boş depo önce silinecek ya da yeniden adlandırılacak (ad çakışması). Taşımadan sonra `McLk007` altında aynı adla depo açılmamalı, depo herkese açık kalmalı. 2.9.4 öncesinde otomatik güncelleme yok, elle kurulur. **Kullanıcı yapacak; sonra doğrulanacak.**
 
 ## Önerilen eklentiler
 - **claude-security** (Anthropic): Görev 02 için.

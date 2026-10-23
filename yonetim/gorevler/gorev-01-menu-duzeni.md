@@ -10,7 +10,7 @@
 
 ## Kapsam (rapor-01 istek listesi)
 1. Üstte kalıcı modül sekme çubuğu: Banka · Muhasebe · Belgeden Fiş · Denetim · Ofisinize Özel · Geçici Vergi (yakında) · Personel (yakında).
-2. "Yeni firma" düğmesini üst şeritten kaldır, Ayarlar → Firmalar bölümüne taşı. "Luca'dan firma ekle" için kullanıcıya sor.
+2. "Yeni firma" düğmesini üst şeritten kaldır, Ayarlar → Firmalar bölümüne taşı. "Luca'dan firma ekle" de Ayarlar → Firmalar bölümüne taşınır (kullanıcı kararı, 23.10.2026). Bu düğme de üst şeritte kalmaz.
 3. Luca giriş düğmesi yalnız üst şeritte kalsın ("Luca'ya giriş" / "● Luca bağlı"). Diğer tüm "Luca'ya bağlan" düğmelerini kaldır:
    - Banka toolbar `data-luca="connect"`
    - okcPanel, cekPanel, fkKayit

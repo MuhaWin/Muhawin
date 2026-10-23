@@ -99,7 +99,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "McLk007",
+        "owner": "muhawin",
         "repo": "muhawin-surumler",
         "releaseType": "release"
       }
