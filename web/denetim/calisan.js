@@ -11,10 +11,10 @@ const ilerleme = metin => postMessage({ tip: 'ilerleme', metin });
 const kaydet = () => (kayitSira = kayitSira.then(() => new Promise(c => py.FS.syncfs(false, () => c()))));
 
 async function baslat() {
-  ilerleme('Denetim motoru indiriliyor… (ilk açılışta biraz sürer)');
+  ilerleme('Muhasebe Denetimi indiriliyor… (ilk açılışta biraz sürer)');
   const paket = await (await fetch('py/paket.json', { cache: 'no-cache' })).json();
   py = await loadPyodide({ indexURL: new URL('pyodide/', location.href).href, env: { FK_VERI: '/veri', FK_BILDIRIM_URL: '' } });
-  ilerleme('Denetim motoru kuruluyor…');
+  ilerleme('Muhasebe Denetimi kuruluyor…');
   const al = async ad => new Uint8Array(await (await fetch('py/' + ad + '?s=' + paket.surum)).arrayBuffer());
   for (const w of paket.wheels) py.unpackArchive(await al(w), 'wheel');
   py.FS.mkdirTree('/kod');

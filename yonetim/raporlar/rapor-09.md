@@ -1,8 +1,13 @@
 # Rapor 09 – Web: Denetim tarayıcıda + site girişi (W1 + W2)
 
 Uygulayan: Web Asistanı (`session_01GmVYe6iE3V7psTH1xXFUiq`) · 23.10.2026
-Dal: `claude/beautiful-bohr-c7x9ij` (oturum ortamının zorunlu kıldığı dal). Taban: `main` 47cdc97.
+Dal: `claude/beautiful-bohr-c7x9ij` (oturum ortamının zorunlu kıldığı dal). Taban: `main` e7ebb7d (birleştirildi).
 `fk/`, `renderer/`, `main.js`, `luca.js` ve `package.json` değişmedi.
+
+## Kullanıcı kararları (yönetici iletti, 23.10.2026)
+- Sitedeki modülün adı **"Muhasebe Denetimi"**: sayfa başlığı ve üst başlık derlemede çevrilir (`sayfaUyarla`); giriş sayfası, ana sayfadaki yeni "Muhasebe Denetimi" bölümü ve köprü iletileri bu adı kullanır.
+- "Hızlı Fiş Girişi" → **"Belgeden Fiş"** (`web/site/index.html`, 2 yer).
+- PR #16 birleştikten sonra gelen 4fc92c7 commit'i (Denetim'in başka programlarla genişletilmesi, `web-modul-analizi.md`) bu PR'a alındı.
 
 ## Ne yapıldı
 | Kart maddesi | Durum | Dosyalar |
@@ -40,19 +45,19 @@ Dal: `claude/beautiful-bohr-c7x9ij` (oturum ortamının zorunlu kıldığı dal)
 ## Testler
 | Test | Sonuç |
 |---|---|
-| `node --test test/site_uret.test.js` (sürüm notu, zip yazıcı, sayfa uyarlama) | 5/5 |
+| `node --test test/site_uret.test.js` (sürüm notu, zip yazıcı, sayfa uyarlama, site adı) | 6/6 |
 | `node --test web/denetim/kopru.test.mjs` (derlenmiş paketle Pyodide; sahte veri) | 2/2: denetim (KDV 0 · Matrah 1 · Cari 1), liste, yeniden açma, Excel (xlsx baytları), çıktı raporu, fiş yazdırma, fatura görüntüsü, yerel belgelerle yeniden denetim; eksik dosya 422, Luca uç noktaları 404 |
-| `python3 web/denetim/site_e2e.py` (Chromium, `_headers`/CSP uygulanmış, sahte Supabase) | 20/20: oturumsuz → giriş; yanlış şifre; oturum yalnız sessionStorage'da; firma ekle → denetim → özet ve sorunlu kayıtlar; Excel iner; çıktı raporu kum havuzlu çerçevede ve oturuma erişemiyor; KDV beyannamesi sayfası; yenileyince denetim duruyor; çıkış; ofisine tanımlı olmayan hesap giremez; CSP ihlali yok; site ve Supabase dışında istek yok; Supabase'e yalnız giriş/lisans (en büyük gövde 67 bayt) |
+| `python3 web/denetim/site_e2e.py` (Chromium, `_headers`/CSP uygulanmış, sahte Supabase) | 21/21: oturumsuz → giriş; sayfa adı Muhasebe Denetimi; yanlış şifre; oturum yalnız sessionStorage'da; firma ekle → denetim → özet ve sorunlu kayıtlar; Excel iner; çıktı raporu kum havuzlu çerçevede ve oturuma erişemiyor; KDV beyannamesi sayfası; yenileyince denetim duruyor; çıkış; ofisine tanımlı olmayan hesap giremez; CSP ihlali yok; site ve Supabase dışında istek yok; Supabase'e yalnız giriş/lisans (en büyük gövde 67 bayt) |
 | CI paket seti (temiz venv: pytest, openpyxl, lxml, xlrd, playwright 1.64.1) ile örnek üretimi ve e2e | geçti |
 | pytest (`fk/`) | `fk/` değişmediği için çalıştırılmadı; `main` ile aynı |
 
 Gerçek Supabase'e istek atılmadı. Gerçek müşteri verisi kullanılmadı (girdiler `fk/tests` üreticilerinden).
 
-Ekran: `rapor-09/site-denetim-sahte-veri.png`. Başlıkta "Mikro Denetim" yazıyor; ad ve program seçimi `fk/` işi (aşağıda).
+Ekran: `rapor-09/site-denetim-sahte-veri.png`. Sitede başlık "Muhasebe Denetimi"; program seçimi `fk/` işi (Görev 08).
 
 ## Kullanıcı / yönetici kararı bekleyenler
 1. **Alan adı** (`muhawin.com.tr`, isteğe bağlı `muhawin.tr`), Cloudflare hesabı, GitHub sırları (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) ve `SITE_YAYIN=1`. İlk yayın kullanıcının "Run workflow" onayıyla yapılır.
-2. **Denetim'in genişletilmesi** (kullanıcı kararı): `denetim.html`'de program seçimi ve adın "Denetim" olması; diğer programların muavin ve red/iptal okuyucuları. Bunlar `fk/` işi (Yazılımcı). Site yeni okuyucuları derlemeyle kendiliğinden alır.
+2. **Denetim'in genişletilmesi** (kullanıcı kararı): `denetim.html`'de program seçimi ve diğer programların muavin ve red/iptal okuyucuları Görev 08'e eklendi (Yazılımcı). Site yeni okuyucuları derlemeyle kendiliğinden alır. Masaüstü kart adı kullanıcıya soruluyor.
 3. Görev 08 kapsamı: yukarıdaki öneri (`toplu_api` içe aktarımını tembel yapmak).
 4. Bu PR'ın birleşmesiyle `site.yml` her `main` push'unda derleme ve test yapar. Yayın, `SITE_YAYIN` tanımlanana kadar kapalı.
 
