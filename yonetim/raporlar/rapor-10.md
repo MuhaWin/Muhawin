@@ -1,6 +1,6 @@
 # Rapor 10 – "Belgeden Fiş" ve "Muhasebe Denetimi" adları
 
-**Durum:** Yapıldı. Push, uzak dalda kalan eski Görev 01 geçmişi yüzünden kullanıcı onayı bekliyor. İşçi oturumu: **Menü Düzenleme**. Dal: `claude/affectionate-darwin-effcgp`; ortam başka bir dala push izni vermiyor. Taban: `main` (e7ebb7d).
+**Durum:** Yapıldı. Dal, birleştirilmiş Görev 01 geçmişi yerine kullanıcı onayıyla force-with-lease ile güncellendi. İşçi oturumu: **Menü Düzenleme**. Dal: `claude/affectionate-darwin-effcgp`; ortam başka bir dala push izni vermiyor. Taban: `main` (e7ebb7d).
 
 ## Değişen görünen metinler
 - `renderer/index.html` (6 yer):
