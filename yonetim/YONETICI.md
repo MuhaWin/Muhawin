@@ -56,7 +56,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 |---|---|---|---|
 | 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | İşçi oturumu: **Menü Düzenleme**. Kod yazılmadı. Ara rapor: `raporlar/rapor-01.md` |
 | 02 | Güvenlik denetimi (yalnız okuma) | `gorevler/gorev-02-guvenlik-denetimi.md` | Açık. Uygulayan: **Yazılımcı** (Görev 03'ten sonra) |
-| 03 | Açılışta güncelleme sorusu ("Şimdi kur / Sonra") | `gorevler/gorev-03-guncelleme-sorusu.md` | Açık. Uygulayan: **Yazılımcı**. Görev 01 ile paralel yürüyebilir (`renderer/index.html`'e dokunmaz) |
+| 03 | Açılışta güncelleme sorusu ("Şimdi kur / Sonra") | `gorevler/gorev-03-guncelleme-sorusu.md` | **Birleştirildi** ([#6](https://github.com/MuhaWin/Muhawin/pull/6)). Rapor: `raporlar/rapor-03.md`. Kurulu programda deneme ilk yayından sonra |
 | 04 | Alan adı, barındırma, tanıtım sitesi, web modülleri analizi | `gorevler/gorev-04-web-sitesi.md` | Açık. Uygulayan: **Web Asistanı**. Program dosyalarına dokunmaz; diğerleriyle paralel |
 | G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | G-01: 2.9.13 deneme derlemesi, açık |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
@@ -70,6 +70,8 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 2. **`test/ornek/`** (`logo_musteri`, `mizan_inka`, `mizan_savor`, `mikro_*`, `okc_fis*`): Gerçek müşteri verisi olabilir. Kullanıcı doğrulamalı. Gerçekse sahte verilerle değiştirme görevi açılacak; bu dosyalar depoya girmez.
 3. **Hesap geçişi:** Kullanıcı Team hesabından kişisel Max 20x hesabına geçmeyi düşünüyor. Depo hesaptan bağımsız; geçişte yalnız GitHub bağlantısı yeniden kurulur. Max planında Claude Code "Projects" özelliği de var; bu düzen için uygun.
 4. **Sürüm deposu taşınıyor** (23.10.2026): `McLk007/muhawin-surumler` → `muhawin/muhawin-surumler`. `package.json` → `build.publish` güncellendi. Kurulu sürümler adresi derlemede `app-update.yml`'ye yazılmış haliyle (eski depo) arar. **Karar:** Eski depo GitHub "Transfer ownership" ile taşınacak; GitHub yönlendirmesi sayesinde köprü sürüm gerekmez. Yeni açılan boş depo önce silinecek ya da yeniden adlandırılacak (ad çakışması). Taşımadan sonra `McLk007` altında aynı adla depo açılmamalı, depo herkese açık kalmalı. 2.9.4 öncesinde otomatik güncelleme yok, elle kurulur. **Kullanıcı yapacak; sonra doğrulanacak.**
+
+5. **Test ortamı** (rapor-03 ortam notu): Bulutta Playwright 1.63.0'a sabitlenmeli (hazır Chromium 1243); `fk/requirements-test.txt` (pytest, httpx, pillow, reportlab) yok; `test/ornek/` ve `fk/tests/veri_*.xlsx` depoda yok, bu yüzden e2e 250 yerine 204 test çalışıyor (1 düşüyor) ve pytest 2 düşüyor. Sahte örnek verilerle yeniden üretme görevi Yazılımcı'ya açılacak.
 
 ## Önerilen eklentiler
 - **claude-security** (Anthropic): Görev 02 için.
