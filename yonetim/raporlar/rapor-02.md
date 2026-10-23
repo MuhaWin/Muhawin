@@ -114,3 +114,26 @@ Kartlar birbirinden bağımsız. Hangi kartın Görev 01 (menü düzeni) ile sı
   - Yerel PostgreSQL 16 (Supabase rol ve `auth.uid()` taklitleriyle): `sunucu/*.sql` RPC denemeleri.
   - Node: çevrimdışı önbellek sahteciliği.
 - Deneme betikleri depoya eklenmedi.
+
+## Ek – Canlı şema dökümü (23.10.2026)
+Kullanıcı Supabase SQL Editor'dan şema dökümü gönderdi (CSV: 14 tablo, 14 RLS satırı, 56 fonksiyon tanımı). Politika ve GRANT bilgisi dökümde yoktu; kullanıcıdan istendi, gelince bu ek tamamlanacak.
+
+### Doğrulananlar
+- **Temel tablolarda RLS açık.** Ana raporda "Denetlenmeyenler" altında kalan `profiles`, `licenses`, `license_codes`, `devices`, `settings`, `admins` dahil 14 tablonun 14'ünde de açık.
+- **`_is_admin`:** Canlı tanım depodakiyle aynı. Sunucu tarafında `admins` tablosuna **ve** `settings.admin_email` ile eşleşen e-postaya bakıyor.
+- **Yönetim fonksiyonları:** 56 fonksiyonun 55'i SECURITY DEFINER ve `search_path` sabit. Tek istisna `_norm_uye`: SECURITY INVOKER, yalnız `regexp_replace` yapan saf yardımcı; risk yok. `admin_*` fonksiyonlarının tamamında `_chk()` var.
+- **`save_registration`:** Yalnız kendi profilini (`auth.uid()`) güncelliyor.
+- **WhatsApp canlıda yok:** `wa_numaralar`, `wa_gelen` ve `wa_*` fonksiyonları kurulu değil. Y2, Y3, D1 (wa kısmı) ve D4 canlıda etkin değil; depoda Görev 06 ile düzeltildi (`sunucu/yama-06-whatsapp.sql`).
+
+### Yeni bulgular
+| No | Önem | Kanıt | Yer | Sorun | Önerilen düzeltme | İş |
+|---|---|---|---|---|---|---|
+| E1 | Orta | D | canlı `ofis_veri_yaz` (depoda yoktu) | Ofisin her üyesi (çalışan dahil) ofisin tüm ortak verisini silebiliyor (`silindi=true`) ya da üzerine yazabiliyor. `bulut-veri-tasarimi.md` §7.1'deki "silme yetkisi" kararı verilmeden canlıya çıkmış. | Silme ayara bağlandı; varsayılan "yalnız yönetici". Üzerine yazma için önceki sürümü saklayan geçmiş tablosu önerildi. | S (Görev 07) |
+| E2 | Orta | D | canlı `ofis_veri_yaz` | Sahip başına satır sınırı yok. Satır başına 3 MB × istek başına 500 satır, yani tek istekte ~1,5 GB'a kadar veri. | Sahip başına 200.000 satır, istek başına 20 MB. | S (Görev 07) |
+| E3 | Orta | D | `ofis_veri` tablosu, `ofis_veri_surum`, `_veri_sahibi`, `_veri_yetkili`, `ofis_veri_yaz`, `ofis_veri_degisenler` | Canlıda var, depoda yok; kaynak kontrolü dışında. İstemci kodunda da kullanılmıyor (`grep` boş). Hangi sürümün/oturumun eklediği belli değil. | `sunucu/supabase-ofis-veri.sql` olarak depoya alındı. | S (Görev 07) |
+| E4 | Düşük | O | canlı `handle_new_user` | `admin_email` ile kaydolan yeni hesap otomatik olarak `admins` tablosuna ekleniyor. Yönetici hesabı varken sömürülemez (e-posta tekil). Hesap silinir ve e-posta doğrulaması kapalıysa o adresi ilk kaydeden yönetici olur. | E-posta doğrulamasının açık olduğu teyit edilmeli; yönetici ekleme yalnız elle yapılmalı. | S |
+| E5 | Düşük | O | canlı `save_registration` | `reg` (jsonb) boyutu sınırsız. | `octet_length(p_reg::text) < 20000` denetimi (D8 ile birlikte, G-E). | S |
+
+### Hâlâ bekleyen (kullanıcıdan)
+- Politika listesi (`pg_policies`), tablo ve fonksiyon yetkileri (`anon` / `authenticated` EXECUTE). Özellikle depoda olmayan `_veri_sahibi`, `_veri_yetkili`, `_admin_user_json`, `_status_of` gibi yardımcıların canlıda istemciye kapalı olup olmadığı.
+- Authentication ayarları: "Confirm email" ve "Secure email change" açık mı (E4 ve davet e-postası bağı için).

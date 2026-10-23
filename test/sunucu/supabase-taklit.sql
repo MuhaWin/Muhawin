@@ -20,3 +20,7 @@ create table public.offices(id uuid primary key default gen_random_uuid(), name 
 create table public.office_members(user_id uuid primary key references auth.users(id) on delete cascade,
   office_id uuid not null references public.offices(id) on delete cascade, role text not null default 'calisan', joined_at timestamptz not null default now());
 revoke all on public.offices, public.office_members from anon, authenticated;
+-- ofis_veri'nin dayandığı tablolar (supabase-kurulum.sql'deki profiles.disabled ve settings)
+create table public.profiles(id uuid primary key references auth.users(id) on delete cascade, email text, disabled boolean not null default false);
+create table public.settings(key text primary key, value jsonb);
+revoke all on public.profiles, public.settings from anon, authenticated;

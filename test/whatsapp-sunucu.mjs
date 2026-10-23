@@ -2,60 +2,18 @@
 // Supabase'e bağlanmaz. Geçici bir PostgreSQL kümesi açılır; auth.uid() ve roller taklit edilir (test/sunucu/supabase-taklit.sql),
 // ardından depodaki sunucu/supabase-whatsapp.sql ve sunucu/yama-06-whatsapp.sql yüklenir.
 // PostgreSQL (initdb) bulunamazsa test "atlandı" yazar ve 0 ile çıkar.
-import { execFileSync, spawn, spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { yerelPg } from './sunucu/yerel-pg.mjs';
 
-const KOK = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ok = [], bad = [];
 const check = (c, m) => { (c ? ok : bad).push(m); console.log((c ? '  ✓ ' : '  ✗ ') + m); };
-
-function pgBin() {
-  const adaylar = [];
-  try { for (const v of fs.readdirSync('/usr/lib/postgresql').sort().reverse()) adaylar.push(`/usr/lib/postgresql/${v}/bin`); } catch (e) {}
-  for (const d of (process.env.PATH || '').split(path.delimiter)) adaylar.push(d);
-  return adaylar.find(d => fs.existsSync(path.join(d, 'initdb')) && fs.existsSync(path.join(d, 'postgres')));
-}
-const BIN = pgBin();
-if (!BIN) { console.log('PostgreSQL (initdb) bulunamadı: test atlandı.'); process.exit(0); }
-
-// root olarak çalışıyorsak PostgreSQL'i postgres kullanıcısıyla başlat (initdb root'u reddeder)
-const root = process.getuid && process.getuid() === 0;
-const kos = (cmd, args, o = {}) => root ? execFileSync('runuser', ['-u', 'postgres', '--', cmd, ...args], o) : execFileSync(cmd, args, o);
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mw-pg-'));
-if (root) execFileSync('chown', ['postgres', dir]);
-const data = path.join(dir, 'data');
-kos(path.join(BIN, 'initdb'), ['-D', data, '-U', 'postgres', '-A', 'trust', '--no-sync'], { stdio: 'ignore' });
-const pgArgs = ['-D', data, '-k', dir, '-c', 'listen_addresses=', '-c', 'fsync=off'];
-const pg = root ? spawn('runuser', ['-u', 'postgres', '--', path.join(BIN, 'postgres'), ...pgArgs], { stdio: 'ignore' })
-               : spawn(path.join(BIN, 'postgres'), pgArgs, { stdio: 'ignore' });
-const kapat = () => { try { pg.kill('SIGINT'); } catch (e) {} };
-process.on('exit', () => { kapat(); try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {} });
-
-const psqlYol = fs.existsSync(path.join(BIN, 'psql')) ? path.join(BIN, 'psql') : 'psql';
-// SQL'i çalıştırır; çıktı satırlarını döndürür. hataDur=false ise hata da çıktıya katılır.
-function sql(metin, hataDur = true) {
-  const args = ['-h', dir, '-U', 'postgres', '-d', 'postgres', '-X', '-q', '-t', '-A', '-v', `ON_ERROR_STOP=${hataDur ? 1 : 0}`, '-f', '-'];
-  const r = spawnSync(psqlYol, args, { input: metin, encoding: 'utf8' });
-  if (hataDur && r.status !== 0) throw new Error(r.stderr + r.stdout);
-  return hataDur ? r.stdout.trim() : (r.stdout + r.stderr).trim();      // NOTICE / ERROR stderr'e yazılır
-}
-const dosya = p => fs.readFileSync(path.join(KOK, p), 'utf8');
-// kullanıcı olarak (auth.uid() = uid) tek ifade çalıştır; "OK" ya da hata metni döner
-function kullanici(uid, ifade) {
-  return sql(`set role authenticated; select set_config('request.jwt.claim.sub', '${uid}', false);
-do $t$ begin ${ifade}; raise notice 'SONUC:OK'; exception when others then raise notice 'SONUC:%', sqlerrm; end $t$;`, false);
-}
-const sonuc = cikti => (/SONUC:(.*)/.exec(cikti) || [])[1] || cikti;
+const PG = await yerelPg();
+if (!PG) { console.log('PostgreSQL (initdb) bulunamadı: test atlandı.'); process.exit(0); }
+const { sql, kullanici, sonuc, dosya } = PG;
 
 const A = '00000000-0000-0000-0000-0000000000a1', B = '00000000-0000-0000-0000-0000000000b1', C = '00000000-0000-0000-0000-0000000000c1';
 const OA = '00000000-0000-0000-0000-00000000aaaa', OB = '00000000-0000-0000-0000-00000000bbbb';
 
 (async () => {
-  for (let i = 0; i < 60; i++) { try { sql('select 1'); break; } catch (e) { await new Promise(r => setTimeout(r, 250)); } }
-
   console.log('Kurulum (WhatsApp yokken yama)');
   sql(dosya('test/sunucu/supabase-taklit.sql'));
   const y0 = sql(dosya('sunucu/yama-06-whatsapp.sql'), false);
