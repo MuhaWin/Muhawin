@@ -54,6 +54,9 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | 02 | Güvenlik denetimi (yalnız okuma) | `gorevler/gorev-02-guvenlik-denetimi.md` | Açık |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
 
+## Sürüm planı
+**Sonraki derleme (kullanıcı kararı, 23.10.2026):** Görev 01 (menü düzeni) birleştirildikten **ve** sürüm deposu taşındıktan (açık konu 4) sonra program derlenir. Bu ilk sürüm yeni depoya (`muhawin/muhawin-surumler`) yayınlanır. Derleme Ana Depo 2'nin işidir ve kullanıcı "derle" dediğinde yapılır.
+
 ## Açık konular
 1. **Luca sayfa yönetimi** (rapor-01 madde 4, Görev 01 kapsamı dışında kaldı): "Luca'da Çalış" ayrı pencerede açılsın; aynı anda ek bir iş başlarsa yeni Luca sayfası açılsın. Bu iş `luca.js` ve Playwright'a dokunuyor. Görev 01 birleştirildikten sonra ayrı görev olarak açılacak.
 2. **`test/ornek/`** (`logo_musteri`, `mizan_inka`, `mizan_savor`, `mikro_*`, `okc_fis*`): Gerçek müşteri verisi olabilir. Kullanıcı doğrulamalı. Gerçekse sahte verilerle değiştirme görevi açılacak; bu dosyalar depoya girmez.
