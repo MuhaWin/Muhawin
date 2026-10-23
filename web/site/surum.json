@@ -1,0 +1,245 @@
+{
+  "surum": "2.9.12",
+  "dosya": "MuhaWin-Kurulum-2.9.12.exe",
+  "depo": "McLk007/muhawin-surumler",
+  "indir": "https://github.com/McLk007/muhawin-surumler/releases/download/v2.9.12/MuhaWin-Kurulum-2.9.12.exe",
+  "moduller": [
+    "Muhasebe İşlemleri",
+    "Banka İşlemleri",
+    "Hızlı Fiş Girişi",
+    "Ofisinize Özel Çözümler"
+  ],
+  "yakinda": [
+    "Denetim ve Analiz",
+    "Geçici Vergi",
+    "Personel"
+  ],
+  "notlar": [
+    {
+      "surum": "2.9.12",
+      "maddeler": [
+        {
+          "metin": "Toplu kontrol → Sonuçlar (ve filtre satırı olan diğer listeler): liste aşağı kaydırılınca sütun başlıkları ve filtre satırı üstte kalır.",
+          "alt": []
+        },
+        {
+          "metin": "Yeni tema: \"Kırmızı\" (Tema menüsü). Muhasebe İşlemleri ekranları da aynı renklere geçer.",
+          "alt": []
+        }
+      ]
+    },
+    {
+      "surum": "2.9.11",
+      "maddeler": [
+        {
+          "metin": "Luca girişi arka planda: Ayarlarda Luca bilgileri kayıtlıysa Luca penceresi ekrana gelmez. Doğrulama kodu resmi programda \"Luca doğrulama kodu\" kutusunda gösterilir; kodu siz yazarsınız, program Luca'ya yazıp Giriş'e basar.",
+          "alt": [
+            "Kod yanlışsa kutu Luca'nın mesajıyla yeniden açılır. \"Yeni kod\" kodu yeniler, \"Luca'yı göster\" Luca penceresini açar.",
+            "Toplu kontrolde de kod programda sorulur; Chrome penceresi küçük kalır. Luca'da açık oturum varsa yeniden giriş istenmez."
+          ]
+        },
+        {
+          "metin": "e-SMM: Satış yalnız serbest meslek defterli firmalarda sorgulanır (bilanço / işletmede atlanır, raporda not düşülür). Alış tüm firmalarda sorgulanır.",
+          "alt": []
+        },
+        {
+          "metin": "Serbest meslek defteri sorgu ve kontrollerde işletme defteri gibi işlenir (\"Ser.Mes.Defteri\" tanınır).",
+          "alt": []
+        },
+        {
+          "metin": "İşletme ve serbest meslek defterlerinde Excel fiş hazırlama ve Luca'ya fiş / fatura aktarma şimdilik kapalı (\"Çok yakında\"). Tek ve toplu kontrol, raporlar bilanço defterlerindeki gibi çalışır.",
+          "alt": []
+        },
+        {
+          "metin": "Kaydedilmeyecek kuralları (şahsi faturalar: ev elektriği, su, telefon…): Tek firma raporunda \"Kullanıcı kararı\" penceresinde \"Kural yap: her ay kaydedilmeyecek\". Abone / tesisat no, kelime, VKN ya da ünvana göre; kurallar firma klasöründe saklanır.",
+          "alt": []
+        },
+        {
+          "metin": "Luca'da Çalış: yalnız Luca ana ekranı açılır (indirme sayfası değil). Luca ekranında sağ altta \"↩ Muavine dön\" düğmesi.",
+          "alt": []
+        },
+        {
+          "metin": "Toplu → Firmalar: \"Kontrol edilmeyenler\" / \"Kontrol edilenler\" süzgeçleri.",
+          "alt": []
+        }
+      ]
+    },
+    {
+      "surum": "2.9.10",
+      "maddeler": [
+        {
+          "metin": "Luca bağlantısı:",
+          "alt": [
+            "Luca'ya bağlıyken bütün ekran ve modüllerdeki \"Luca'ya bağlan\" düğmeleri birlikte yeşil görünür; bağlıyken düğme yeni giriş sayfası açmaz, açık Luca ekranını öne getirir.",
+            "Girişte bilgiler doldurulunca imleç doğrulama kodu (captcha) kutusuna gelir; kodu yazıp Enter'a basınca giriş yapılır. Mali Müşavir Paketi'ne hemen basılır ve Luca ana ekranı açılır açılmaz program öne gelir.",
+            "\"Faturaları Luca'dan Al\" ve toplu kontrolün Luca tarayıcısı, MuhaWin'deki Luca oturumuyla açılır; yeniden giriş istemez.",
+            "\"Luca'da Çalış\": Luca'nın kendi yeni pencere düğmesiyle (firma / dönem seçiminin altındaki beyaz düğme) aynı oturumda tam ekran çalışma penceresi açar. Luca içinden açtığınız ek pencereler sizi programa geri atmaz."
+          ]
+        },
+        {
+          "metin": "İşletme / serbest meslek defteri:",
+          "alt": [
+            "Luca menüsünde \"Ser.Meslek Deft.\" yazan serbest meslek defterli firmalar artık tanınır; muavin yerine Gelir ve Gider Listesi alınır (işletme defteriyle aynı).",
+            "\"Muavini Luca'dan Çek\" işletme / serbest meslek defterinde de MuhaWin'in Luca oturumuyla, ayrı tarayıcı açmadan çalışır.",
+            "\"Luca listelerini al\": kayıt alt türü, KDV istisnası, stopaj kodu, vergi dairesi gibi açılır listeler Luca'da ekran açmadan okunur."
+          ]
+        },
+        {
+          "metin": "Faturaları Luca'ya kaydet: \"Fiş\" seçimi — her fatura ayrı fiş, her gün tek fiş, 10 günlük, 15 günlük ya da ay sonuna tek fiş (alış ve satış ayrı; her faturanın satırları kendi evrak no ve tarihiyle kalır). Seçim firma bazında hatırlanır.",
+          "alt": []
+        }
+      ]
+    },
+    {
+      "surum": "2.9.9",
+      "maddeler": [
+        {
+          "metin": "Red / iptal fatura listeleri: Tek firma ve Mikro Denetim'e Mikro'nun red / iptal Excel listeleri (xls / xlsx, birden çok) eklenebilir. Listedeki fatura muavinde kayıtlı değilse uyumlu, kayıtlıysa sorun olarak raporlanır (rapor sekmesi, Excel, çıktı raporu).",
+          "alt": []
+        },
+        {
+          "metin": "Mikro Denetim:",
+          "alt": [
+            "Konaklama vergisi matraha eklenerek karşılaştırılır; bu faturalar ayrı kategoride (\"Konaklama vergili\").",
+            "Açıklamasında \"iade\" geçen satış faturası 610 borcunda bulunursa \"İade (satış faturasıyla, 610) – uyumlu\".",
+            "Yeni \"ÖİV kontrolü\" sekmesi: faturadaki Özel İletişim Vergisi, fişteki 689 kayıtlarıyla karşılaştırılır.",
+            "Seri harfi farklı yazılmış belge no (ör. LIL ↔ LII): sıra no, tarih ve KDV tutuyorsa ünvan tutmasa da uyumlu, ayrı bölümde.",
+            "Hesap / Fiş sütunundaki fiş düğmesi: muavinden oluşturulan fiş ortada pencerede açılır; altta ana hesaplar görünümü. Yazdır / PDF; çıktıda Hazırlayan ve Onaylayan imza alanları."
+          ]
+        },
+        {
+          "metin": "Toplu kontrol:",
+          "alt": [
+            "Sonuçlar tablosunda seçim kutuları: seçilenleri yeniden çalıştır ya da sonuçlarını sil (isteğe bağlı indirilen belgeler de).",
+            "Firmalar sekmesinde not yerine defter türü; defter türüne göre süz, \"Yalnız görünenler\" ile yalnız o firmaları dahil et."
+          ]
+        },
+        {
+          "metin": "Üst çubukta \"Luca'da Çalış\": programın sorgu yapmadığı ayrı bir Luca penceresi tam ekran, MuhaWin'in önünde açılır.",
+          "alt": []
+        },
+        {
+          "metin": "e-SMM alış yalnız serbest meslek defterli firmalarda sorgulanır. Luca arşivinde aynı fatura iki kez sayılmaz.",
+          "alt": []
+        },
+        {
+          "metin": "\"Luca fiş Excel'i (işletme)\" düğmesi yalnız işletme / serbest meslek defterli firmalarda görünür.",
+          "alt": []
+        },
+        {
+          "metin": "Tek firma ve Mikro Denetim: firma seçilince \"Bu bilgisayarda kayıtlı belgeler\" kutusu çıkar; daha önce indirilmiş / yüklenmiş faturalar ve muavinle, Luca'ya bağlanmadan ve dosya yüklemeden \"Bu belgelerle kontrol et / denetle\" ya da son raporu aç.",
+          "alt": []
+        }
+      ]
+    },
+    {
+      "surum": "2.9.8",
+      "maddeler": [
+        {
+          "metin": "İşletme / serbest meslek defteri: fatura kontrol raporunda \"📒 Luca fiş Excel'i (işletme)\". Faturalar Luca'nın Excel'den fiş aktarma düzeninde listelenir (alışlar Gider / Diğer Alışlar, satışlar Gelir / Diğer Satışlar; fatura başına tek satır; ünvan kısaltmaları açılır). Hücreler düzenlenebilir; kayıt alt türü gibi seçimler karşı tarafa göre hatırlanır. Kategori, faaliyet kodu ve firma kimlikleri (şahıs firmasında VKN + TCKN) firma ayarıdır. \"Luca listelerini al\": Luca'da işletme fiş giriş ekranı açıkken açılır listeler (kayıt alt türü, KDV istisnası, stopaj, vergi dairesi…) okunur. Excel indirilir; Luca'ya yüklemeyi şimdilik siz yaparsınız.",
+          "alt": []
+        },
+        {
+          "metin": "Luca girişi: \"Mali Müşavir Paketi\"ne program basar; paket açılınca Luca penceresi küçülür, MuhaWin öne gelir.",
+          "alt": []
+        },
+        {
+          "metin": "Luca'dan fatura indirme: 500'lük sayfaların hepsi sırayla (tümünü seç → indir → sonraki sayfa); eksik kalırsa uyarı.",
+          "alt": []
+        },
+        {
+          "metin": "Mikro Denetim › 2. Belgeler: \"Faturaları Luca'dan Al\".",
+          "alt": []
+        },
+        {
+          "metin": "Faturalar / muavin Luca'dan inerken \"Kontrol et\" ve \"Denetimi Başlat\" kapalı, bitince açılır.",
+          "alt": []
+        },
+        {
+          "metin": "İndirilemeyen belge türü için \"Luca'dan tekrar dene\" ya da o türün XML'ini dosyadan ekleme (Luca'dan inenlerle birlikte kontrol).",
+          "alt": []
+        },
+        {
+          "metin": "Tek firma rapor ekranı sıkılaştırıldı; ◀ ile sol form gizlenir, liste geniş ve yüksek.",
+          "alt": []
+        },
+        {
+          "metin": "Kontrol: fişte faturaya ait 689 kaydında araç / yakıt / binek geçiyorsa binek araç (KDV %70) gibi kontrol edilir. Muavinde evrak no kısa ya da farklı yazılmışsa (AAA-889, aaa889) fatura bulunur ve not düşülür; tek hane hatası (AAA-899) \"farklı yazılmış olabilir\" olarak önerilir. Eski raporlar açılınca yeni kurallarla yeniden hesaplanır.",
+          "alt": []
+        }
+      ]
+    },
+    {
+      "surum": "2.9.7",
+      "maddeler": [
+        {
+          "metin": "Muhasebe İşlemleri › Tek firma / dosyadan kontrol › 2. e-Fatura / e-Arşiv: \"Faturaları Luca'dan Al (seçili ay)\". Luca'dan eklenmiş firmada seçili ayın e-Fatura, e-Arşiv ve e-SMM belgeleri toplu kontroldeki gibi Luca'dan indirilir; dosya seçmeden \"Kontrol et\"e basılabilir. Muavin bölümü değişmedi (dosyadan ya da Luca'dan); firmanın muavinine dokunulmaz.",
+          "alt": []
+        },
+        {
+          "metin": "Mikro Denetim: hatalı kayıtlar listesinde karşı taraf ünvanı artık en çok 2 satır (tam adı üzerine gelince); satırlar aşağı uzamıyor. Her satırda 📄 düğmesiyle fatura PDF olarak açılır.",
+          "alt": []
+        },
+        {
+          "metin": "Telefon yönetim paneli (mobil-yonetim klasörü; GitHub Pages ile yayınlanır): üyeler, lisans, satış ve tahsilat, lisans kodları, ofisler, duyuru ve işlem günlüğü iPhone'dan.",
+          "alt": []
+        }
+      ]
+    },
+    {
+      "surum": "2.9.6",
+      "maddeler": [
+        {
+          "metin": "Hızlı Fiş Girişi (eski adı ÖKC Fiş Girişi): ÖKC fişi, Z raporu ve YURT DIŞI FATURALARI (Meta, Google vb.; PDF / görüntü). Net tutar brüte çevrilir: %15 stopaj 360'a, %20 sorumlu KDV 191 / 360'a, brüt 760 / 770'e; TCMB kuru kendiliğinden alınır. Tüm fiş türlerinde tutar düzeltilebilir, satır eklenebilir. Binek araç %30 nazım kaydı 950 / 951'e de yazılır.",
+          "alt": []
+        },
+        {
+          "metin": "Raporlarda toplu seçim: birden çok satır tek açıklamayla \"uygun\" ya da \"kaydedilmeyecek\" yapılır; Luca'ya kaydet ekranında \"Seçilenleri kaydetme\".",
+          "alt": []
+        },
+        {
+          "metin": "Mizan / Muavin: muavin Luca oturumuyla yerinde çekilir (\"Arka planda bekle\" ile işe devam edebilirsiniz); \"Tümünü Luca'dan Çek\" (hesap planı → muavin → mizan). Muavin dosyaları birleştirilir, dönem süzgeci tümü / yıl / ay. Hesap planında bir hesaba tıklayınca muavini açılır. Veri eklenince mizan kendiliğinden çekilir.",
+          "alt": []
+        },
+        {
+          "metin": "Banka: döviz bozumu / arbitrajda TL tarafı sabit kalır; para birimi ve banka dosya içeriğinden bulunur; banka kutusuna tıklayınca tüm liste açılır. Döviz kodu bölümü kaldırıldı (Luca'ya aktar Excel gibi çalışır).",
+          "alt": []
+        },
+        {
+          "metin": "Ctrl+F: ekranda ara (rapor ve beyanname sayfaları dahil); Ctrl+K: komut paleti.",
+          "alt": []
+        },
+        {
+          "metin": "Modül ekranında Luca bağlı değilse bağlanma önerisi; lisans durumu tek satırda.",
+          "alt": []
+        },
+        {
+          "metin": "Fiş Listesi %30 / %70 düzen, yatay kaydırma yok. KDV beyannamesi: firma seçimi üstte, toplu bölüm kaldırıldı.",
+          "alt": []
+        },
+        {
+          "metin": "Ayarlar: Yönetim düğmesi kaldırıldı; büro çalışanı yalnız ad soyad ve telefon girer (büro bilgisini sahibi doldurur); \"Veri ve yedek\" Ayarlar'da. Temalar: Sistem kaldırıldı; Kum ve Zümrüt eklendi. Fiş girişi açılırken imleç hesap koduna gitmez.",
+          "alt": []
+        },
+        {
+          "metin": "Ofisinize Özel Çözümler › MİKRO DENETİM (ofisinize tanımlanırsa): e-fatura XML / ZIP ve Mikro muavini yükleyin; KDV, Matrah ve Cari kontrolü, KDV 1 / KDV 2 beyanname ve çıktı raporu, muhtasar taslağı (360 hesapları; deneme).",
+          "alt": []
+        },
+        {
+          "metin": "Luca istek kaydı tüm Luca adreslerini, yüklenen dosya bilgisini ve uzun yanıtları kaydeder (şifre alanları gizlenir).",
+          "alt": []
+        }
+      ]
+    },
+    {
+      "surum": "2.9.5",
+      "maddeler": [
+        {
+          "metin": "Otomatik güncelleme GitHub'daki McLk007/muhawin-surumler deposundan yapılır. 2.9.5'i her bilgisayara BİR KEZ elle kurun; sonraki sürümler program açıkken kendiliğinden indirilir (Ayarlar → Hakkında → Güncellemeleri Denetle).",
+          "alt": []
+        }
+      ]
+    }
+  ],
+  "uretildi": "2026-10-23"
+}

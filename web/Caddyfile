@@ -1,0 +1,72 @@
+# MuhaWin web sunucusu (Caddy): HTTPS sertifikaları kendiliğinden alınır ve yenilenir.
+# Alan adı ve e-posta .env dosyasındadır (DOMAIN, ACME_EMAIL). Alt alan adları: indir, yonetim, denetim. Her alt alan adı için DNS'te
+# sunucunun IP'sine giden bir A kaydı gerekir (ya da tek bir *.DOMAIN kaydı).
+{
+	email {$ACME_EMAIL}
+}
+
+(guvenlik) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	encode zstd gzip
+}
+
+# Ana site: tanıtım ve indirme
+{$DOMAIN}, www.{$DOMAIN} {
+	import guvenlik
+	@www host www.{$DOMAIN}
+	redir @www https://{$DOMAIN}{uri} permanent
+	root * /srv/site
+	header /surum.json Cache-Control "no-cache"
+	file_server
+	handle_errors {
+		rewrite * /index.html
+		file_server
+	}
+}
+
+# indir.DOMAIN: en son kurulum dosyasına yönlendirir
+indir.{$DOMAIN} {
+	import guvenlik
+	root * /srv/site
+	@sayfa not path /surum.json /style.css /gorsel/*
+	rewrite @sayfa /indir.html
+	file_server
+}
+
+# yonetim.DOMAIN: telefon yönetim paneli (mobil-yonetim; yalnız program sahibi girer, yetki sunucuda denetlenir)
+yonetim.{$DOMAIN} {
+	import guvenlik
+	header {
+		X-Robots-Tag "noindex, nofollow"
+		X-Frame-Options DENY
+	}
+	header /uygulama.js Cache-Control "no-cache"
+	header /index.html Cache-Control "no-cache"
+	root * /srv/yonetim
+	file_server
+}
+
+# denetim.DOMAIN: Mikro Denetim (Luca'sız, dosya yüklemeyle). Giriş MuhaWin hesabıyla, yalnız FK_WEB_IZINLI'deki e-postalar.
+denetim.{$DOMAIN} {
+	import guvenlik
+	header {
+		X-Robots-Tag "noindex, nofollow"
+		X-Frame-Options SAMEORIGIN
+	}
+	request_body {
+		max_size 500MB
+	}
+	reverse_proxy denetim:8000
+}
+
+# Yeni bir web uygulaması eklemek için (docker-compose.yml'de aynı adla bir servis tanımlayın):
+#
+# uygulama.{$DOMAIN} {
+# 	import guvenlik
+# 	reverse_proxy uygulama:8080
+# }
