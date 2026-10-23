@@ -1,6 +1,6 @@
 {
   "name": "muhawin",
-  "version": "2.9.12",
+  "version": "2.9.13",
   "description": "MuhaWin: Ekstre → Luca fiş aktarımı ve Fatura – Muavin kontrolü",
   "main": "main.js",
   "scripts": {
