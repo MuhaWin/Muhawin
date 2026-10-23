@@ -108,6 +108,7 @@ jobs:
     env:
       SURUM: ${{ needs.hazirlik.outputs.surum }}
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      PYTHONUTF8: '1'               # Windows konsolu cp1252; Türkçe çıktı yazılabilsin
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
