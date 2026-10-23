@@ -1,0 +1,179 @@
+# MuhaWin – derleme ve sürüm yayını (Güncelleme rolü)
+#
+# Ne zaman çalışır:
+#   - `v<sürüm>` etiketi push edilince        → test + derleme + YAYIN (muhawin/muhawin-surumler)
+#   - `surum-*` dalında package.json değişince → test + derleme, DENEME (yalnız Actions dosyası)
+#   - Actions → "MuhaWin sürüm" → Run workflow  → teslim seçilir (deneme / yayin)
+#
+# Yayın için bu depoda bir kez `SURUM_TOKEN` sırrı tanımlanmalı:
+#   muhawin/muhawin-surumler deposunda "Contents: Read and write" yetkili fine-grained token.
+#   (GITHUB_TOKEN yalnız bu depoya yazabildiği için başka depoya sürüm açamaz.)
+# Sır yoksa derleme yine yapılır, kurulum dosyası Actions sayfasından indirilir.
+
+name: MuhaWin sürüm
+
+on:
+  push:
+    tags: ['v*']
+    branches: ['surum-*', 'claude/practical-ride-*']
+    paths: ['package.json']
+  workflow_dispatch:
+    inputs:
+      teslim:
+        description: 'deneme: yalnız Actions dosyası · yayin: muhawin/muhawin-surumler deposuna sürüm'
+        type: choice
+        options: [deneme, yayin]
+        default: deneme
+      testleri_atla:
+        description: 'Testleri atla (yalnız acil durumda)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: surum-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SURUM_DEPOSU: muhawin/muhawin-surumler
+  NODE_SURUM: '22'
+  PYTHON_SURUM: '3.12'
+  PLAYWRIGHT_SURUM: '1.63.0'
+
+jobs:
+  hazirlik:
+    name: Sürüm bilgisi
+    runs-on: ubuntu-latest
+    outputs:
+      surum: ${{ steps.b.outputs.surum }}
+      teslim: ${{ steps.b.outputs.teslim }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: b
+        name: Sürüm ve teslim şekli
+        run: |
+          surum=$(node -p "require('./package.json').version")
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then teslim="${{ inputs.teslim }}";
+          elif [ "${{ github.ref_type }}" = "tag" ]; then teslim=yayin;
+          else teslim=deneme; fi
+          if [ "${{ github.ref_type }}" = "tag" ] && [ "${{ github.ref_name }}" != "v$surum" ]; then
+            echo "::error::Etiket ${{ github.ref_name }} ile package.json sürümü ($surum) uyuşmuyor."; exit 1
+          fi
+          head -1 OKUBENI.txt | grep -q "MuhaWin $surum" || { echo "::error::OKUBENI.txt başlığı $surum değil."; exit 1; }
+          grep -q "^$surum YENİLİKLER" OKUBENI.txt || { echo "::error::OKUBENI.txt içinde '$surum YENİLİKLER' bölümü yok."; exit 1; }
+          echo "surum=$surum" >> "$GITHUB_OUTPUT"; echo "teslim=$teslim" >> "$GITHUB_OUTPUT"
+          echo "### MuhaWin $surum · teslim: $teslim" >> "$GITHUB_STEP_SUMMARY"
+
+  test:
+    name: Testler
+    needs: hazirlik
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.testleri_atla) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_SURUM }}', cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: '${{ env.PYTHON_SURUM }}', cache: pip, cache-dependency-path: fk/requirements.txt }
+      - name: Paketler
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@${{ env.PLAYWRIGHT_SURUM }}
+          npx playwright install --with-deps chromium
+          python -m pip install -r fk/requirements.txt pytest httpx Pillow reportlab
+          python -m playwright install --with-deps chromium
+          # e2e: xvfb-run ve OKC fiş görüntüsü için DejaVu yazı tipi
+          sudo apt-get install -y --no-install-recommends xvfb fonts-dejavu-core
+      - name: Python testleri (fk)
+        working-directory: fk
+        run: python -m pytest -q
+      - name: Mobil yönetim testi
+        run: node test/mobil.js
+      - name: Luca testleri
+        run: for f in test/luca/*.js; do echo "== $f"; node "$f"; done
+      - name: Uçtan uca test (e2e)
+        run: |
+          # "Logo fişleri" adımı ara sıra düşer; bir kez yeniden denenir
+          xvfb-run -a node test/e2e.js || { echo "::warning::e2e yeniden deneniyor"; xvfb-run -a node test/e2e.js; }
+
+  derle:
+    name: Windows derlemesi
+    needs: [hazirlik, test]
+    if: ${{ always() && needs.hazirlik.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped') }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      SURUM: ${{ needs.hazirlik.outputs.surum }}
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_SURUM }}', cache: npm }
+      - uses: actions/setup-python@v5
+        with: { python-version: '${{ env.PYTHON_SURUM }}' }
+      - name: Paketler
+        run: npm ci --no-audit --no-fund
+      - name: Gömülü Windows Python
+        run: python tools/python_win.py
+      - name: electron-builder
+        run: npx electron-builder --win nsis --x64 --publish never
+      - name: Dosyaları denetle
+        shell: bash
+        run: |
+          cd dist
+          exe="MuhaWin-Kurulum-$SURUM.exe"
+          for f in "$exe" "$exe.blockmap" latest.yml; do [ -f "$f" ] || { echo "::error::$f yok"; ls -la; exit 1; }; done
+          grep -q "^version: $SURUM$" latest.yml || { echo "::error::latest.yml sürümü $SURUM değil"; cat latest.yml; exit 1; }
+          beklenen=$(python -c "import hashlib,base64,sys;print(base64.b64encode(hashlib.sha512(open(sys.argv[1],'rb').read()).digest()).decode())" "$exe")
+          grep -q "^sha512: $beklenen$" latest.yml || { echo "::error::latest.yml sha512 exe ile uyuşmuyor"; exit 1; }
+          grep -q "owner: muhawin" win-unpacked/resources/app-update.yml && grep -q "repo: muhawin-surumler" win-unpacked/resources/app-update.yml \
+            || { echo "::error::app-update.yml sürüm deposu muhawin/muhawin-surumler değil"; cat win-unpacked/resources/app-update.yml; exit 1; }
+          boyut=$(stat -c %s "$exe")
+          { echo "| Dosya | Bayt |"; echo "|---|---|"; echo "| $exe | $boyut |"; echo "| sha512 (ilk 12) | \`${beklenen:0:12}\` |"; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MuhaWin-${{ env.SURUM }}
+          retention-days: 30
+          compression-level: 0
+          path: |
+            dist/MuhaWin-Kurulum-${{ env.SURUM }}.exe
+            dist/MuhaWin-Kurulum-${{ env.SURUM }}.exe.blockmap
+            dist/latest.yml
+
+  yayinla:
+    name: Yayın (muhawin/muhawin-surumler)
+    needs: [hazirlik, derle]
+    if: ${{ always() && needs.derle.result == 'success' && needs.hazirlik.outputs.teslim == 'yayin' }}
+    runs-on: ubuntu-latest
+    env:
+      SURUM: ${{ needs.hazirlik.outputs.surum }}
+      GH_TOKEN: ${{ secrets.SURUM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: 'MuhaWin-${{ env.SURUM }}', path: yayin }
+      - name: Sürüm notu (OKUBENI'den)
+        run: |
+          awk -v b="$SURUM YENİLİKLER" '$0 ~ "^"b {y=1; next} y && /^[0-9]+\.[0-9]+\.[0-9]+ YENİLİKLER/ {exit} y' OKUBENI.txt > notlar.md
+          [ -s notlar.md ] || echo "MuhaWin $SURUM" > notlar.md
+          cat notlar.md
+      - name: Sürümü aç ve dosyaları yükle
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::SURUM_TOKEN sırrı tanımlı değil. Kurulum dosyası bu çalıştırmanın Artifacts bölümünde."; exit 1
+          fi
+          if gh release view "v$SURUM" --repo "$SURUM_DEPOSU" >/dev/null 2>&1; then
+            echo "::error::$SURUM_DEPOSU deposunda v$SURUM zaten var; üzerine yazılmaz."; exit 1
+          fi
+          gh release create "v$SURUM" --repo "$SURUM_DEPOSU" --title "MuhaWin $SURUM" --notes-file notlar.md --latest \
+            "yayin/MuhaWin-Kurulum-$SURUM.exe" "yayin/MuhaWin-Kurulum-$SURUM.exe.blockmap" yayin/latest.yml
+      - name: Doğrula
+        run: |
+          son=$(gh release view --repo "$SURUM_DEPOSU" --json tagName -q .tagName)
+          [ "$son" = "v$SURUM" ] || { echo "::error::releases/latest $son gösteriyor"; exit 1; }
+          n=$(gh release view "v$SURUM" --repo "$SURUM_DEPOSU" --json assets -q '.assets | length')
+          [ "$n" = "3" ] || { echo "::error::Sürümde $n dosya var, 3 olmalı"; exit 1; }
+          echo "Yayınlandı: https://github.com/$SURUM_DEPOSU/releases/tag/v$SURUM" >> "$GITHUB_STEP_SUMMARY"
