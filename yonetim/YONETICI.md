@@ -55,9 +55,11 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | No | Konu | Kart | Durum |
 |---|---|---|---|
 | 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | İşçi oturumu: **Menü Düzenleme**. Kod yazılmadı. Ara rapor: `raporlar/rapor-01.md` |
-| 02 | Güvenlik denetimi (yalnız okuma) | `gorevler/gorev-02-guvenlik-denetimi.md` | Açık. Uygulayan: **Yazılımcı** (Görev 03'ten sonra) |
+| 02 | Güvenlik denetimi (yalnız okuma) | `gorevler/gorev-02-guvenlik-denetimi.md` | **Birleştirildi** ([#9](https://github.com/MuhaWin/Muhawin/pull/9)). Rapor: `raporlar/rapor-02.md` (Kritik 1, Yüksek 3, Orta 11, Düşük 16) |
 | 03 | Açılışta güncelleme sorusu ("Şimdi kur / Sonra") | `gorevler/gorev-03-guncelleme-sorusu.md` | **Birleştirildi** ([#6](https://github.com/MuhaWin/Muhawin/pull/6)). Rapor: `raporlar/rapor-03.md`. Kurulu programda deneme ilk yayından sonra |
 | 04 | Alan adı, barındırma, tanıtım sitesi, web modülleri analizi | `gorevler/gorev-04-web-sitesi.md` | Açık. Uygulayan: **Web Asistanı**. Program dosyalarına dokunmaz; diğerleriyle paralel |
+| 05 | Fatura görüntüleme güvenliği (rapor-02 G-A, K1) | `gorevler/gorev-05-fatura-goruntu-guvenligi.md` | Açık. Uygulayan: **Yazılımcı** |
+| 06 | WhatsApp sunucu güvenliği (rapor-02 G-C) | `gorevler/gorev-06-whatsapp-sunucu-guvenligi.md` | Açık (05'ten sonra). Uygulayan: **Yazılımcı**. Canlı Supabase'e uygulama kullanıcıda |
 | G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | G-01: 2.9.13 deneme derlemesi, açık |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
 
@@ -72,6 +74,9 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 4. **Sürüm deposu taşınıyor** (23.10.2026): `McLk007/muhawin-surumler` → `muhawin/muhawin-surumler`. `package.json` → `build.publish` güncellendi. Kurulu sürümler adresi derlemede `app-update.yml`'ye yazılmış haliyle (eski depo) arar. **Karar:** Eski depo GitHub "Transfer ownership" ile taşınacak; GitHub yönlendirmesi sayesinde köprü sürüm gerekmez. Yeni açılan boş depo önce silinecek ya da yeniden adlandırılacak (ad çakışması). Taşımadan sonra `McLk007` altında aynı adla depo açılmamalı, depo herkese açık kalmalı. 2.9.4 öncesinde otomatik güncelleme yok, elle kurulur. **Kullanıcı yapacak; sonra doğrulanacak.**
 
 5. **Test ortamı** (rapor-03 ortam notu): Bulutta Playwright 1.63.0'a sabitlenmeli (hazır Chromium 1243); `fk/requirements-test.txt` (pytest, httpx, pillow, reportlab) yok; `test/ornek/` ve `fk/tests/veri_*.xlsx` depoda yok, bu yüzden e2e 250 yerine 204 test çalışıyor (1 düşüyor) ve pytest 2 düşüyor. Sahte örnek verilerle yeniden üretme görevi Yazılımcı'ya açılacak.
+
+6. **Güvenlik düzeltme sırası** (rapor-02): 05 (G-A) → 06 (G-C) → test örnek verileri → Görev 01 birleştikten sonra G-B (pdf.js `isEvalSupported:false`, `renderer/index.html`) ve G-J (CSP) → G-D, G-F, G-E, G-I, G-G. **Kullanıcı kararı bekleyen:** O7 (ofis lisansında kullanıcı sınırı olsun mu), G-H (kod imzalama sertifikası, yıllık ücretli). `supabase-kurulum.sql` depoda yok; temel tabloların RLS'i denetlenemedi, kullanıcıdan alınmalı.
+7. **Test örnek dosyaları** (23.10.2026): Kullanıcıda dosya yok. Yazılımcı, kodun beklediği sütun düzenine göre sahte örnek dosyalar üretecek (Görev 06'dan sonra).
 
 ## Önerilen eklentiler
 - **claude-security** (Anthropic): Görev 02 için.
