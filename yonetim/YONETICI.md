@@ -23,7 +23,7 @@ Belge 23.10.2026'da Cowork projesinden ("Luca Fatura Muavin Kontrolü") depoya t
 3. İşçi `gorev-NN-<konu>` dalında çalışır, testleri çalıştırır, push eder ve PR açar.
 4. Yönetici PR'ı inceler (diff, testler, kapsam) ve PR'a yorum yazar: `KABUL` ya da `RET + gerekçe`. Kabul edilen PR **squash merge** ile birleştirilir.
 5. Paralel çalışma yalnız farklı dosyalara dokunan görevlerde yapılır. Aynı dosyaya dokunan görevler sırayla yürür. Bu dosyalar: `renderer/index.html`, `luca.js`, `main.js`, `fk/fatura_kontrol/web/toplu_api.py`. Sıradaki görev, önceki merge'ten sonra `main` üzerine rebase edilir.
-6. Kullanıcıya derlenmiş sürüm gerektiğinde Ana Depo 2 `main` dalını derler ve `v<sürüm>` etiketi koyar. Sürüm dosyaları `McLk007/muhawin-surumler` deposuna yüklenir.
+6. Kullanıcıya derlenmiş sürüm gerektiğinde Ana Depo 2 `main` dalını derler ve `v<sürüm>` etiketi koyar. Sürüm dosyaları `muhawin/muhawin-surumler` deposuna yüklenir.
 
 ## İşçi oturum kuralları
 Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
@@ -58,6 +58,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 1. **Luca sayfa yönetimi** (rapor-01 madde 4, Görev 01 kapsamı dışında kaldı): "Luca'da Çalış" ayrı pencerede açılsın; aynı anda ek bir iş başlarsa yeni Luca sayfası açılsın. Bu iş `luca.js` ve Playwright'a dokunuyor. Görev 01 birleştirildikten sonra ayrı görev olarak açılacak.
 2. **`test/ornek/`** (`logo_musteri`, `mizan_inka`, `mizan_savor`, `mikro_*`, `okc_fis*`): Gerçek müşteri verisi olabilir. Kullanıcı doğrulamalı. Gerçekse sahte verilerle değiştirme görevi açılacak; bu dosyalar depoya girmez.
 3. **Hesap geçişi:** Kullanıcı Team hesabından kişisel Max 20x hesabına geçmeyi düşünüyor. Depo hesaptan bağımsız; geçişte yalnız GitHub bağlantısı yeniden kurulur. Max planında Claude Code "Projects" özelliği de var; bu düzen için uygun.
+4. **Sürüm deposu taşındı** (23.10.2026): `McLk007/muhawin-surumler` → `muhawin/muhawin-surumler`. `package.json` → `build.publish` güncellendi. **Risk:** Kurulu 2.9.12 ve öncesi, güncellemeyi hâlâ eski depodan arar (adres derlemede `app-update.yml`'ye yazılır). Eski depo GitHub "Transfer" ile taşındıysa yönlendirme çalışır. Yeni depo sıfırdan açıldıysa yeni ayarla derlenen ilk sürüm (köprü sürüm) eski depoya da yüklenmeli ya da her bilgisayara bir kez elle kurulmalı.
 
 ## Önerilen eklentiler
 - **claude-security** (Anthropic): Görev 02 için.

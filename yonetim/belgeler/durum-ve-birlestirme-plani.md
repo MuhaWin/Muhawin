@@ -8,7 +8,7 @@ EkstreLuca + Fatura Kontrol → **MuhaWin** (Electron kabuk + Python yan süreç
 Derleme: package.json sürümü → OKUBENI yenilikler (başlık + KURULUM satırındaki sürüm de) → (requirements değiştiyse `python3 tools/python_win.py`) → `npx electron-builder --win nsis --x64 --publish never` (~6 dk) → `split -b 27000000 -d -a 1` → BIRLESTIR.bat (önceki sürümünkinden sed: sürüm + boyut) + latest.yml + blockmap + OKUBENI + `git archive` kaynak zip. Testler: `cd fk && python3 -m pytest -q` (~8 dk, nohup; 103), `xvfb-run -a node test/e2e.js` (250; "Logo fişleri" ara sıra düşer, tekrarda geçer), `node test/mobil.js` (42), `NODE_PATH=/opt/npm-tools/node_modules node test/luca/*.js`. **pkill -f kullanma (kendi kabuğunu öldürüyor).**
 
 ## Supabase / güncelleme
-GitHub release `McLk007/muhawin-surumler` (etiket v<sürüm>, 3 dosya: exe, exe.blockmap, latest.yml — BIRLESTIR.bat bunları guncelleme-<sürüm> klasörüne koyar).
+GitHub release `muhawin/muhawin-surumler` (etiket v<sürüm>, 3 dosya: exe, exe.blockmap, latest.yml — BIRLESTIR.bat bunları guncelleme-<sürüm> klasörüne koyar).
 **23.10.2026 denemesi:** kullanıcı "GitHub'ı bağladım" dedi ama bu oturumda `gh api repos/McLk007/muhawin-surumler` → "GitHub access to this repository is not enabled for this session (add_repo)"; `gh api user` → "No linked GitHub account". add_repo aracı bu oturumda yok. → Depo, oturum başlarken eklenmeli (yeni oturum, depo seçili) ya da kullanıcı kendisi yükler: `/releases/new?tag=v<sürüm>`.
 Mobil yönetim paneli: GitHub Pages deposu kuruldu (adres https://mclk007.github.io/<depo>/).
 

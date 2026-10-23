@@ -66,7 +66,7 @@ Sahibi: ana depo oturumu. Diğer oturumlar okur, değiştirmez. Ayrıntılı sü
 5. `latest.yml`, `.blockmap`, OKUBENI ve `git archive` ile kaynak zip'ini ekle.
 6. SendUserFile ile gönder.
 
-GitHub release'i `McLk007/muhawin-surumler` deposuna yapılır: etiket `v<sürüm>`, dosyalar exe + blockmap + latest.yml.
+GitHub release'i `muhawin/muhawin-surumler` deposuna yapılır: etiket `v<sürüm>`, dosyalar exe + blockmap + latest.yml.
 
 ## 5. Açık riskler ve konular (yönetici için)
 1. **`test/ornek/` commit'li** (18.10.2026'dan beri): `logo_musteri.xlsx`, `mizan_inka.xlsx`, `mizan_savor.xlsx`, `mikro_*.xls`, `okc_fis*.jpg`. Adlarından gerçek müşteri verisi olabilirler; e2e testleri bu dosyaları kullanıyor.
