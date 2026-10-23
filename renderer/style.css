@@ -90,6 +90,10 @@ td.amt{text-align:right;white-space:nowrap}
 .accname{font-size:11px;color:var(--muted);max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip{display:inline-block;font-size:11px;border-radius:99px;padding:1px 8px;font-weight:500;white-space:nowrap}
 .chip.kural{background:var(--rule-bg);color:var(--rule-fg)}
+/* Görev 21: "hiç kaydetme" kuralı ve çok şartlı kural */
+.chip.atla{background:var(--surface-2);color:var(--muted);border:1px dashed var(--line);text-decoration:line-through;text-decoration-thickness:1px}
+.rule .k .ve{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:0 5px;margin:0 2px}
+.rsart-s{display:flex;gap:6px;align-items:center}.rsart-s input{flex:1}
 .chip.cari{background:var(--cari-bg);color:var(--cari-fg)}
 .chip.aski{background:var(--aski-bg);color:var(--aski-fg)}
 .chip.elle{background:var(--man-bg);color:var(--man-fg)}

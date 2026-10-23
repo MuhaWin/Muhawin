@@ -82,6 +82,33 @@ async function oturum(fatura, o = {}) {
     check(!(await w.$('#newFirmBtn')) && !(await w.$('#toolbar [data-luca="firms"], #bottombar [data-luca="firms"], header.top [data-luca="firms"]')), 'Yeni firma ve Luca\'dan firma ekle üst şeritte / araç çubuğunda yok');
     const sekmeler = await w.$$eval('#modeTabs [data-mode]', b => b.map(x => x.dataset.mode));
     check(sekmeler.join(',') === 'bank,card', 'Ekstre modülünde yalnız banka/kredi kartı sekmeleri');
+    { // Görev 21: çok şartlı kural (VE) ve "hiç kaydetme" eylemi; eski tek şartlı kurallar aynen çalışır
+      const km = await w.evaluate(() => { const A = window.__app, E = window.__ekstre, S = A.S;
+        const f = { askiIn: '399.99', askiOut: '199.99' };
+        const R = [{ id: 'k1', k: 'KİRA', dir: 'all', acc: '770.01' },
+          { id: 'k2', k: 'KİRA', ek: ['OCAK | ŞUBAT', 'DÜKKAN'], dir: 'out', acc: '770.02' },
+          { id: 'k3', k: 'VİRMAN', ek: ['KENDİ HESABIM'], dir: 'all', acc: '', eylem: 'atla' }];
+        const m = E.buildMatcher(f, R, null), x = (desc, amt) => { const r = m({ desc, amt }); return r.src + ':' + (r.acc || '-'); };
+        const sonuc = [x('OCAK DÜKKAN KİRA ÖDEMESİ', -100), x('MART DÜKKAN KİRASI', -100), x('OCAK DÜKKAN KİRA', 100), x('VİRMAN KENDİ HESABIM', -50), x('VİRMAN ALİ VELİ', -50)];
+        // satıra uygulanınca "hiç kaydetme" hareketi fişten çıkar; kullanıcı yeniden işaretlerse kural ezmez
+        const eskiR = S.rows, eskiK = S.rules; S.rows = [{ id: 't1', desc: 'VİRMAN KENDİ HESABIM', amt: -50 }, { id: 't2', desc: 'OCAK DÜKKAN KİRA', amt: -100 }]; S.rules = R;
+        A.reassign(); const a1 = S.rows.map(r => r.src + ':' + !!r.skip).join(' ');
+        S.rows[0].skip = false; S.rows[0].kSkip = false; S.rows[0].kSkipIptal = true; A.reassign(); const a2 = S.rows[0].skip;
+        S.rows = eskiR; S.rules = eskiK; A.reassign();
+        return { sonuc: sonuc.join(' '), a1, a2 }; });
+      check(km.sonuc === 'kural:770.02 kural:770.01 kural:770.01 atla:199.99 aski:199.99', 'kural: tüm şartlar tutarsa (VE) çok şartlı kural, tutmazsa tek şartlı eski kural; "hiç kaydetme" kuralı (' + km.sonuc + ')');
+      check(km.a1 === 'atla:true kural:false' && km.a2 === false, '"hiç kaydetme" kuralına uyan hareket fişe alınmaz; elle yeniden işaretlenirse kural ezmez (' + km.a1 + ')');
+      // arayüz: + Şart ekle, eylem seçimi, listede okunaklı gösterim (örnek firma: bellekte)
+      await w.click('#toolbar [data-open=add]'); await w.waitForSelector('#rulesModal:not([hidden]) #ruleForm');
+      await w.fill('#rK', 'HAVALE'); await w.click('#rEkle'); await w.fill('#rEk0', 'KENDİ HESABIM'); await w.click('#rEkle'); await w.fill('#rEk1', 'ZİRAAT | VAKIF');
+      check(await w.inputValue('#rK') === 'HAVALE' && await w.inputValue('#rEk0') === 'KENDİ HESABIM', '+ Şart ekle: önceki şartlar korunarak 2. ve 3. şart kutusu açıldı');
+      await w.selectOption('#rEylem', 'atla');
+      check(await w.isHidden('#rAcc') && await w.isHidden('#rLd'), '"Hiç kaydetme" seçilince karşı hesap ve Luca açıklaması gizlendi');
+      await w.click('#ruleForm button[type=submit]'); await w.waitForTimeout(300);
+      await w.click('#tabList'); await w.waitForTimeout(200);
+      const satir = await w.$$eval('#rulesBody .rule', l => l.map(x => x.textContent.replace(/\s+/g, ' ')).find(t => /HAVALE/.test(t)) || '');
+      check(/HAVALE VE KENDİ HESABIM VE ZİRAAT \| VAKIF/.test(satir) && /hiç kaydetme/i.test(satir), 'kural listesi: çok şartlı kural ve eylemi okunaklı (' + satir.trim().slice(0, 90) + ')');
+      await w.keyboard.press('Escape'); await w.waitForTimeout(200); }
     { const tb = await w.$$eval('#tabs [data-tab]', b => b.map(x => x.dataset.tab)); check(tb[1] === 'bos' && tb[2] === 'dolu', 'Banka: Boş / Dolu karşı hesap filtresi (' + tb.slice(0, 4).join(',') + ')');
       await w.click('#tabs [data-tab=bos]'); await w.waitForTimeout(150); const nb = await w.$$eval('#tbody tr', t => t.length);
       await w.click('#tabs [data-tab=all]'); await w.waitForTimeout(150); const na = await w.$$eval('#tbody tr', t => t.length);
