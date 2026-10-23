@@ -50,7 +50,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 ## Görev kayıtları
 | No | Konu | Kart | Durum |
 |---|---|---|---|
-| 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | Kod yazılmadı. Ara rapor: `raporlar/rapor-01.md` |
+| 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | İşçi oturumu: **Menü Düzenleme**. Kod yazılmadı. Ara rapor: `raporlar/rapor-01.md` |
 | 02 | Güvenlik denetimi (yalnız okuma) | `gorevler/gorev-02-guvenlik-denetimi.md` | Açık |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
 
