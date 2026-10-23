@@ -13,9 +13,9 @@ const r2=n=>Math.round((+n||0)*100)/100;
 const toplam=p=>r2((+p.tutar||0)*(1+(+p.kdv_orani||0)/100));
 const LS={al(k){try{return localStorage.getItem(k);}catch(e){return null;}},yaz(k,v){try{if(v==null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}}};
 
-const MODAD={fatura:'Muhasebe İşlemleri',ekstre:'MuhaWin lisansı',okc:'Hızlı Fiş Girişi',ozel:'Ofisinize Özel Çözümler',denetim:'Denetim ve Analiz',gecici:'Geçici Vergi İşlemleri',personel:'Personel'};
+const MODAD={fatura:'Muhasebe İşlemleri',ekstre:'MuhaWin lisansı',okc:'Belgeden Fiş',ozel:'Ofisinize Özel Çözümler',denetim:'Denetim ve Analiz',gecici:'Geçici Vergi İşlemleri',personel:'Personel'};
 const LISANS='ekstre';     // TEK LİSANS: lisans / deneme / kod 'ekstre' kaydında tutulur, tüm modülleri açar
-const OZEL=[{id:'cek',ad:'Çek / Senet Kayıtları'},{id:'mikro',ad:'Mikro Denetim'}];
+const OZEL=[{id:'cek',ad:'Çek / Senet Kayıtları'},{id:'mikro',ad:'Muhasebe Denetimi'}];
 const EYLEM={bilgi:'Bilgi düzenlendi',deneme:'Deneme süresi',lisans:'Lisans verildi',bitis:'Bitiş tarihi ayarlandı',lisans_bitir:'Lisans bitirildi',kapat:'Hesap kapatıldı',ac:'Hesap açıldı',
   pin_hata:'Yönetim şifresi hatalı',pin_giris:'Yönetime giriş',pin_degisti:'Yönetim şifresi değişti',ozel:'Özel çözüm tanımı',
   pc_sifirla:'Bilgisayarlar sıfırlandı',pc_sil:'Bilgisayar silindi',sil:'Üyelik silindi',satis:'Satış kaydı',satis_duzelt:'Satış düzeltildi',satis_sil:'Satış silindi',kod_uret:'Lisans kodu üretildi',ayar:'Ayarlar değişti'};

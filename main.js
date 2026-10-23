@@ -269,7 +269,7 @@ ipcMain.handle('store-op', (e, op, args) => ds.apply(op, args));
 // ---------- ÖKC fiş girişi: görüntü ekleme ve okuma (OCR, Türkçe; bilgisayarda çalışır, internete gönderilmez) ----------
 let ocrWorker = null, ocrSira = Promise.resolve(), ocrIptal = false;
 ipcMain.handle('okc-iptal', () => { ocrIptal = true; return true; });
-function okcLicensed() { const l = auth.moduleStatus('okc'); if (!l || !l.valid) throw new Error((l && l.reason) || 'Hızlı Fiş Girişi lisansı geçerli değil.'); }
+function okcLicensed() { const l = auth.moduleStatus('okc'); if (!l || !l.valid) throw new Error((l && l.reason) || 'Belgeden Fiş lisansı geçerli değil.'); }
 const okcDir = fid => { const d = path.join(acctDir || userDir(), 'okc', String(fid || 'genel').replace(/[^\w.-]+/g, '_')); fs.mkdirSync(d, { recursive: true }); return d; };
 async function ocrAl() {
   if (ocrWorker) return ocrWorker;

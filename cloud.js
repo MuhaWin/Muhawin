@@ -17,7 +17,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MODULES = [
   { id: 'fatura', name: 'Muhasebe İşlemleri', active: true },
   { id: 'ekstre', name: 'Banka İşlemleri', active: true },
-  { id: 'okc', name: 'Hızlı Fiş Girişi', active: true },
+  { id: 'okc', name: 'Belgeden Fiş', active: true },
   { id: 'denetim', name: 'Denetim ve Analiz', active: false },     // şimdilik pasif (kullanıcı kararı); içerik hazır: ters bakiye, banka mutabakatı, günün özeti
   { id: 'ozel', name: 'Ofisinize Özel Çözümler', active: true },
   { id: 'gecici', name: 'Geçici Vergi İşlemleri', active: false },

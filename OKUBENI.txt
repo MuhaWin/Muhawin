@@ -1,4 +1,4 @@
-MuhaWin 2.9.13  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Hızlı Fiş Girişi · Ofisinize Özel Çözümler · (yakında: Denetim ve Analiz · Geçici Vergi · Personel)
+MuhaWin 2.9.13  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Belgeden Fiş · Ofisinize Özel Çözümler · (yakında: Denetim ve Analiz · Geçici Vergi · Personel)
 =========================================================================================================================================================
 
 ÖNCE SUNUCU (bir kez)
@@ -131,7 +131,7 @@ KULLANIM
   ofisler, duyuru ve işlem günlüğü iPhone'dan.
 
 2.9.6 YENİLİKLER
-- Hızlı Fiş Girişi (eski adı ÖKC Fiş Girişi): ÖKC fişi, Z raporu ve YURT DIŞI FATURALARI (Meta, Google vb.; PDF / görüntü).
+- Belgeden Fiş (eski adları Hızlı Fiş Girişi, ÖKC Fiş Girişi): ÖKC fişi, Z raporu ve YURT DIŞI FATURALARI (Meta, Google vb.; PDF / görüntü).
   Net tutar brüte çevrilir: %15 stopaj 360'a, %20 sorumlu KDV 191 / 360'a, brüt 760 / 770'e; TCMB kuru kendiliğinden alınır.
   Tüm fiş türlerinde tutar düzeltilebilir, satır eklenebilir. Binek araç %30 nazım kaydı 950 / 951'e de yazılır.
 - Raporlarda toplu seçim: birden çok satır tek açıklamayla "uygun" ya da "kaydedilmeyecek" yapılır; Luca'ya kaydet ekranında

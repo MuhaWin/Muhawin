@@ -98,7 +98,7 @@ const bekle = ms => new Promise(r => setTimeout(r, ms));
     check(/Ali SMMM Ofisi/.test(await metin()), 'ofisler listesi');
     await pg.check('[data-oz="of1"][value="mikro"]'); await bekle(500);
     const oz = sb.state.cagri.filter(c => c[0] === 'admin_office_set_ozel').pop();
-    check(oz && oz[1].p_office === 'of1' && oz[1].p_ozel.includes('mikro'), 'ofise Mikro Denetim tanımlanır');
+    check(oz && oz[1].p_office === 'of1' && oz[1].p_ozel.includes('mikro'), 'ofise Muhasebe Denetimi (mikro) tanımlanır');
     await tikla('[data-tab="diger"]'); await tikla('[data-tab="ayar"]'); await bekle(300);
     await pg.fill('#dM', 'Telefon test duyurusu'); await tikla('#dY'); await tikla('[data-sec="__tamam"]'); await bekle(500);
     check(sb.state.adm.ayar.duyuru && sb.state.adm.ayar.duyuru.metin === 'Telefon test duyurusu' && /Yayında/.test(await metin()), 'duyuru yayınlanır');
