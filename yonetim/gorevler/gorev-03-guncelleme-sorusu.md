@@ -1,7 +1,7 @@
 # Görev 03 – Açılışta Güncelleme Sorusu
 
 **Durum:** Açık · **Taban:** `main` · **Dal:** `gorev-03-guncelleme-sorusu` · **Mesaj sınırı:** 20
-**Oturum adı:** Güncelleme Sorusu
+**Uygulayan oturum:** Ana Depo
 
 ## Başlarken
 1. `yonetim/YONETICI.md` dosyasındaki "İşçi oturum kuralları" bölümünü uygula.
