@@ -127,6 +127,8 @@ function makeWindow(url, o = {}) {
   }));
   cocukBagla(w); hizliBagla(w);
   w.webContents.on('did-finish-load', () => sayfaYuklendi(w));
+  // gizli girişte sayfa yüklenemezse (ağ hatası) pencere gizli kalmasın: kullanıcı Luca'nın hata sayfasını görür
+  w.webContents.on('did-fail-load', (e, kod, aciklama, adres, anaCerceve) => { if (anaCerceve && gizliGiris && !w.isDestroyed() && !w.isVisible()) { gizliGiris = false; goster(w); } });
   w.loadURL(url);
   return w;
 }
@@ -196,8 +198,12 @@ async function captchaGonder(w) {
   captchaSuruyor = true;
   try {
     let r = null;
-    for (let i = 0; i < 6 && !(r && (r.cap || r.giris)); i++) { try { r = await w.webContents.executeJavaScript(CAPTCHA_BUL_JS, true); } catch (e) {} if (!(r && (r.cap || r.giris))) await new Promise(x => setTimeout(x, 500)); }
-    if (!r || !r.giris) return;                                         // giriş formu yok (yönlendiriliyor)
+    for (let i = 0; i < 20 && !(r && (r.cap || r.giris)); i++) { try { r = await w.webContents.executeJavaScript(CAPTCHA_BUL_JS, true); } catch (e) {} if (!(r && (r.cap || r.giris))) await new Promise(x => setTimeout(x, 500)); }
+    if (!r || !r.giris) {
+      // giriş formu yok: yönlendiriliyorsa bir şey yapılmaz; hâlâ giriş sayfasındaysa (Luca sayfası değişmiş) pencere gizli kalmasın
+      if (!w.isDestroyed() && gizliGiris && /giris\.erp/i.test(w.webContents.getURL() || '')) { gizliGiris = false; goster(w); notify('captcha', { yok: true }); }
+      return;
+    }
     if (!r.cap) {                                                       // doğrulama kodu istenmiyor: bilgiler dolu, Giriş'e basılır
       await new Promise(x => setTimeout(x, 300)); try { await w.webContents.executeJavaScript(GIRIS_BAS_JS(null), true); } catch (e) {} return; }
     let resim = r.resim || '';
