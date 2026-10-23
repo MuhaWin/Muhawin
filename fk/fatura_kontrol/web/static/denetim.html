@@ -59,14 +59,12 @@ table.dt .durum{white-space:normal;line-height:1.3}
 </head>
 <body>
 <header class="ust"><span class="logo" aria-hidden="true"></span><h1 style="font-size:16px;margin:0">Mikro Denetim</h1>
-  <span style="font-size:12.5px;opacity:.8">Mikro muavini ve e-faturalarla firma denetimi: KDV · matrah · cari · beyanname</span>
-  <span id="webOturum" hidden style="margin-left:auto;font-size:12.5px;display:flex;gap:10px;align-items:center"><span id="webEposta"></span><button type="button" class="btn" id="webCikis" style="min-height:28px;background:transparent;border-color:rgba(255,255,255,.55);color:inherit">Çıkış</button></span></header>
+  <span style="font-size:12.5px;opacity:.8">Mikro muavini ve e-faturalarla firma denetimi: KDV · matrah · cari · beyanname</span></header>
 <main>
   <aside>
     <section class="kart">
       <h3>1. Firma</h3>
       <select id="firma"><option value="">Firma seçin…</option></select>
-      <input id="yeniFirma" hidden placeholder="ya da yeni firma adı" style="margin-top:6px" aria-label="Yeni firma adı">
       <p class="ipucu" style="margin-top:6px">Firmayı buradan ya da MuhaWin'in üstündeki firma seçiminden değiştirin.</p>
       <div id="yerelKutu" class="yerel" hidden><div class="yerel-bas">💾 Bu bilgisayarda kayıtlı belgeler <span class="ipucu">— yeni sorgu ya da yükleme yapmadan denetleyin</span></div><div id="yerelListe"></div></div>
     </section>
@@ -135,7 +133,7 @@ function lucaCiz(mesaj) {
   n.querySelectorAll("[data-lucatekrar]").forEach(b => b.onclick = () => lucaIndir(b.dataset.lucatekrar));
 }
 async function lucaKontrol() {
-  if (lucaCalisiyor || WEB) return;
+  if (lucaCalisiyor) return;
   const f = seciliFirma(), b = $("#bas").value;
   if (!(f && f.id && b)) { lucaFat = null; lucaEksik = []; lucaCiz(); return; }
   try { const j = await (await fetch(`/api/kontrol/luca-faturalari?firma_id=${encodeURIComponent(f.id)}&bas=${b}`)).json();
@@ -185,23 +183,7 @@ async function yerelDenetim(ay) {
   } catch (e) { $("#hata").textContent = e.message; }
   finally { $("#yukle").classList.remove("acik"); document.querySelectorAll("[data-yerel]").forEach(x => x.disabled = false); }
 }
-async function listeYukle() { try { liste = (await (await fetch("/api/denetim/liste")).json()).liste || []; } catch (e) { liste = []; } if (WEB) webFirmalar(); gecmisCiz(); }
-/* Web sürümü (sitede): firma listesi önceki denetimlerden gelir; Luca bölümü yoktur */
-let WEB = false;
-function webFirmalar() {
-  const g = new Map(); liste.forEach(x => { const ad = String(x.firma || "").trim(); if (ad && !g.has(ad.toLocaleUpperCase("tr-TR"))) g.set(ad.toLocaleUpperCase("tr-TR"), {mw: ad, ad, vkn: x.vkn || ""}); });
-  mwListe = [...g.values()].sort((a, b) => a.ad.localeCompare(b.ad, "tr")); firmaCiz();
-}
-async function webKur() {
-  let j = {}; try { j = await (await fetch("/api/saglik")).json(); } catch (e) {}
-  if (!j.web) return;
-  WEB = true; webFirmalar();
-  $("#yeniFirma").hidden = false; $("#firma").addEventListener("change", () => { $("#yeniFirma").hidden = !!firmaK(); });
-  $("#yeniFirma").nextElementSibling.textContent = "Yeni firmanın adını yazın (boş bırakılırsa faturalardaki VKN kullanılır); sonraki denetimlerde listede çıkar.";
-  document.querySelector("#yerelKutu .yerel-bas").innerHTML = '💾 Sunucuda kayıtlı belgeler <span class="ipucu">— yeniden yüklemeden denetleyin</span>';
-  try { const o = await (await fetch("/api/oturum")).json(); if (o.eposta) { $("#webEposta").textContent = o.eposta; $("#webOturum").hidden = false; } } catch (e) {}
-  $("#webCikis").onclick = async () => { try { await fetch("/api/cikis", {method: "POST"}); } catch (e) {} location.href = "/giris"; };
-}
+async function listeYukle() { try { liste = (await (await fetch("/api/denetim/liste")).json()).liste || []; } catch (e) { liste = []; } gecmisCiz(); }
 async function ac(id) {
   const r = await fetch("/api/denetim?id=" + encodeURIComponent(id)); if (!r.ok) return;
   veri = await r.json(); veri.rapor_id = veri.rapor_id || id; gor = "ozet"; ciz(); gecmisCiz();
@@ -340,7 +322,6 @@ $("#basla").onclick = async () => {
   const fd = new FormData(); x.forEach(y => fd.append("faturalar", y)); fd.append("muavinler", m); [...$("#red").files].forEach(y => fd.append("red_iptal", y)); fd.append("program", "mikro"); if (luca) fd.append("fatura_kaynak", "luca");
   fd.append("bas", $("#bas").value); fd.append("bit", $("#bit").value);
   if (f) { fd.append("firma_ad", f.ad); if (f.id) fd.append("firma_id", f.id); }
-  else if (WEB && $("#yeniFirma").value.trim()) fd.append("firma_ad", $("#yeniFirma").value.trim());
   $("#yukle").classList.add("acik"); $("#basla").disabled = true;
   try {
     const r = await fetch("/api/denetim", {method: "POST", body: fd}); const j = await r.json();
@@ -374,7 +355,7 @@ async function lucaIndir(adim) {
 }
 $("#lucaAl").onclick = () => lucaIndir();
 $("#bas").addEventListener("change", lucaKontrol);
-ciz(); webKur().then(listeYukle); lucaCiz();
+ciz(); listeYukle(); lucaCiz();
 if (MW) window.parent.postMessage({fk: true, tip: "denetimHazir"}, "*");
 </script>
 </body>

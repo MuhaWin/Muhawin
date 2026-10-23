@@ -1,5 +1,5 @@
 # MuhaWin web sunucusu (Caddy): HTTPS sertifikaları kendiliğinden alınır ve yenilenir.
-# Alan adı ve e-posta .env dosyasındadır (DOMAIN, ACME_EMAIL). Alt alan adları: indir, yonetim, denetim. Her alt alan adı için DNS'te
+# Alan adı ve e-posta .env dosyasındadır (DOMAIN, ACME_EMAIL). Alt alan adları: indir, yonetim. Her alt alan adı için DNS'te
 # sunucunun IP'sine giden bir A kaydı gerekir (ya da tek bir *.DOMAIN kaydı).
 {
 	email {$ACME_EMAIL}
@@ -49,19 +49,6 @@ yonetim.{$DOMAIN} {
 	header /index.html Cache-Control "no-cache"
 	root * /srv/yonetim
 	file_server
-}
-
-# denetim.DOMAIN: Mikro Denetim (Luca'sız, dosya yüklemeyle). Giriş MuhaWin hesabıyla, yalnız FK_WEB_IZINLI'deki e-postalar.
-denetim.{$DOMAIN} {
-	import guvenlik
-	header {
-		X-Robots-Tag "noindex, nofollow"
-		X-Frame-Options SAMEORIGIN
-	}
-	request_body {
-		max_size 500MB
-	}
-	reverse_proxy denetim:8000
 }
 
 # Yeni bir web uygulaması eklemek için (docker-compose.yml'de aynı adla bir servis tanımlayın):

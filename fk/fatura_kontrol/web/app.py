@@ -49,14 +49,6 @@ async def _muhawin_kapisi(request, call_next):
     return await call_next(request)
 
 
-# Web sürümü (sitede yayınlanan Mikro Denetim): giriş zorunlu, Luca'ya bağlanan bölümler kapalı
-from . import giris as _giris   # noqa: E402
-if _giris.acik():
-    _giris._anahtar()                       # anahtar eksikse sunucu hiç açılmasın
-    app.middleware("http")(_giris.denetci)
-    app.include_router(_giris.router)
-
-
 def _db():
     con = sqlite3.connect(depo.veri() / "gecmis.sqlite")
     con.execute("""CREATE TABLE IF NOT EXISTS calisma (
@@ -333,10 +325,7 @@ def tema_js():
 
 @app.get("/api/saglik")
 def saglik():
-    d = {"uygulama": "fatura-kontrol", "muhawin": bool(os.environ.get("FK_MUHAWIN"))}
-    if _giris.acik():
-        d["web"] = True
-    return d
+    return {"uygulama": "fatura-kontrol", "muhawin": bool(os.environ.get("FK_MUHAWIN"))}
 
 
 from .toplu_api import router as _toplu_router   # noqa: E402
@@ -1383,8 +1372,6 @@ def bildirim_durumu():
 
 @app.on_event("startup")
 def _acilis():
-    if _giris.acik():
-        return
     bildirim.arka_planda_gonder()          # önceki gönderim internet yokken başarısız olduysa yeniden dene
 
 

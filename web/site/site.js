@@ -8,13 +8,6 @@
 
   $('#yil').textContent = new Date().getFullYear();
 
-  // Giriş: denetim.<alan adı> (Mikro Denetim web sürümü). Yerelde açılan dosyada gösterilmez.
-  if (/^https?:$/.test(location.protocol) && location.hostname.includes('.')) {
-    const kok = location.hostname.replace(/^www\./, '');
-    $('#girisBag').href = `${location.protocol}//denetim.${kok}${location.port ? ':' + location.port : ''}/`;
-    $('#girisBag').hidden = false;
-  }
-
   function indirmeyiYaz(surum, url, dosya, boyut) {
     if (url) $('#indirDugme').href = url;
     if (surum) $('#indirSurum').textContent = 'Sürüm ' + surum;

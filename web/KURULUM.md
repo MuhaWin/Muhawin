@@ -1,83 +1,48 @@
-# MuhaWin web sitesi ve web uygulamaları
+# MuhaWin web sitesi
 
-Tek bir sunucuda, tek bir `docker compose` ile çalışır. Caddy HTTPS sertifikalarını kendisi alır ve yeniler.
+**Kullanıcı kararı (23.10.2026):** Web modüllerinde belgeler **tarayıcıda** işlenir. Fatura ve muavin dosyaları
+kullanıcının bilgisayarından çıkmaz; sunucuya yalnız giriş ve lisans bilgisi gider (Supabase, programdaki gibi).
+Bu yüzden sitede çalışan bir sunucu programı yoktur; site tamamen statiktir.
 
 | Adres | Ne çalışır | Kaynak |
 |---|---|---|
-| `DOMAIN` (ve `www.DOMAIN` → yönlendirme) | Tanıtım sitesi, indirme, sürüm notları | `web/site/` |
+| `DOMAIN` (`www.DOMAIN` → yönlendirme) | Tanıtım sitesi, indirme, sürüm notları | `web/site/` |
 | `indir.DOMAIN` | En son kurulum dosyasını (GitHub sürümü) hemen indirtir | `web/site/indir.html` |
 | `yonetim.DOMAIN` | Telefon yönetim paneli (yalnız bilgi@smmmantalya.com) | `mobil-yonetim/` |
-| `denetim.DOMAIN` | **Mikro Denetim** web sürümü: giriş zorunlu, Luca gerekmez | `fk/fatura_kontrol` (`FK_WEB=1`) |
+| `denetim.DOMAIN` (sonraki iş, W1) | Mikro Denetim, tarayıcıda (Pyodide) | `yonetim/belgeler/web-modul-analizi.md` |
 
-`DOMAIN` `.env` dosyasında yazılır. Örnek: `muhawin.smmmantalya.com` yazılırsa adresler `muhawin.smmmantalya.com`,
-`denetim.muhawin.smmmantalya.com` … olur. Ayrı bir alan adı alındıysa (ör. `muhawin.com.tr`) onu yazın.
+## Önerilen yol: Cloudflare Pages (ücretsiz)
+Ayrıntı ve gerekçe: `yonetim/belgeler/web-saglayici-onerisi.md`.
 
-## 1. Sunucu (bir kez)
+1. Alan adını alın (öneri `muhawin.com.tr`).
+2. Cloudflare'de ücretsiz hesap açın → **Add a site** → alan adını yazın. Cloudflare'in verdiği iki ad sunucusunu
+   (nameserver) alan adını aldığınız firmanın panelinde girin. Etkinleşmesi birkaç saati bulabilir.
+3. Cloudflare → **Workers & Pages → Create → Pages → Connect to Git** → `MuhaWin/Muhawin` deposu:
+   - Production branch: `main`
+   - Build command: boş · Build output directory: `web/site`
+   - **Custom domains:** `DOMAIN` ve `www.DOMAIN`
+4. `indir.DOMAIN`: aynı Pages projesine özel alan adı olarak eklenir. İsteğe bağlı olarak Cloudflare
+   **Rules → Redirect Rules** ile `indir.DOMAIN/*` → `https://DOMAIN/indir.html` yönlendirmesi kurulur.
+5. `yonetim.DOMAIN`: ikinci bir Pages projesi (çıktı klasörü `mobil-yonetim`) ya da şu anki GitHub Pages yayını
+   için CNAME kaydı.
 
-1. Ubuntu 22.04 / 24.04 bir sunucu kiralayın (2 GB RAM yeterli). 80 ve 443 portları açık olmalı.
-2. Docker'ı kurun: `curl -fsSL https://get.docker.com | sh`
-3. Alan adının DNS panelinde sunucunun IP adresine giden **A kayıtları** ekleyin:
-   `DOMAIN`, `www.DOMAIN`, `indir.DOMAIN`, `yonetim.DOMAIN`, `denetim.DOMAIN`
-   (ya da tek bir `*.DOMAIN` kaydı ve `DOMAIN` kaydı).
-4. Depoyu sunucuya alın ve ayarları yazın:
-   ```sh
-   git clone <depo adresi> muhawin && cd muhawin/web
-   cp .env.example .env
-   openssl rand -hex 32          # çıktıyı .env'deki FK_WEB_ANAHTAR= satırına yazın
-   nano .env                     # DOMAIN, FK_WEB_IZINLI (giriş yapacak e-postalar)
-   docker compose up -d --build
-   ```
-5. Birkaç dakika içinde `https://DOMAIN` açılır. Sorun olursa: `docker compose logs -f caddy`
+Bundan sonra `main`'e her birleştirmede site kendiliğinden yenilenir. Token ya da şifre depoya yazılmaz; ileride
+GitHub Actions ile yayın gerekirse token depo gizli değişkeni (`CLOUDFLARE_API_TOKEN`) olarak eklenir.
 
-## 2. Yeni sürüm çıktığında
+## Yeni sürüm çıktığında
+1. Sürüm her zamanki gibi GitHub'a yüklenir (OKUBENI.txt → *YENİ SÜRÜM YAYINLAMA*). Sitedeki indirme düğmesi en
+   son sürümü oradan bulur.
+2. Sürüm notlarını yenileyin: `node tools/site_uret.js` (`web/site/surum.json` yazılır), commit → PR → `main`.
 
-1. Her zamanki gibi sürümü GitHub'a yükleyin (OKUBENI.txt → *YENİ SÜRÜM YAYINLAMA*). Kurulu programlar
-   güncellemeyi oradan alır; sitedeki indirme düğmesi de en son sürümü oradan bulur.
-2. Sitedeki sürüm notlarını yenileyin (OKUBENI.txt'deki `x.y.z YENİLİKLER` bölümlerinden):
-   ```sh
-   node tools/site_uret.js       # web/site/surum.json yazılır; commit edip push edin
-   ```
-3. Sunucuda: `git pull && docker compose up -d --build` (site dosyaları doğrudan bağlıdır; yalnız denetim
-   kodu değiştiyse yeniden derlenir).
-
-## 3. Mikro Denetim (denetim.DOMAIN)
-
-- Giriş MuhaWin hesabıyla (programdaki e-posta / parola) yapılır. Yalnız `.env`'deki `FK_WEB_IZINLI`
-  listesindeki e-postalar girebilir; birden çok hesap virgülle yazılır. Listeyi değiştirince:
-  `docker compose up -d`.
-- Oturum 12 saat sürer. 15 dakikada 5 hatalı denemede o e-posta / adres 15 dakika kilitlenir.
-- Luca'ya bağlanan bölümler (Faturaları Luca'dan Al, toplu kontrol, Luca'ya kayıt, Ayarlar) web sürümünde
-  kapalıdır. Faturalar Mikro'dan alınan XML / ZIP, muavin Mikro Excel'i olarak yüklenir.
-- Yüklenen belgeler ve raporlar sunucuda `denetim_veri` biriminde saklanır (firma / yıl / ay klasörleri).
-  **Bu veriler müşterilerinizin muhasebe verileridir (KVKK):** sunucuyu yalnız siz ve yazılımcınız yönetin,
-  düzenli yedek alın:
-  ```sh
-  docker run --rm -v web_denetim_veri:/veri -v "$PWD":/yedek alpine tar czf /yedek/denetim-$(date +%F).tgz -C /veri .
-  ```
-- Masaüstü programdaki Mikro Denetim aynen çalışır; web sürümü `FK_WEB=1` olmadan devreye girmez.
-
-## 4. Yeni bir web bölümü eklemek (yazılımcı için)
-
-Luca gerektirmeyen, dosya ya da başka programlardan veri alışverişiyle çalışan bölümler iki yolla eklenir:
-
-**a) Fatura Kontrol uygulamasının içine (önerilen; aynı giriş, aynı veri klasörü)**
-1. Sayfayı `fk/fatura_kontrol/web/static/` içine, API'yi `fk/fatura_kontrol/web/app.py`'ye ekleyin
-   (Mikro Denetim: `denetim.html` + `/api/denetim*`).
-2. Giriş kontrolü `fk/fatura_kontrol/web/giris.py` içindeki ara katmanda; yeni adresler kendiliğinden
-   oturum ister. Luca'ya bağlanan ya da bilgisayara özgü bir adres eklerseniz `KAPALI_ON` listesine yazın.
-3. Sayfada web sürümünü `/api/saglik` yanıtındaki `web: true` ile anlayın (bkz. `denetim.html` → `webKur`).
-4. Test: `cd fk && python -m pytest tests/test_web_giris.py`
-
-**b) Ayrı bir uygulama olarak (kendi alt alan adı)**
-1. `docker-compose.yml`'deki örnek servisi açın (imaj ya da `build:`).
-2. `Caddyfile`'daki `uygulama.{$DOMAIN}` örneğini açıp adını verin; DNS'e A kaydını ekleyin.
-3. `docker compose up -d --build`. Bu uygulamanın girişini kendisi yapmalıdır.
-
-## Yerelde deneme
-
+## Yedek yol: kendi sunucunuz (Caddy)
+Statik site istenirse bir VPS'te de yayınlanabilir. `web/Caddyfile` ve `web/docker-compose.yml` bunun için hazır:
 ```sh
-cd fk && FK_WEB=1 FK_VERI=./veri-web FK_WEB_GUVENLI_CEREZ=0 FK_WEB_IZINLI=bilgi@smmmantalya.com \
-  FK_WEB_ANAHTAR=$(openssl rand -hex 32) FK_SUPABASE_URL=https://rupwlypoblungdfajrya.supabase.co \
-  FK_SUPABASE_ANON=<.env.example'daki anahtar> python -m uvicorn fatura_kontrol.web.app:app --port 8000
-# tarayıcı: http://127.0.0.1:8000  ·  site: web/site/index.html dosyasını herhangi bir statik sunucuyla açın
+cd web && cp .env.example .env && nano .env      # DOMAIN, ACME_EMAIL
+docker compose up -d
+```
+DNS'te `DOMAIN`, `www`, `indir` ve `yonetim` için sunucunun IP'sine A kaydı gerekir. Caddy HTTPS'i kendisi alır.
+
+## Yerelde önizleme
+```sh
+python3 -m http.server -d web/site 8080     # http://127.0.0.1:8080
 ```

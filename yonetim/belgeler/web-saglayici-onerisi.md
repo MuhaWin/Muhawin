@@ -4,7 +4,7 @@ Hazırlayan: Web Asistanı · 23.10.2026 · Dal: `claude/beautiful-bohr-c7x9ij` 
 Satın alma, hesap açma ve DNS değişikliği yapılmadı.
 
 ## 0. Önce verilmesi gereken karar
-Sağlayıcı seçimi, **Mikro Denetim belgelerinin nerede işleneceği** kararına bağlı. Bu soruyu yönetici kullanıcıya soruyor:
+Sağlayıcı seçimi, **Mikro Denetim belgelerinin nerede işleneceği** kararına bağlıydı. **Kullanıcı kararı (23.10.2026): T – tarayıcıda.** Bu yüzden yalnız Kademe 1 (§3) uygulanır; VPS gerekmez.
 
 | Seçenek | Gereken barındırma | KVKK |
 |---|---|---|
@@ -63,7 +63,7 @@ Sağlayıcı seçimi, **Mikro Denetim belgelerinin nerede işleneceği** kararı
 T seçilirse Kademe 2 gerekmez. Denetim de Pages üzerinde, tarayıcıda çalışır.
 
 ## 4. Kullanıcının yapacakları
-1. **Karar:** T / S1 / S2 (yönetici soruyor). S seçilirse: Türkiye VPS mi, Hetzner mi?
+1. ~~Karar: T / S1 / S2~~ → T verildi (23.10.2026); VPS adımı (5) uygulanmaz.
 2. Alan adı uygunluğunu kayıt firmasında sorgulayın; `muhawin.com.tr`'yi (isteğe bağlı olarak `muhawin.com`'u da) satın alın.
 3. Cloudflare'de ücretsiz hesap açın → "Add a site" → alan adını ekleyin. Cloudflare'in verdiği iki ad sunucusunu kayıt firması panelinde girin.
 4. Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers" şablonuyla token oluşturun. Token'ı **GitHub deposu → Settings → Secrets and variables → Actions** altına `CLOUDFLARE_API_TOKEN` adıyla ekleyin; hesap kimliğini de `CLOUDFLARE_ACCOUNT_ID` adıyla. Token sohbete ya da depoya yazılmaz.

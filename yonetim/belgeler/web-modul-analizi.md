@@ -6,7 +6,7 @@ Programdan modül kaldırılmadı. Bu belge yalnız analiz ve öneri içerir.
 ## 0. Özet
 - **Mikro Denetim tarayıcıda çalışabiliyor; bu denendi.** `fk/fatura_kontrol` içindeki Python kodu, tarayıcıdaki Python motoru **Pyodide** üzerinde **değiştirilmeden** çalıştı. Sonuç sunucu sürümüyle aynı çıktı (sahte örnek verilerle: KDV 0, Matrah 1, Cari 1 sorun) ve Excel raporu da üretildi. Denetim süresi yaklaşık 1,6 sn. İlk açılışta yaklaşık 6 MB (sıkıştırılmış) indirilir, sonraki açılışlarda tarayıcı önbelleğinden gelir. Bu yolda **belge bilgisayardan çıkmaz** ve kural ihlali yoktur.
 - Tek engel bir kod bağımlılığı: `kontrol.py`, raporu kaydetmek için web sunucusu modülünü (`web/app.py`: FastAPI, sqlite3, Luca/Playwright zinciri) içe aktarıyor. Denemede bu modüller boş taslaklarla geçildi. Kalıcı çözüm, `rapor_kaydet`'in ayrı bir modüle alınması (Yazılımcı işi; bkz. W1).
-- **Kural ihlali işareti:** Bu daldaki `web/docker-compose.yml` + `fk/fatura_kontrol/web/giris.py` (FK_WEB=1) belgeleri **sunucuya yükleyip saklıyor**. Bu, "belgeler kullanıcı bilgisayarında kalır" kuralına aykırı. Kullanıcı isteği üzerine hazırlandı; kullanılması kullanıcı kararına bağlı (T / S1 / S2, bkz. `web-saglayici-onerisi.md` §0). Karar T olursa bu sunucu sürümü gerekmez.
+- **Kullanıcı kararı (23.10.2026): belgeler tarayıcıda işlenir (T).** Bu dalda önceden hazırlanan sunucu sürümü (FK_WEB=1, belgeleri sunucuda saklıyordu) bu karar üzerine kaldırıldı; `fk/` bu PR'da değişmiyor.
 - Luca'ya bağlanan her iş (Playwright / Electron Luca penceresi) web'e taşınamaz. Luca, oturumu ve captcha'yı başka bir alan adından tarayıcıya açmaz (CORS, çerez yalıtımı). Bunu yapmak için kullanıcı adına sunucuda Luca'ya giriş yapmak gerekirdi; bu da Luca bilgilerini ve müşteri verisini sunucuya taşımak demek. Önerilmez.
 
 ## 1. Modüller
@@ -62,7 +62,7 @@ Kısaltmalar. **R**: renderer (`renderer/index.html`, tarayıcı JS). **P**: Pyt
 - **Büyüklük:** M–L. Kullanıcı isterse W3 yerine Çek/Senet (M) ya da Ters bakiye + banka mutabakatı (S–M) alınabilir.
 
 ## 4. Kullanıcı kararı bekleyenler
-1. T / S1 / S2 (belgelerin nerede işleneceği). W1 kanıtı T'yi uygulanabilir kılıyor.
+1. ~~T / S1 / S2~~ → **T (tarayıcı), kullanıcı kararı 23.10.2026.**
 2. İlk modül sırası (önerilen: W1 + W2, sonra W3).
 3. Masaüstündeki modüller programdan kaldırılacak mı? Öneri: **kaldırılmasın.** Web sürümü ek erişim yolu olsun; kaldırma kararı kullanıcıda.
 

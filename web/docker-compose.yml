@@ -16,18 +16,6 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
-  # Mikro Denetim (denetim.DOMAIN): yüklenen belgeler ve raporlar denetim_veri biriminde saklanır
-  denetim:
-    build:
-      context: ../fk
-      dockerfile: ../web/denetim/Dockerfile
-    restart: unless-stopped
-    env_file: .env
-    expose:
-      - "8000"
-    volumes:
-      - denetim_veri:/veri
-
   # Yeni uygulama örneği (Caddyfile'daki uygulama.{$DOMAIN} bloğuyla birlikte açın):
   # uygulama:
   #   image: <imaj adı>
@@ -36,6 +24,5 @@ services:
   #     - "8080"
 
 volumes:
-  denetim_veri:
   caddy_data:
   caddy_config:
