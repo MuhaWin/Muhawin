@@ -29,6 +29,13 @@ _ALANLAR = {
     "tur": ["fatura türü", "fatura tipi"],
 }
 _DURUM_SUTUN = re.compile(r"^(fatura|belge|e-?fatura|e-?ar[şs]iv)?\s*durum(u)?(\s*a[çc][ıi]klamas[ıi])?$|^iptal", re.I)
+# Sütun düzenleri: muhasebe programına göre (muavin_programlari.PROGRAMLAR[...]["red_iptal"]). Yeni program = yeni kayıt.
+#   belge: belge no sütun adları · alanlar: diğer sütunlar · isaret: başlık satırını tanıtan sütunlardan biri · durum: durum sütunları
+DUZENLER: dict[str, dict] = {
+    "mikro": {"ad": "Mikro e-Fatura / e-Arşiv giden ve gelen kutusu listesi", "belge": _BELGE, "alanlar": _ALANLAR,
+              "isaret": ("belge tarihi", "fatura tarihi", "vergi kimlik no", "cari ünvanı", "evrak tarihi"), "durum": _DURUM_SUTUN},
+}
+VARSAYILAN_DUZEN = "mikro"
 RED_RE = re.compile(r"red|ret|iptal|İPTAL|İptal", re.I)
 _EBELGE = re.compile(r"^[A-Z0-9]{3}20\d{2}\d{9}$")
 
@@ -105,8 +112,9 @@ def _sutun(baslik: list[str], adlar: list[str]) -> int | None:
     return None
 
 
-def oku(yollar: list[Path]) -> tuple[dict[str, dict], list[str]]:
-    """Excel'lerden belge no → bilgi. Dönüş: (liste, uyarılar)."""
+def oku(yollar: list[Path], duzen: str | None = None) -> tuple[dict[str, dict], list[str]]:
+    """Excel'lerden belge no → bilgi. duzen: DUZENLER anahtarı (muhasebe programına göre). Dönüş: (liste, uyarılar)."""
+    D = DUZENLER.get(duzen or VARSAYILAN_DUZEN) or DUZENLER[VARSAYILAN_DUZEN]
     liste: dict[str, dict] = {}
     uyarilar: list[str] = []
     for yol in yollar:
@@ -124,11 +132,11 @@ def oku(yollar: list[Path]) -> tuple[dict[str, dict], list[str]]:
                 continue
             h = [_k(x) for x in r]
             if baslik is None:
-                b = _sutun(h, _BELGE)
-                if b is not None and any(x in h for x in ("belge tarihi", "fatura tarihi", "vergi kimlik no", "cari ünvanı", "evrak tarihi")):
+                b = _sutun(h, D["belge"])
+                if b is not None and any(x in h for x in D["isaret"]):
                     baslik, bi = h, b
-                    sut = {k: _sutun(h, v) for k, v in _ALANLAR.items()}
-                    durum_s = [i for i, x in enumerate(h) if _DURUM_SUTUN.search(x)]
+                    sut = {k: _sutun(h, v) for k, v in D["alanlar"].items()}
+                    durum_s = [i for i, x in enumerate(h) if D["durum"].search(x)]
                 continue
             no = re.sub(r"\s+", "", str(r[bi] if bi < len(r) else "")).upper()
             if not no:

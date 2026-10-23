@@ -101,7 +101,7 @@ def kdv2_json(k, bas: date, bit: date) -> dict:
 def hazirla(rapor_id: str, iade: dict | None = None) -> dict:
     """Dönem raporu + muavin → {mukellef, uygunluk, kdv1, kdv2}."""
     from .kontrol import muavin_dosyalari, muavinleri_oku
-    from .web.app import rapor_oku
+    from .rapor_kayit import rapor_oku
     v = rapor_oku(rapor_id)
     k = depo.rapor_klasoru(rapor_id)
     if v is None or not k:
@@ -246,7 +246,7 @@ def toplu(yil: int, ay: int, yalniz_temiz: bool = False) -> dict:
     Beyanname daha önce hazırlandıysa beyanname.json'dan okunur, yoksa muavinden hazırlanır; muavini olmayan ya da
     hazırlanamayan firmalar 'hata' alanıyla listelenir (gönderim öncesi kontrol listesi)."""
     from .kontrol import muavin_dosyalari
-    from .web.app import _db
+    from .rapor_kayit import _db
     satirlar = []
     with _db() as con:
         rows = con.execute("SELECT id, firma, vkn, bas, bit, fatura_sayisi, sorunlu FROM calisma ORDER BY firma").fetchall()
