@@ -7,6 +7,7 @@ const { makeDataStore } = require('./datastore');
 const { makeCloud, kodUret, kodOzet, kodGrupla } = require('./cloud');
 const { makeKur } = require('./kur');
 const { makeSidecar } = require('./sidecar');
+const { makeGuncelleme } = require('./guncelleme');
 let ds, auth, fk;
 
 // Ekstre Luca'dan MuhaWin'e geçiş: eski program verisi (hesaplar, ayarlar, oturum) bir kez kopyalanır.
@@ -169,25 +170,22 @@ app.whenReady().then(() => {
   setupUpdater();
 });
 // ---------- otomatik güncelleme (GitHub sürümleri; yalnız kurulu programda) ----------
-let updater = null, updateState = { state: 'idle' };
+let guncelleme = null, updateState = { state: 'idle' };
 function updateSend(st) { updateState = { ...st, current: app.getVersion() }; if (win && !win.isDestroyed()) win.webContents.send('update-event', updateState); }
 function setupUpdater() {
   if (!app.isPackaged || process.env.MUHAWIN_NO_UPDATE) return;
+  let updater;
   try { updater = require('electron-updater').autoUpdater; } catch (e) { return; }
-  updater.autoDownload = true; updater.autoInstallOnAppQuit = true; updater.allowPrerelease = false;
-  updater.on('checking-for-update', () => updateSend({ state: 'checking' }));
-  updater.on('update-not-available', () => updateSend({ state: 'latest' }));
-  updater.on('update-available', i => updateSend({ state: 'available', version: i.version }));
-  updater.on('download-progress', p => updateSend({ state: 'downloading', version: (updateState.version || ''), percent: Math.round(p.percent || 0) }));
-  updater.on('update-downloaded', i => updateSend({ state: 'ready', version: i.version }));
-  updater.on('error', e => updateSend({ state: 'error', error: String(e && e.message || e).split('\n')[0].slice(0, 200) }));
-  const check = () => updater.checkForUpdates().catch(() => {});
+  // yeni sürüm sorulmadan indirilmez; karar mantığı guncelleme.js'de
+  guncelleme = makeGuncelleme({ updater, dialog, surum: app.getVersion(), gonder: updateSend,
+    pencere: () => (win && !win.isDestroyed()) ? win : null, cikisaIzin: () => { cikisOnay = true; } });
+  const check = () => guncelleme.denetle(false);
   setTimeout(check, 10000);
   setInterval(check, 4 * 3600 * 1000);
 }
-ipcMain.handle('update-status', () => ({ ...updateState, current: app.getVersion(), enabled: !!updater }));
-ipcMain.handle('update-check', async () => { if (!updater) return { ...updateState, enabled: false, current: app.getVersion() }; try { await updater.checkForUpdates(); } catch (e) {} return { ...updateState, enabled: true }; });
-ipcMain.handle('update-install', () => { if (updater && updateState.state === 'ready') { cikisOnay = true; setImmediate(() => updater.quitAndInstall(false, true)); return { ok: true }; } return { ok: false }; });
+ipcMain.handle('update-status', () => ({ ...updateState, current: app.getVersion(), enabled: !!guncelleme }));
+ipcMain.handle('update-check', async () => { if (!guncelleme) return { ...updateState, enabled: false, current: app.getVersion() }; await guncelleme.denetle(true); return { ...updateState, enabled: true }; });
+ipcMain.handle('update-install', () => ({ ok: !!(guncelleme && guncelleme.kur()) }));
 
 app.on('window-all-closed', () => app.quit());
 app.on('will-quit', () => { if (fk) fk.stop(); });
