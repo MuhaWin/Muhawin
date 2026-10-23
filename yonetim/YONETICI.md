@@ -64,7 +64,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | 11 | Sahte örnek test dosyaları | `gorevler/gorev-11-sahte-ornek-veriler.md` | Açık. Yazılımcı |
 | 09 | Web: Muhasebe Denetimi tarayıcıda + site girişi | `gorevler/gorev-09-web-mikro-denetim.md` | **Birleştirildi** ([#23](https://github.com/MuhaWin/Muhawin/pull/23)), Web Asistanı. Ad düzeltmeleri [#25](https://github.com/MuhaWin/Muhawin/pull/25). Alan adı `muhawin.com.tr` **alındı** (Hostinger, 23.10.2026); Cloudflare kurulumu ve ilk yayın sürüyor |
 | 06 | WhatsApp sunucu güvenliği (rapor-02 G-C) | `gorevler/gorev-06-whatsapp-sunucu-guvenligi.md` | **Birleştirildi** ([#18](https://github.com/MuhaWin/Muhawin/pull/18)). WhatsApp canlıda kurulu değil; kurulumda rapor-06 adımları |
-| 10 | "Hızlı Fiş Girişi" → "Belgeden Fiş"; "Mikro Denetim" → "Muhasebe Denetimi" | `gorevler/gorev-10-belgeden-fis-adi.md` | Açık. Menü Düzenleme |
+| 10 | "Hızlı Fiş Girişi" → "Belgeden Fiş"; "Mikro Denetim" → "Muhasebe Denetimi" | `gorevler/gorev-10-belgeden-fis-adi.md` | **Birleştirildi** ([#30](https://github.com/MuhaWin/Muhawin/pull/30)), Menü Düzenleme; adlar kullanıcı onaylı |
 | G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | İş akışı `.github/workflows/surum.yml`. **G-01 tamam:** 2.9.13 deneme derlendi ([#21](https://github.com/MuhaWin/Muhawin/pull/21), run 40018199927), kullanıcıya bağlantı verildi; `v2.9.13` etiketi konmaz. İlk yayın 2.9.14+ |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
 
