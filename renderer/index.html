@@ -4507,12 +4507,20 @@ const CEK=(()=>{
     const ileri=kapsama(da,db),geri=kapsama(db,da);return {skor:0.6*ileri+0.15*geri+0.25*oran(a,b),ileri};}
 
   /* ---- hesaplar ---- */
-  async function hesaplariYukle(){
-    st.acc=new Map();st.leaf=new Set();st.f0=null;onbellekSil();const f=firma();let miz=[];
+  // Hesaplar bir kerede yerine konur: yükleme sürerken firma değişir ya da dosya eklenirse yarım / eski hesaplarla
+  // hesaplanıp önbelleğe (st.hx) girmesin; eski (geç biten) yüklemenin sonucu yenisinin üzerine yazılmasın.
+  // Eski çağrıyı bekleyen (dosya ekleme, firma değişimi) en son yüklemenin bitmesini bekler.
+  let yukSira=0,yukSon=Promise.resolve();
+  function hesaplariYukle(){const sira=++yukSira;const p=hesaplariYukle0(sira);yukSon=p;return p;}
+  async function hesaplariYukle0(sira){
+    st.f0=null;const f=firma();let miz=[];
     if(f&&f.mizanInfo){try{miz=await Store.getMizan(f.id,f.mizanInfo.parts)||[];}catch(e){}}
-    for(const r of miz)if(r&&r[0])st.acc.set(String(r[0]),String(r[1]||''));
-    const ust=new Set();for(const c of st.acc.keys()){const p=c.lastIndexOf('.');if(p>0)ust.add(c.slice(0,p));}
-    for(const c of st.acc.keys())if(!ust.has(c))st.leaf.add(c);
+    if(sira!==yukSira)return yukSon;
+    const acc=new Map(),leaf=new Set();
+    for(const r of miz)if(r&&r[0])acc.set(String(r[0]),String(r[1]||''));
+    const ust=new Set();for(const c of acc.keys()){const p=c.lastIndexOf('.');if(p>0)ust.add(c.slice(0,p));}
+    for(const c of acc.keys())if(!ust.has(c))leaf.add(c);
+    st.acc=acc;st.leaf=leaf;st.f0=null;onbellekSil();
     $('#cekAccList').innerHTML=[...st.acc.entries()].filter(([c])=>st.leaf.has(c)).sort((a,b)=>a[0].localeCompare(b[0],'tr',{numeric:true})).map(([c,n])=>`<option value="${esc(c)}">${esc(n)}</option>`).join('');
   }
   const ANA={MC:'101',MS:'121',KC:'103',KS:'321'};
@@ -6472,6 +6480,7 @@ const HESAP=(()=>{
     for(const [e,y] of degis)if(degis.has(y))degis.set(e,degis.get(y));
     for(const k of kul)if(!T.has(k)&&!degis.has(k))degis.set(k,k);
     return {ok:!hata.length,degis,hata};}
+  window.__mwMesgul=()=>bekleyen.size>0||(window.__mwArkaPlan||0)>0;   // test: kayıt sonrası mizan / plan yenilemesi bekliyor ya da sürüyor
   return {ac,hesaplar,sonraki,cariKodu,vadeHesaplari,aktifFirma,yenile,sor,planYenile,kayitSonrasi,cariOner,taslakMi,taslakAd,planHazir,planUnut,taslakHazirla,_taslak:taslak};
 })();
 window.__hesap=HESAP;
