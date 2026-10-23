@@ -54,13 +54,13 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 ## Görev kayıtları
 | No | Konu | Kart | Durum |
 |---|---|---|---|
-| 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | İşçi oturumu: **Menü Düzenleme**. Kod yazılmadı. Ara rapor: `raporlar/rapor-01.md` |
+| 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | **Birleştirildi** ([#13](https://github.com/MuhaWin/Muhawin/pull/13)), Menü Düzenleme. Rapor: `raporlar/rapor-01.md`. 1. senaryonun sonu sahte örnek verilerle yeniden denenecek |
 | 02 | Güvenlik denetimi (yalnız okuma) | `gorevler/gorev-02-guvenlik-denetimi.md` | **Birleştirildi** ([#9](https://github.com/MuhaWin/Muhawin/pull/9)). Rapor: `raporlar/rapor-02.md` (Kritik 1, Yüksek 3, Orta 11, Düşük 16) |
 | 03 | Açılışta güncelleme sorusu ("Şimdi kur / Sonra") | `gorevler/gorev-03-guncelleme-sorusu.md` | **Birleştirildi** ([#6](https://github.com/MuhaWin/Muhawin/pull/6)). Rapor: `raporlar/rapor-03.md`. Kurulu programda deneme ilk yayından sonra |
 | 04 | Alan adı, barındırma, tanıtım sitesi, web modülleri analizi | `gorevler/gorev-04-web-sitesi.md` | Açık. Uygulayan: **Web Asistanı**. Program dosyalarına dokunmaz; diğerleriyle paralel |
 | 05 | Fatura görüntüleme güvenliği (rapor-02 G-A, K1) | `gorevler/gorev-05-fatura-goruntu-guvenligi.md` | Açık. Uygulayan: **Yazılımcı** |
 | 06 | WhatsApp sunucu güvenliği (rapor-02 G-C) | `gorevler/gorev-06-whatsapp-sunucu-guvenligi.md` | Açık (05'ten sonra). Uygulayan: **Yazılımcı**. Canlı Supabase'e uygulama kullanıcıda |
-| G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | G-01: 2.9.13 deneme derlemesi, açık |
+| G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | İş akışı `.github/workflows/surum.yml` birleştirildi ([#11](https://github.com/MuhaWin/Muhawin/pull/11)). G-01: 2.9.13 deneme (Görev 01 + 03 dahil); kullanıcı onayı bekliyor (testleri atla + varsayılan dal `main`) |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
 
 ## Sürüm planı
@@ -68,7 +68,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 - **İlk yayın (2.9.14 ya da sonrası):** Görev 01 ve Görev 03 birleştirildikten **ve** sürüm deposu taşındıktan (açık konu 4) sonra derlenir ve `muhawin/muhawin-surumler` deposuna yayınlanır. Kurulu programlar bu sürümü kendiliğinden bulur. Görev 03'ün "Şimdi kur / Sonra" sorusu, bu sürüm kurulduktan **sonraki** yayında görülür (soru, kurulu sürümün kodunda olmalı).
 
 ## Açık konular
-1. **Luca sayfa yönetimi** (rapor-01 madde 4, Görev 01 kapsamı dışında kaldı): "Luca'da Çalış" ayrı pencerede açılsın; aynı anda ek bir iş başlarsa yeni Luca sayfası açılsın. Bu iş `luca.js` ve Playwright'a dokunuyor. Görev 01 birleştirildikten sonra ayrı görev olarak açılacak.
+1. **Luca sayfa yönetimi** (rapor-01 madde 4, Görev 01 kapsamı dışında kaldı): "Luca'da Çalış" ayrı pencerede açılsın; aynı anda ek bir iş başlarsa yeni Luca sayfası açılsın. Bu iş `luca.js` ve Playwright'a dokunuyor. Görev 01 birleştirildi; Yazılımcı'nın güvenlik sırasından sonra ayrı görev olarak açılacak.
 2. **`test/ornek/`** (`logo_musteri`, `mizan_inka`, `mizan_savor`, `mikro_*`, `okc_fis*`): Gerçek müşteri verisi olabilir. Kullanıcı doğrulamalı. Gerçekse sahte verilerle değiştirme görevi açılacak; bu dosyalar depoya girmez.
 3. **Hesap geçişi:** Kullanıcı Team hesabından kişisel Max 20x hesabına geçmeyi düşünüyor. Depo hesaptan bağımsız; geçişte yalnız GitHub bağlantısı yeniden kurulur. Max planında Claude Code "Projects" özelliği de var; bu düzen için uygun.
 4. **Sürüm deposu taşınıyor** (23.10.2026): `McLk007/muhawin-surumler` → `muhawin/muhawin-surumler`. `package.json` → `build.publish` güncellendi. Kurulu sürümler adresi derlemede `app-update.yml`'ye yazılmış haliyle (eski depo) arar. **Karar:** Eski depo GitHub "Transfer ownership" ile taşınacak; GitHub yönlendirmesi sayesinde köprü sürüm gerekmez. Yeni açılan boş depo önce silinecek ya da yeniden adlandırılacak (ad çakışması). Taşımadan sonra `McLk007` altında aynı adla depo açılmamalı, depo herkese açık kalmalı. 2.9.4 öncesinde otomatik güncelleme yok, elle kurulur. **Kullanıcı yapacak; sonra doğrulanacak.**
