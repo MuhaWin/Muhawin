@@ -695,7 +695,7 @@ c.save()`]);
     await w.screenshot({ path: OUT + '/16-cek-logo.png' });
     await w.click('#cekTemizle'); await w.waitForSelector('#askModal:not([hidden])'); await w.click('#askYes'); await w.waitForTimeout(400);
     check(await w.evaluate(() => window.__cek._st.hareket.length) === 0, 'Tabloyu Temizle: tüm hareketler kaldırıldı');
-    // 2.9.6: Ofisinize Özel Çözümler › Mikro Denetim — XML + Mikro muavini → KDV / matrah / cari kontrolü, beyanname, muhtasar
+    // 2.9.6: Ofisinize Özel Çözümler › Muhasebe Denetimi (eski adı Mikro Denetim) — XML + Mikro muavini → KDV / matrah / cari kontrolü, beyanname, muhtasar
     { const md = path.join(OUT, 'mikro'); fs.mkdirSync(md, { recursive: true });
       require('child_process').execFileSync('python3', ['-c', `import sys, io, zipfile; sys.path.insert(0, ${JSON.stringify(path.join(APP, 'fk', 'tests'))}); sys.path.insert(0, ${JSON.stringify(path.join(APP, 'fk'))})
 from pathlib import Path
@@ -709,17 +709,17 @@ Path(${JSON.stringify(md)}, 'faturalar.zip').write_bytes(zb.getvalue())
 _mikro(Path(${JSON.stringify(md)}, 'mikro_muavin.xlsx'), satis_matrah=1900, cari_alis=1150)`]);
       await w.click('#homeLogo'); await w.waitForSelector('#modGate:not([hidden])');
       await w.click('.modcard[data-mod=ozel]'); await w.waitForSelector('#hubPanel:not([hidden])');
-      await w.click('#hubPanel >> text=Mikro Denetim'); await w.waitForSelector('#mdPanel:not([hidden]) #mdFrame', { timeout: 20000 });
+      await w.click('#hubPanel >> text=Muhasebe Denetimi'); await w.waitForSelector('#mdPanel:not([hidden]) #mdFrame', { timeout: 20000 });
       const mf = await (await w.$('#mdFrame')).contentFrame(); await mf.waitForSelector('#basla', { timeout: 30000 }); await w.waitForTimeout(800);
       const fsec = await mf.$$eval('#firma option', o => o.length);
       await mf.setInputFiles('#xml', path.join(md, 'faturalar.zip')); await mf.setInputFiles('#muavin', path.join(md, 'mikro_muavin.xlsx'));
       await mf.click('#basla'); await mf.waitForSelector('#nav [data-g=Matrah]:not([disabled])', { timeout: 60000 });
       const sor = await mf.evaluate(() => ['#nKDV', '#nMatrah', '#nCari'].map(x => document.querySelector(x).textContent.trim()).join('|'));
-      check(fsec > 1 && /temiz/i.test(sor.split('|')[0]) && /1 sorun/i.test(sor.split('|')[1]) && /1 sorun/i.test(sor.split('|')[2]), 'Mikro Denetim: KDV temiz, matrah 1 sorun, cari 1 sorun (' + sor + ')');
+      check(fsec > 1 && /temiz/i.test(sor.split('|')[0]) && /1 sorun/i.test(sor.split('|')[1]) && /1 sorun/i.test(sor.split('|')[2]), 'Muhasebe Denetimi: KDV temiz, matrah 1 sorun, cari 1 sorun (' + sor + ')');
       await mf.click('#nav [data-g=muhtasar]'); await w.waitForTimeout(200);
-      check(/Serbest meslek/i.test(await mf.textContent('#icerik')) && /2\.500,00/.test(await mf.textContent('#icerik')), 'Mikro Denetim: muhtasar taslağı 360 serbest meslek stopajından (matrah 2.500)');
+      check(/Serbest meslek/i.test(await mf.textContent('#icerik')) && /2\.500,00/.test(await mf.textContent('#icerik')), 'Muhasebe Denetimi: muhtasar taslağı 360 serbest meslek stopajından (matrah 2.500)');
       await mf.click('#nav [data-g=beyan]'); await w.waitForTimeout(200);
-      check(!!(await mf.$('[data-ac^="/beyanname?id="]')) && !!(await mf.$('[data-ac^="/api/rapor/cikti?id="]')), 'Mikro Denetim: KDV 1 / KDV 2 beyannamesi ve çıktı raporu düğmeleri');
+      check(!!(await mf.$('[data-ac^="/beyanname?id="]')) && !!(await mf.$('[data-ac^="/api/rapor/cikti?id="]')), 'Muhasebe Denetimi: KDV 1 / KDV 2 beyannamesi ve çıktı raporu düğmeleri');
       await w.screenshot({ path: OUT + '/15b-mikro-denetim.png' }); }
     await w.click('#homeLogo'); await w.waitForSelector('#modGate:not([hidden])');
     await w.click('.modcard[data-mod=ekstre]'); await w.waitForTimeout(600);

@@ -13,7 +13,7 @@ const ADM=(()=>{
   const MODAD={fatura:'Muhasebe İşlemleri',ekstre:'Banka İşlemleri',okc:'Belgeden Fiş',ozel:'Ofisinize Özel Çözümler',denetim:'Denetim ve Analiz',gecici:'Geçici Vergi İşlemleri',personel:'Personel'};
   const LISANSLI=['ekstre'];        // TEK LİSANS (2.9.0): lisans / deneme / kod 'ekstre' kaydında tutulur, tüm modülleri açar
   const LISAD={ekstre:'MuhaWin lisansı (tüm modüller)'};
-  const OZEL=[{id:'cek',ad:'Çek / Senet Kayıtları'},{id:'mikro',ad:'Mikro Denetim'}];             // Ofisinize Özel Çözümler kataloğu
+  const OZEL=[{id:'cek',ad:'Çek / Senet Kayıtları'},{id:'mikro',ad:'Muhasebe Denetimi'}];             // Ofisinize Özel Çözümler kataloğu
   const EYLEM={bilgi:'Bilgi düzenlendi',deneme:'Deneme süresi',lisans:'Lisans verildi',bitis:'Bitiş tarihi ayarlandı',lisans_bitir:'Lisans bitirildi',kapat:'Hesap kapatıldı',ac:'Hesap açıldı',
     pin_hata:'Yönetim şifresi hatalı',pin_giris:'Yönetime giriş',pin_degisti:'Yönetim şifresi değişti',ozel:'Özel çözüm tanımı',
     pc_sifirla:'Bilgisayarlar sıfırlandı',pc_sil:'Bilgisayar silindi',sil:'Üyelik silindi',satis:'Satış kaydı',satis_duzelt:'Satış düzeltildi',satis_sil:'Satış silindi',kod_uret:'Lisans kodu üretildi',ayar:'Ayarlar değişti'};

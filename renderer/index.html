@@ -135,7 +135,7 @@ th.kz-gizli,td.kz-gizli{display:none}
       <div class="mhead"><h2 id="okcModalT"></h2><button class="btn small ghost" data-okx="1" aria-label="Kapat">✕ Kapat</button></div>
       <div class="mbody" id="okcModalB"></div></div></div>
   </section>
-  <section id="mdPanel" hidden><iframe id="mdFrame" title="Mikro Denetim"></iframe><div class="note" id="mdBekle" style="padding:30px">Mikro Denetim açılıyor…</div></section>
+  <section id="mdPanel" hidden><iframe id="mdFrame" title="Muhasebe Denetimi"></iframe><div class="note" id="mdBekle" style="padding:30px">Muhasebe Denetimi açılıyor…</div></section>
   <section id="cekPanel" hidden>
     <div class="mmtop"><h2>Çek / Senet Kayıtları</h2><span class="note">Logo / Mikro çek-senet dosyaları → hesaplar Luca mizanından → rapor, Luca fiş dosyası ya da doğrudan Luca kaydı.</span><span style="flex:1"></span>
       <button class="btn small" id="cekRapor">Raporu Excel'e aktar</button>
@@ -5001,7 +5001,7 @@ const HUB=(()=>{
       {id:'ozet',ad:'Günün özeti',d:'Bugün (ya da seçilen aralıkta) Luca\'ya kaydedilen fişler, indirilen muavinler ve diğer işler — firma bazında, PDF.',i:I.tablo,ac:()=>OZET.ac()},
       {id:'kdviade',ad:'KDV iade listeleri',d:'İndirilecek KDV ve yüklenilen KDV listelerini GİB\'in güncel Excel biçiminde hazırlar.',i:I.kdv,dev:true}]},
     ozel:{t:'Ofisinize Özel Çözümler',p:'Sadece sizin muhasebe ofisinize özel, sizin tarafınızdan talep edilmiş yazılımlar. Bir işlem seçin.',k:[
-      {id:'mikro',ad:'Mikro Denetim',d:'Mikro\'dan alınan alış / satış XML\'leri ve firmanın Mikro muaviniyle firma denetimi: KDV, matrah ve cari kontrolü; KDV 1 / KDV 2 beyannamesi, çıktı raporu ve muhtasar taslağı.',i:I.tablo,ac:()=>{HUB.hide();CEK.hide();MDENET.show();}},
+      {id:'mikro',ad:'Muhasebe Denetimi',d:'Mikro\'dan alınan alış / satış XML\'leri ve firmanın Mikro muaviniyle firma denetimi: KDV, matrah ve cari kontrolü; KDV 1 / KDV 2 beyannamesi, çıktı raporu ve muhtasar taslağı.',i:I.tablo,ac:()=>{HUB.hide();CEK.hide();MDENET.show();}},
       {id:'cek',ad:'Çek / Senet Kayıtları',d:'Logo ve Mikro\'dan alınan çek / senet Excel dosyalarını okur, Luca muavini ile eşleştirip raporlar; eksik kayıtları fiş olarak hazırlar ve Luca\'ya işler.',i:I.kur,ac:()=>{HUB.hide();MDENET.hide();CEK.show();}}]}};
   let aktif=null;
   function show(id){aktif=id;const x=ISLER[id];$('#hubT').textContent=x.t;$('#hubP').textContent=x.p;
@@ -5675,7 +5675,7 @@ const MDENET=(()=>{
   const firmaGonder=()=>{const w=fr()&&fr().contentWindow;if(!w)return;const f=S.firm&&S.firm.id!==EXAMPLE_ID?S.firm:null;
     w.postMessage({muhawin:true,tip:'firma',mw:f?f.id:'',id:f&&f.lucaId?String(f.lucaId):'',ad:f?f.name:'',liste:(S.firms||[]).filter(x=>x.id!==EXAMPLE_ID).map(x=>({mw:x.id,id:x.lucaId?String(x.lucaId):'',ad:x.name}))},'*');};
   async function show(){const P=$('#mdPanel');P.hidden=false;
-    if(!url){try{const r=await window.desktop.fk.start();url=r.url;}catch(e){$('#mdBekle').textContent='Mikro Denetim açılamadı: '+String(e&&e.message||e);return;}
+    if(!url){try{const r=await window.desktop.fk.start();url=r.url;}catch(e){$('#mdBekle').textContent='Muhasebe Denetimi açılamadı: '+String(e&&e.message||e);return;}
       fr().src=url+'/denetim';}
     $('#mdBekle').hidden=true;fr().hidden=false;firmaGonder();}
   function hide(){const P=$('#mdPanel');if(P)P.hidden=true;}
