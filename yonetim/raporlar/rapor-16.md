@@ -45,7 +45,7 @@ Testlerden hiçbiri atlanmadı ya da devre dışı bırakılmadı.
 ## Testler
 | Test | Sonuç |
 |---|---|
-| `xvfb-run -a node test/e2e.js` (yerel, tek başına) | PR açıklamasında |
+| `xvfb-run -a node test/e2e.js` (yerel, tek başına) | **270 geçti, 0 başarısız** (gerileme yok) |
 | Yük altında karşılaştırma (2 çekirdek + sürekli CPU yükü, eski ve yeni aynı anda) | **Sonuçsuz.** Eski kod 270/0 geçti (CI hataları yerelde yeniden üretilemedi). Yeni kod erken bir adımda (Fatura Kontrol çerçevesi 20 sn'de açılmadı) takıldı: iki e2e'nin aynı anda iki Python yan süreci açmasından gelen ortam etkisi, değişen kodla ilgisiz |
 | CI doğrulaması | `surum.yml` test adımı bu dalda çalıştırılmalı (`workflow_dispatch`); Güncelleme oturumu / yöneticiyle koordine ediliyor |
 
