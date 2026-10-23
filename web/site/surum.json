@@ -6,7 +6,7 @@
   "moduller": [
     "Muhasebe İşlemleri",
     "Banka İşlemleri",
-    "Hızlı Fiş Girişi",
+    "Belgeden Fiş",
     "Ofisinize Özel Çözümler"
   ],
   "yakinda": [
@@ -223,7 +223,7 @@
       "surum": "2.9.6",
       "maddeler": [
         {
-          "metin": "Hızlı Fiş Girişi (eski adı ÖKC Fiş Girişi): ÖKC fişi, Z raporu ve YURT DIŞI FATURALARI (Meta, Google vb.; PDF / görüntü). Net tutar brüte çevrilir: %15 stopaj 360'a, %20 sorumlu KDV 191 / 360'a, brüt 760 / 770'e; TCMB kuru kendiliğinden alınır. Tüm fiş türlerinde tutar düzeltilebilir, satır eklenebilir. Binek araç %30 nazım kaydı 950 / 951'e de yazılır.",
+          "metin": "Belgeden Fiş (eski adları Hızlı Fiş Girişi, ÖKC Fiş Girişi): ÖKC fişi, Z raporu ve YURT DIŞI FATURALARI (Meta, Google vb.; PDF / görüntü). Net tutar brüte çevrilir: %15 stopaj 360'a, %20 sorumlu KDV 191 / 360'a, brüt 760 / 770'e; TCMB kuru kendiliğinden alınır. Tüm fiş türlerinde tutar düzeltilebilir, satır eklenebilir. Binek araç %30 nazım kaydı 950 / 951'e de yazılır.",
           "alt": []
         },
         {

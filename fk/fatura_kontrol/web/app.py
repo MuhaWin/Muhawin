@@ -594,7 +594,7 @@ def _fis_verisi(id: str, fis: str, tarih: str) -> dict:
             a["ad"] = next((s.hesap_adi for s in satirlar if s.hesap_kodu == a["hesap"]), "")
     b, al = sum((s.borc for s in satirlar), Decimal(0)), sum((s.alacak for s in satirlar), Decimal(0))
     return {"fis_no": fis, "tarih": _t(satirlar[0].fis_tarihi), "tip": satirlar[0].fis_tipi,
-            "satirlar": [{"hesap": s.hesap_kodu, "hesap_adi": s.hesap_adi, "aciklama": s.aciklama, "belge_no": s.belge_no or "",
+            "satirlar": [{"tarih": _t(s.fis_tarihi), "hesap": s.hesap_kodu, "hesap_adi": s.hesap_adi, "aciklama": s.aciklama, "belge_no": s.belge_no or "",
                           "borc": _sayi(s.borc), "alacak": _sayi(s.alacak)} for s in satirlar],
             "ana": [{**a, "borc": _sayi(a["borc"]), "alacak": _sayi(a["alacak"])} for a in sorted(ana.values(), key=lambda x: x["hesap"])],
             "borc": _sayi(b), "alacak": _sayi(al), "dengeli": abs(b - al) <= Decimal("0.01")}
