@@ -95,11 +95,31 @@ function makeCloud(dir, { version = '', safeStorage = null, _testUrl = null } = 
   const dec = b => { try { return safeStorage && safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(b) : b.toString('utf8'); } catch (e) { return b.toString('utf8'); } };
   const readCache = () => { try { return JSON.parse(dec(fs.readFileSync(cacheFile))); } catch (e) { return null; } };
   const writeCache = c => { try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(cacheFile, enc(JSON.stringify(c))); } catch (e) {} };
+  // Bu bilgisayarın kimliği (Windows MachineGuid, Linux /etc/machine-id; yoksa bilgisayar adı). Yalnız özeti saklanır.
+  // cihaz.json başka bilgisayara kopyalanırsa özet tutmaz ve yeni cihaz kimliği üretilir (cihaz sınırı aşılamasın).
+  let makineOzet = null;
+  function makine() {
+    if (makineOzet) return makineOzet;
+    let ham = '';
+    try {
+      if (process.platform === 'win32') {
+        const o = require('child_process').execFileSync('reg', ['query', 'HKLM\\SOFTWARE\\Microsoft\\Cryptography', '/v', 'MachineGuid'],
+          { encoding: 'utf8', windowsHide: true, timeout: 5000 });
+        const m = o.match(/MachineGuid\s+REG_\w+\s+(\S+)/i); if (m) ham = m[1];
+      } else if (process.platform === 'linux') ham = fs.readFileSync('/etc/machine-id', 'utf8').trim();
+    } catch (e) {}
+    makineOzet = crypto.createHash('sha256').update('muhawin-cihaz:' + (ham || os.hostname())).digest('hex').slice(0, 32);
+    return makineOzet;
+  }
   function device() {
-    try { const d = JSON.parse(fs.readFileSync(devFile, 'utf8')); if (d.id) return d; } catch (e) {}
-    const d = { id: crypto.randomUUID(), created: new Date().toISOString() };
-    try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(devFile, JSON.stringify(d)); } catch (e) {}
-    return d;
+    const mk = makine();
+    const yaz = d => { try { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(devFile, JSON.stringify(d)); } catch (e) {} return d; };
+    try {
+      const d = JSON.parse(fs.readFileSync(devFile, 'utf8'));
+      if (d.id && !d.makine) return yaz({ ...d, makine: mk });          // eski sürümün dosyası: bu bilgisayarı benimser, kimlik değişmez
+      if (d.id && d.makine === mk) return d;
+    } catch (e) {}
+    return yaz({ id: crypto.randomUUID(), makine: mk, created: new Date().toISOString() });
   }
   const pwHash = (pw, salt) => crypto.scryptSync(String(pw), Buffer.from(salt, 'hex'), 32).toString('hex');
   const normEmail = e => String(e || '').trim().toLowerCase();

@@ -2,7 +2,7 @@
 //   fatura: 'yeni' (hiç açılmamış → açılınca deneme) | 'bitti' (süresi dolmuş; kod girilince açılır)
 const http = require('http');
 function start({ port = 0, fatura = 'yeni', admin = false, ekstre = 'lisansli' } = {}) {
-  const st = { fatura, ekstre, ekstreKod: false, faturaKod: false, office: null, invites: [], members: [], admin, adm: admin ? yonetimVerisi() : null };
+  const st = { fatura, ekstre, ekstreKod: false, faturaKod: false, office: null, invites: [], members: [], admin, adm: admin ? yonetimVerisi() : null, cihazlar: [] };
   const gun = n => new Date(Date.now() + n * 864e5).toISOString();
   function modules() {
     const f = st.faturaKod ? { valid: true, type: 'pool', expires: gun(365).slice(0, 10), daysLeft: 365, license_end: gun(365) }
@@ -32,6 +32,7 @@ function start({ port = 0, fatura = 'yeni', admin = false, ekstre = 'lisansli' }
       if (q.url.startsWith('/auth/v1/token')) return r.end(JSON.stringify({ access_token: 'a', refresh_token: 'r', expires_in: 3600, user: { email: 'test@ornek.com' } }));
       if (q.url.startsWith('/rest/v1/rpc/app_status')) {
         if (j.p_module === 'fatura' && st.fatura === 'yeni') st.fatura = 'deneme';
+        st.cihazlar.push(j.p_device);                 // cihaz kimliği testi (test/cihaz.js)
         return r.end(JSON.stringify(status()));
       }
       if (q.url.startsWith('/rest/v1/rpc/activate_code')) {
