@@ -97,9 +97,19 @@ jobs:
       - name: Luca testleri
         run: for f in test/luca/*.js; do echo "== $f"; node "$f"; done
       - name: Uçtan uca test (e2e)
+        env:
+          OUT: ${{ runner.temp }}/muhawin-e2e
         run: |
           # "Logo fişleri" adımı ara sıra düşer; bir kez yeniden denenir
           xvfb-run -a node test/e2e.js || { echo "::warning::e2e yeniden deneniyor"; xvfb-run -a node test/e2e.js; }
+      - name: e2e ekran görüntüleri (yalnız hata olursa)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-ekran-goruntuleri
+          path: ${{ runner.temp }}/muhawin-e2e
+          retention-days: 14
+          if-no-files-found: ignore
 
   derle:
     name: Windows derlemesi
