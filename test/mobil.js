@@ -31,7 +31,9 @@ const bekle = ms => new Promise(r => setTimeout(r, ms));
     check(/yalnız bilgi@smmmantalya\.com/i.test(await metin()) && !istekler.some(x => x[0].includes('/token')), 'başka hesapla giriş sunucuya gitmeden reddedilir');
     await pg.fill('#gS', 'sifre1234'); await tikla('#gB'); await bekle(300);
     check(await pg.isVisible('#pP'), 'girişten sonra yönetim şifresi sorulur');
-    check(!(await pg.evaluate(() => localStorage.getItem('mw-yonetim-oturum') || '')).includes('sifre1234'), 'hesap şifresi telefonda saklanmaz');
+    check(!(await pg.evaluate(() => sessionStorage.getItem('mw-yonetim-oturum') || '')).includes('sifre1234'), 'hesap şifresi telefonda saklanmaz');
+    check(await pg.evaluate(() => localStorage.getItem('mw-yonetim-oturum') === null && !!sessionStorage.getItem('mw-yonetim-oturum')),
+      'oturum localStorage\'da değil, yalnız bu sekmede (sessionStorage)');
     await pg.fill('#pP', '11111'); await tikla('#pB'); await bekle(300);
     check(/Şifre hatalı/.test(await metin()), 'yanlış yönetim şifresi reddedilir');
     await pg.fill('#pP', '55555'); await tikla('#pB'); await bekle(700);
@@ -115,6 +117,16 @@ const bekle = ms => new Promise(r => setTimeout(r, ms));
     check(await pg.isVisible('#pP'), 'sayfa yeniden açılınca oturum hatırlanır, yalnız yönetim şifresi sorulur');
     await pg.fill('#pP', '1234'); await tikla('#pB'); await bekle(600);
     check(/Pano/.test(await metin()), 'yeni şifreyle açılır');
+    { // başka sekme / uygulama yeniden başlatıldı: oturum paylaşılmaz, giriş yeniden istenir
+      const p2 = await ctx.newPage(); await p2.goto(URL_); await bekle(600);
+      check(await p2.isVisible('#gS'), 'yeni sekmede (uygulama kapanıp açılınca) yeniden giriş istenir');
+      // eski sürümden kalan localStorage kaydı bir kez alınır ve silinir
+      const eski = await pg.evaluate(() => sessionStorage.getItem('mw-yonetim-oturum'));
+      await p2.evaluate(v => localStorage.setItem('mw-yonetim-oturum', v), eski); await p2.reload(); await bekle(800);
+      check(await p2.isVisible('#pP') && await p2.evaluate(() => localStorage.getItem('mw-yonetim-oturum') === null && !!sessionStorage.getItem('mw-yonetim-oturum')),
+        'eski sürümün kaydı sessionStorage\'a taşınır, localStorage\'dan silinir');
+      await p2.close();
+    }
     // yetkisiz sunucu yanıtı
     sb.state.admin = false; await tikla('#yenile'); await bekle(600);
     check(/yetkiniz yok/i.test(await metin()), 'sunucu yetkisiz derse hata gösterilir');
