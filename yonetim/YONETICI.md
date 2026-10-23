@@ -60,7 +60,8 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | 04 | Alan adı, barındırma, tanıtım sitesi, web modülleri analizi | `gorevler/gorev-04-web-sitesi.md` | **Birleştirildi** ([#16](https://github.com/MuhaWin/Muhawin/pull/16)), Web Asistanı. Site `web/site/`. Kullanıcı kararı: belgeler **tarayıcıda** işlenir; alan adı alınacak (`muhawin.com.tr` + Cloudflare) |
 | 05 | Fatura görüntüleme güvenliği | `gorevler/gorev-05-fatura-goruntu-guvenligi.md` | **Birleştirildi** ([#15](https://github.com/MuhaWin/Muhawin/pull/15)) |
 | 07 | Canlı `ofis_veri` tablosu depoya + yetki düzeltmesi | (rapor-07) | **Birleştirildi** ([#20](https://github.com/MuhaWin/Muhawin/pull/20)). Canlıya uygulama kullanıcıda (acil değil; tablo programda kullanılmıyor) |
-| 08 | Rapor kaydı ayrımı + Denetim'de program seçimi (W1 ön koşulu) | `gorevler/gorev-08-rapor-kayit-ayrimi.md` | Açık (06, 07'den sonra). Yazılımcı |
+| 08 | Rapor kaydı ayrımı + Muhasebe Denetimi'nde program seçimi | `gorevler/gorev-08-rapor-kayit-ayrimi.md` | **Birleştirildi** ([#26](https://github.com/MuhaWin/Muhawin/pull/26)), Yazılımcı |
+| 11 | Sahte örnek test dosyaları | `gorevler/gorev-11-sahte-ornek-veriler.md` | Açık. Yazılımcı |
 | 09 | Web: Muhasebe Denetimi tarayıcıda + site girişi | `gorevler/gorev-09-web-mikro-denetim.md` | **Birleştirildi** ([#23](https://github.com/MuhaWin/Muhawin/pull/23)), Web Asistanı. Ad düzeltmeleri ek PR'da. Yayın: kullanıcı Cloudflare + alan adı kurunca |
 | 06 | WhatsApp sunucu güvenliği (rapor-02 G-C) | `gorevler/gorev-06-whatsapp-sunucu-guvenligi.md` | **Birleştirildi** ([#18](https://github.com/MuhaWin/Muhawin/pull/18)). WhatsApp canlıda kurulu değil; kurulumda rapor-06 adımları |
 | 10 | "Hızlı Fiş Girişi" → "Belgeden Fiş"; "Mikro Denetim" → "Muhasebe Denetimi" | `gorevler/gorev-10-belgeden-fis-adi.md` | Açık. Menü Düzenleme |
