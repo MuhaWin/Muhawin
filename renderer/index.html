@@ -2245,9 +2245,9 @@ const Desk=(()=>{
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#lucaModal').hidden)closeLuca();});
 
   function firmMizanButton(){
-    if(isExample())return '<button class="btn" disabled title="Örnek firmada kullanılamaz">Luca\'dan yenile</button>';
+    if(isExample())return '<button class="btn" disabled title="Örnek firmada kullanılamaz">Mizanı Luca\'dan çek</button>';
     const f=S.firm;const y=(f.mizanInfo&&f.mizanInfo.year)||thisYear;
-    return `<button class="btn primary" data-fmiz="1">Luca'dan yenile</button><select id="fmizYear" aria-label="Dönem" style="width:auto">${yearOpts(y)}</select>`;
+    return `<button class="btn primary" data-fmiz="1">Mizanı Luca'dan çek</button><select id="fmizYear" aria-label="Dönem" style="width:auto">${yearOpts(y)}</select>`;
   }
   document.addEventListener('click',async e=>{
     const b=e.target.closest('[data-fmiz]');if(!b)return;
@@ -2911,7 +2911,7 @@ const FKUI=(()=>{
     if(ifSayfa!==k){ifSayfa=k;f.src=url+SAYFA_YOL[k];}}
   const SAYFA_YOL={toplu:'/toplu',tek:'/',kdv:'/beyanname'};
   let ifSayfa='toplu';
-  function place(){const p=$('#fkPanel');if(!p||p.hidden)return;const t=document.body.classList.contains('mod-fatura')?($('#modSekme')||$('header.top')):$('#modeTabs');const r=t?t.getBoundingClientRect():{bottom:0};p.style.top=Math.max(0,Math.round(r.bottom+6))+'px';}
+  function place(){const p=$('#fkPanel');if(!p||p.hidden)return;p.style.right=sagPay()+'px';const t=document.body.classList.contains('mod-fatura')?($('#modSekme')||$('header.top')):$('#modeTabs');const r=t?t.getBoundingClientRect():{bottom:0};p.style.top=Math.max(0,Math.round(r.bottom+6))+'px';}
   function wait(t,n,err){$('#fkWait').hidden=false;$('#fkFrame').hidden=true;$('#fkWaitT').textContent=t;$('#fkWaitN').textContent=n||'';$('#fkWaitA').hidden=!err;$('#fkWaitN').classList.toggle('mono',!!err);}
   async function start(restart){
     if(started&&url)return;
@@ -5719,15 +5719,17 @@ const MDENET=(()=>{
 })();
 
 /* ---------- modüller ---------- */
+// sağdaki kaydırma çubuğu payı (scrollbar-gutter): sabit paneller sayfa içeriğiyle aynı sağ kenarda biter
+function sagPay(){return Math.max(0,Math.round(window.innerWidth-document.body.getBoundingClientRect().right));}
 /* ---------- Tam ekran paneller (Mizan / Muavin / Hesap Planı, Faturaları Luca'ya kaydet) üst şeridi örtmez ----------
    Panel açılınca sayfa başa alınır ve panel modül sekme satırının hemen altından başlar; kapanınca kaydırma yeri geri gelir.
    Böylece üst şerit ve modül sekmeleri her ekranda aynı yerde görünür. */
 const UstPanel=(()=>{const P=['#mmPanel','#fkKayit'];
   const alt=()=>{const t=$('#modSekme');if(!t||!t.getClientRects().length||!$('#modGate').hidden)return 0;return Math.max(0,Math.round(t.getBoundingClientRect().bottom+6));};
-  function yerlestir(el){el.style.top=alt()+'px';}
+  function yerlestir(el){el.style.top=alt()+'px';el.style.right=sagPay()+'px';}
   const gozle=el=>{let acik=!el.hidden,y=0;
     new MutationObserver(()=>{if(el.hidden===!acik)return;acik=!el.hidden;
-      if(acik){y=window.scrollY;window.scrollTo(0,0);yerlestir(el);}else{el.style.top='';if(y)window.scrollTo(0,y);}}).observe(el,{attributes:true,attributeFilter:['hidden']});};
+      if(acik){y=window.scrollY;window.scrollTo(0,0);yerlestir(el);}else{el.style.top='';el.style.right='';if(y)window.scrollTo(0,y);}}).observe(el,{attributes:true,attributeFilter:['hidden']});};
   P.forEach(s=>{const el=$(s);if(el)gozle(el);});
   window.addEventListener('resize',()=>P.forEach(s=>{const el=$(s);if(el&&!el.hidden)yerlestir(el);}));
   // modül sekmesiyle başka modüle geçerken açık panel kapanır (yarım iş varsa kendi Kapat düğmesi kuralına uyar)
@@ -6218,7 +6220,7 @@ const FISL=(()=>{
         <label class="note">Tip <select id="flTip"><option value="">Tümü</option>${tipler.map(t=>`<option value="${esc(t)}"${st.tip===t?' selected':''}>${esc(TIP_AD[t]||t)}</option>`).join('')}</select></label>
         <input type="search" id="flQ" placeholder="Fiş no, açıklama, hesap, belge ara" value="${esc(st.q)}" style="min-width:260px">
         <span class="note">${st.yukleniyor?'Yükleniyor…':st.m?`${esc(st.m.firma||f.name)} · ${st.fisler.length} fiş${l.length!==st.fisler.length?` · görünen ${l.length}`:''} · muavin ${st.zaman?new Date(st.zaman).toLocaleString('tr-TR',{dateStyle:'short',timeStyle:'short'}):''}`:''}</span>
-        <span style="flex:1"></span><button class="btn small" id="flYenile" title="Firmanın yıllık muavinini Luca'dan yeniden indirir; bitince liste güncellenir">Muavini Luca'dan Yenile</button><button class="btn small" id="flXls" ${l.length?'':'disabled'}>Listeyi Excel'e Aktar</button></div>
+        <span style="flex:1"></span><button class="btn small" id="flYenile" title="Firmanın yıllık muavinini Luca'dan yeniden indirir; bitince liste güncellenir">Muavini Luca'dan Çek</button><button class="btn small" id="flXls" ${l.length?'':'disabled'}>Listeyi Excel'e Aktar</button></div>
       ${st.hata?`<div class="banner" style="margin:0 0 8px">${esc(st.hata)}</div>`:''}
       <div class="fl-govde${sec?' bol':''}">
       <div class="mmwrap fl-liste"><table class="tg-yok" id="flTable">${sec?'<colgroup><col><col style="width:92px"></colgroup>':'<colgroup><col style="width:86px"><col style="width:70px"><col style="width:70px"><col><col style="width:48px"><col style="width:110px"><col style="width:110px"></colgroup>'}<thead><tr>${(sec?[['tarih','Tarih · Fiş · Açıklama'],['borc','Tutar']]:[['tarih','Tarih'],['no','Fiş No'],['tip','Tip'],['ac','Açıklama'],['n','Satır'],['borc','Borç'],['alacak','Alacak']]).map(([k,a])=>`<th class="${k==='borc'||k==='alacak'||k==='n'?'n':''}" data-flsort="${k}" style="cursor:pointer;white-space:nowrap">${a} <span class="note">${ok(k)}</span></th>`).join('')}</tr></thead>
