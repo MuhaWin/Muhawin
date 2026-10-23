@@ -781,6 +781,26 @@ _mikro(Path(${JSON.stringify(md)}, 'mikro_muavin.xlsx'), satis_matrah=1900, cari
   } catch (e) { bad.push('HATA (2): ' + e.message.split('\n')[0]); await w.screenshot({ path: OUT + '/hata2.png' }).catch(() => {}); }
   finally { await app.close().catch(() => {}); fake.server.close(); }
 
+  // ---------------- 2b. pencere ve dosya güvenliği (Görev 14; rapor-02 O1, O3, D9, D12) ----------------
+  s = await oturum('deneme'); ({ app, w, fake } = s);
+  const GECICI = ['MuhaWin-pdf', 'MuhaWin-faturalar', 'MuhaWin-wa'];
+  try {
+    // dış tarayıcı / dosya gezgini açılmasın: ana süreçteki shell işlevleri kayda alınır
+    await app.evaluate(({ shell }) => { global.__dis = []; shell.openExternal = async u => { global.__dis.push(u); }; shell.showItemInFolder = p => { global.__dis.push('goster:' + p); }; });
+    const once = w.url();
+    await w.evaluate(() => { location.href = 'https://ornek.com/'; }); await w.waitForTimeout(800);
+    check(w.url() === once && await w.evaluate(() => !!window.desktop), 'ana pencere başka adrese gitmez (will-navigate engeli)');
+    check((await app.evaluate(() => global.__dis)).includes('https://ornek.com/'), 'engellenen https bağlantısı dış tarayıcıya yönlendirildi');
+    const om = await w.evaluate(async () => { const r = []; for (const u of ['mailto:a@ornek.com?subject=MuhaWin', 'https://ornek.com/', 'file:///etc/passwd', 'ms-settings:privacy', 'javascript:alert(1)']) {
+      try { await window.desktop.openMail(u); r.push('ok'); } catch (e) { r.push('red'); } } return r.join(','); });
+    check(om === 'ok,ok,red,red,red', 'open-mail yalnız mailto: ve https: açar (' + om + ')');
+    const sf = await w.evaluate(async () => { try { await window.desktop.showInFolder('/etc/passwd'); return 'acildi'; } catch (e) { return 'red'; } });
+    check(sf === 'red' && !(await app.evaluate(() => global.__dis)).some(x => /passwd/.test(x)), 'klasörde göster: programın yazmadığı yol reddedilir');
+    for (const ad of GECICI) { fs.mkdirSync(path.join(os.tmpdir(), ad), { recursive: true }); fs.writeFileSync(path.join(os.tmpdir(), ad, 'deneme.pdf'), 'x'); }
+  } catch (e) { bad.push('HATA (2b): ' + e.message.split('\n')[0]); await w.screenshot({ path: OUT + '/hata2b.png' }).catch(() => {}); }
+  finally { await app.close().catch(() => {}); fake.server.close(); }
+  check(GECICI.every(ad => !fs.existsSync(path.join(os.tmpdir(), ad, 'deneme.pdf'))), 'çıkışta geçici fatura / PDF / WhatsApp klasörleri temizlendi');
+
   // ---------------- 3. senaryo: ofis oluştur, çalışan davet et ----------------
   s = await oturum('deneme'); ({ app, w, fake } = s);
   try {
