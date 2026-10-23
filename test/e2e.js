@@ -516,6 +516,24 @@ c.save()`]);
       return { f: [b.tarih, b.no, b.unvan, b.vkn, b.pb, b.doviz, b.odeme, b.hizmet].join('|'), url: /^file:.*\.png$/.test(b.url || ''), L: s.L.map(x => x.acc + ':' + (x.b ? 'B' + x.b : 'A' + x.c)).join(' '), err: s.err, n: bs.length }; });
     console.log('YD', JSON.stringify(yd));
     check(yd.f === '2024-11-15|FBADS-568-103903145|Meta Platforms Ireland Limited|IE9692928F|TRY|10866|kredi|reklam' && yd.url, 'yurt dışı PDF faturası okundu (tarih, fatura no, satıcı, VAT, tutar, kart) ve ilk sayfa görüntüsü çıkarıldı (' + yd.f + ')');
+    // PDF okuyucu güvenliği (Görev 12, CVE-2024-4367): her getDocument çağrısı isEvalSupported:false ile; banka ekstresi PDF'i yine okunur
+    { const kaynak = fs.readFileSync(path.join(APP, 'renderer', 'index.html'), 'utf8');
+      const cagri = kaynak.match(/pdfjsLib\.getDocument\(\{.*?\}\)\.promise/g) || [];
+      check(cagri.length >= 3 && cagri.every(c => /isEvalSupported:false/.test(c)), 'pdf.js: her getDocument çağrısında isEvalSupported:false (' + cagri.length + ' çağrı)');
+      const ekstrePdf = path.join(gorsel, 'ekstre.pdf');
+      require('child_process').execFileSync('python3', ['-c', `
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+pdfmetrics.registerFont(TTFont('DV', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+c = canvas.Canvas(${JSON.stringify(ekstrePdf)}); c.setFont('DV', 10); y = 800
+for t, a, tu, b in [('Tarih', 'Açıklama', 'Tutar', 'Bakiye'), ('01.09.2026', 'ÖRNEK KİRA ÖDEMESİ', '-12.500,00', '87.500,00'), ('03.09.2026', 'DEMO A.Ş. EFT GELEN', '25.000,00', '112.500,00')]:
+    c.drawString(40, y, t); c.drawString(120, y, a); c.drawString(360, y, tu); c.drawString(460, y, b); y -= 18
+c.save()`]);
+      const pdfSatir = await w.evaluate(async b64 => { const u = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+        return (await window.__app.readPdfLines(new File([u], 'ekstre.pdf'))).map(l => l.t); }, fs.readFileSync(ekstrePdf).toString('base64'));
+      check(pdfSatir.some(t => /01\.09\.2026/.test(t) && /ÖRNEK KİRA ÖDEMESİ/.test(t) && /-12\.500,00/.test(t)) && pdfSatir.some(t => /DEMO A\.Ş\. EFT GELEN/.test(t)),
+        'banka ekstresi PDF satırları okundu (isEvalSupported:false ile) (' + pdfSatir.length + ' satır)'); }
     check(yd.L === '760.10:B12783.53 191.20:B2556.71 360.05:A1917.53 360.06:A2556.71 300.01:A10866' && !yd.err.length, 'yurt dışı fişi: brüt gider 760, sorumlu KDV 191 borç / 360 alacak, %15 stopaj 360, ödeme net (' + yd.L + ')');
     const ydUsd = await w.evaluate(() => { const O = window.__okc; const o = O._ydOku('Google Ireland Limited\nInvoice number: 5123456789\nInvoice date Nov 3, 2025\nTotal amount due $1,234.50 USD\nVAT ID IE6388047V');
       return [o.tarih, o.no, o.unvan, o.pb, o.doviz, o.hizmet, O._ydHesap({ ...o, kur: 34.5 }).brut].join('|'); });
@@ -762,6 +780,26 @@ _mikro(Path(${JSON.stringify(md)}, 'mikro_muavin.xlsx'), satis_matrah=1900, cari
     check(true, 'tek lisans kodu (Banka kodu) girilince Muhasebe İşlemleri açıldı');
   } catch (e) { bad.push('HATA (2): ' + e.message.split('\n')[0]); await w.screenshot({ path: OUT + '/hata2.png' }).catch(() => {}); }
   finally { await app.close().catch(() => {}); fake.server.close(); }
+
+  // ---------------- 2b. pencere ve dosya güvenliği (Görev 14; rapor-02 O1, O3, D9, D12) ----------------
+  s = await oturum('deneme'); ({ app, w, fake } = s);
+  const GECICI = ['MuhaWin-pdf', 'MuhaWin-faturalar', 'MuhaWin-wa'];
+  try {
+    // dış tarayıcı / dosya gezgini açılmasın: ana süreçteki shell işlevleri kayda alınır
+    await app.evaluate(({ shell }) => { global.__dis = []; shell.openExternal = async u => { global.__dis.push(u); }; shell.showItemInFolder = p => { global.__dis.push('goster:' + p); }; });
+    const once = w.url();
+    await w.evaluate(() => { location.href = 'https://ornek.com/'; }); await w.waitForTimeout(800);
+    check(w.url() === once && await w.evaluate(() => !!window.desktop), 'ana pencere başka adrese gitmez (will-navigate engeli)');
+    check((await app.evaluate(() => global.__dis)).includes('https://ornek.com/'), 'engellenen https bağlantısı dış tarayıcıya yönlendirildi');
+    const om = await w.evaluate(async () => { const r = []; for (const u of ['mailto:a@ornek.com?subject=MuhaWin', 'https://ornek.com/', 'file:///etc/passwd', 'ms-settings:privacy', 'javascript:alert(1)']) {
+      try { await window.desktop.openMail(u); r.push('ok'); } catch (e) { r.push('red'); } } return r.join(','); });
+    check(om === 'ok,ok,red,red,red', 'open-mail yalnız mailto: ve https: açar (' + om + ')');
+    const sf = await w.evaluate(async () => { try { await window.desktop.showInFolder('/etc/passwd'); return 'acildi'; } catch (e) { return 'red'; } });
+    check(sf === 'red' && !(await app.evaluate(() => global.__dis)).some(x => /passwd/.test(x)), 'klasörde göster: programın yazmadığı yol reddedilir');
+    for (const ad of GECICI) { fs.mkdirSync(path.join(os.tmpdir(), ad), { recursive: true }); fs.writeFileSync(path.join(os.tmpdir(), ad, 'deneme.pdf'), 'x'); }
+  } catch (e) { bad.push('HATA (2b): ' + e.message.split('\n')[0]); await w.screenshot({ path: OUT + '/hata2b.png' }).catch(() => {}); }
+  finally { await app.close().catch(() => {}); fake.server.close(); }
+  check(GECICI.every(ad => !fs.existsSync(path.join(os.tmpdir(), ad, 'deneme.pdf'))), 'çıkışta geçici fatura / PDF / WhatsApp klasörleri temizlendi');
 
   // ---------------- 3. senaryo: ofis oluştur, çalışan davet et ----------------
   s = await oturum('deneme'); ({ app, w, fake } = s);
