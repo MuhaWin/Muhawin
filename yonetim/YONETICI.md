@@ -3,7 +3,7 @@
 Bu belgenin sahibi yönetici oturumudur. Diğer oturumlar belgeyi **okur, değiştirmez**; önerilerini raporlarına yazar.
 Belge 23.10.2026'da Cowork projesinden ("Luca Fatura Muavin Kontrolü") depoya taşındı. Cowork projesi artık arşivdir; güncel kaynak bu klasördür.
 
-## Roller ve oturumlar (tümü Code bölümünde, `McLk007/muhawin` deposuna bağlı)
+## Roller ve oturumlar (tümü Code bölümünde, `MuhaWin/Muhawin` deposuna bağlı)
 - **Yönetici:** İşleri parçalara böler ve her parça için görev kartı yazar (`yonetim/gorevler/gorev-NN-<konu>.md`). PR'ları inceler, kabul ya da ret kararı verir, kabul edilenleri birleştirir. `yonetim/` klasörünü günceller.
 - **Ana Depo 2 (MuhaWin/Muhawin)** (`session_01HKMyx49yrftMV598oVTfLH`):
   - Depo kurulumunu yapar, `main` dalının bakımını üstlenir.
