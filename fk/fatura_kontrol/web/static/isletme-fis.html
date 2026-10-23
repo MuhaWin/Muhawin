@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/simge.ico">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luca Fiş Aktarımı</title>
+<script src="/tema.js"></script>
+<link rel="stylesheet" href="/tema.css">
+<style>
+html,body{height:100%}body{display:flex;flex-direction:column;overflow:hidden;margin:0}
+header{flex:none;padding:0 22px;display:flex;align-items:center;gap:14px;height:52px}
+main{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px 14px}
+.kart{padding:12px 14px}
+.btn{min-height:34px;border-radius:8px;padding:0 12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font:inherit;color:inherit;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn.birincil{background:var(--brand-2);border-color:var(--brand-2);color:#fff;font-weight:600}.btn[disabled]{opacity:.5;cursor:default}
+input,select{min-height:32px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:inherit;padding:0 8px;font:inherit;box-sizing:border-box}
+label.alan{display:grid;gap:3px;font-size:12px;color:var(--muted)}
+.ayarlar{display:grid;grid-template-columns:180px minmax(220px,2fr) minmax(200px,1fr) minmax(130px,150px) minmax(130px,150px);gap:10px;align-items:end}
+.ayarlar input,.ayarlar select{width:100%}
+.ipucu{font-size:12px;color:var(--muted);margin:0}
+.uyari{padding:9px 12px;border-radius:8px;background:#fff6e5;border:1px solid #f0d49a;color:#7a4d00;font-size:13px}.uyari.ok{background:#dff5ea;border-color:#9ad8b9;color:#13694a}
+.hata{color:#a3262c;font-size:13px}
+.tk{flex:1;min-height:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:auto}
+table{border-collapse:collapse;font-size:12px;min-width:2600px;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:4px 5px;text-align:left;vertical-align:middle;white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel);font-size:11.5px;color:var(--muted);z-index:1}
+td input,td select{width:100%;min-height:28px;font-size:12px;padding:0 5px}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+td.n input{text-align:right}
+tr.cikar td{opacity:.45}
+.alt{flex:none;display:flex;gap:10px;align-items:center;justify-content:flex-end}
+.rozet{font-size:11px;padding:2px 7px;border-radius:999px;font-weight:600;background:#e7eefb;color:#1f4aa8}
+</style>
+</head>
+<body>
+<header class="ust"><span class="logo" aria-hidden="true"></span><h1 style="font-size:16px;margin:0">Luca'ya Excel'den fiş aktarma</h1>
+  <span style="font-size:12.5px;opacity:.8" id="ust">İşletme / serbest meslek defteri</span></header>
+<main>
+  <section class="kart" style="display:grid;gap:10px">
+    <div class="ayarlar">
+      <label class="alan">Kategori<select id="kategori"></select></label>
+      <label class="alan">Faaliyet kodu (firmanın; tüm satırlara)<input id="faaliyet" list="L_faaliyet_kodu" placeholder="ör. … 773903"></label>
+      <label class="alan">Firma kimlikleri (VKN / TCKN; şahıs firmasında ikisi)<input id="kimlik" placeholder="virgülle"></label>
+      <label class="alan">Varsayılan alt tür · gider<input id="altGider" list="L_kayit_alt_turu"></label>
+      <label class="alan">Varsayılan alt tür · gelir<input id="altGelir" list="L_kayit_alt_turu"></label>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn" id="ayarKaydet" type="button">Ayarları kaydet ve satırları yenile</button>
+      <button class="btn" id="listeAl" type="button" hidden title="Luca'daki işletme / serbest meslek defteri fiş ekranlarının açılır listelerini (kayıt alt türü, KDV istisnası, stopaj kodu, vergi dairesi…) okur; Luca'da ekran açmanız gerekmez">Luca listelerini al</button>
+      <span class="ipucu" id="listeDurum"></span>
+    </div>
+    <div id="uyarilar"></div>
+  </section>
+  <div class="tk"><table id="tablo" class="tg-yok"></table></div>
+  <div class="alt"><span class="ipucu" id="ozet"></span><span class="hata" id="hata"></span>
+    <button class="btn birincil" id="excel" type="button">Excel'i hazırla ve indir</button></div>
+</main>
+<div id="datalistler"></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const para = v => Number(v || 0).toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const q = new URLSearchParams(location.search);
+const kaynak = {id: q.get("id") || "", firma_id: q.get("firma_id") || "", bas: q.get("bas") || ""};
+const MW = /Electron\//.test(navigator.userAgent);
+const ust = () => { try { return (window.opener && window.opener.top) || window.top; } catch (e) { return window.top; } };
+let V = null, dahil = [];
+// ekranda düzenlenen sütunlar: [anahtar, başlık, tür(liste/metin/sayı), genişlik]
+const KOL = [["islem", "İşlem", "sec", 86], ["belge_turu", "Belge türü", "liste", 120], ["evrak_tarihi", "Evrak tarihi", "metin", 100], ["kayit_tarihi", "Kayıt tarihi", "metin", 100],
+  ["evrak_no", "Evrak no", "metin", 160], ["vkn", "TCKN/VKN", "metin", 112], ["vergi_dairesi", "Vergi dairesi", "liste", 250], ["unvan1", "Soyadı / ünvan", "metin", 185],
+  ["unvan2", "Adı / devamı", "metin", 185], ["adres", "Adres", "metin", 230], ["cari_hesap", "Cari hesap", "metin", 90], ["kdv_istisnasi", "KDV istisnası", "liste", 120],
+  ["belge_turu_db", "Belge türü (DB)", "liste", 120], ["alis_satis_turu", "Alış/satış türü", "liste", 110], ["kayit_alt_turu", "Kayıt alt türü", "liste", 100],
+  ["aciklama", "Açıklama", "metin", 200], ["miktar", "Miktar", "sayi", 60], ["birim_fiyat", "B.fiyat", "sayi", 90], ["tutar", "Tutar", "sayi", 95], ["tevkifat", "Tevkifat", "liste", 70],
+  ["kdv_orani", "KDV %", "sayi", 50], ["kdv_tutari", "KDV", "sayi", 85], ["toplam", "Toplam", "sayi", 95], ["stopaj_kodu", "Stopaj kodu", "liste", 90], ["stopaj_tutari", "Stopaj", "sayi", 80],
+  ["odeme_turu", "Ödeme türü", "liste", 90]];
+const LISTE_ALAN = ["belge_turu", "vergi_dairesi", "kdv_istisnasi", "belge_turu_db", "alis_satis_turu", "kayit_alt_turu", "tevkifat", "stopaj_kodu", "odeme_turu", "faaliyet_kodu"];
+function hata(m) { $("#hata").textContent = m || ""; }
+async function yukle() {
+  hata("");
+  const u = "/api/isletme-fis?" + new URLSearchParams(Object.fromEntries(Object.entries(kaynak).filter(([, v]) => v)));
+  const r = await fetch(u); const j = await r.json();
+  if (!r.ok) { hata(j.detail || "Satırlar hazırlanamadı"); $("#tablo").innerHTML = ""; return; }
+  V = j; dahil = V.satirlar.map(() => true); ciz();
+}
+function ciz() {
+  const a = V.ayar, L = V.listeler || {};
+  $("#ust").textContent = `${V.firma} · ${V.bas.split("-").reverse().join(".")} – ${V.bit.split("-").reverse().join(".")}`;
+  $("#kategori").innerHTML = V.kategoriler.map(k => `<option${k === a.kategori ? " selected" : ""}>${esc(k)}</option>`).join("");
+  $("#faaliyet").value = a.faaliyet_kodu || ""; $("#kimlik").value = (V.kimlikler || []).join(", ");
+  $("#altGider").value = a.kayit_alt_turu_gider || ""; $("#altGelir").value = a.kayit_alt_turu_gelir || "";
+  $("#datalistler").innerHTML = LISTE_ALAN.map(k => `<datalist id="L_${k}">${(L[k] || []).map(x => `<option value="${esc(x)}">`).join("")}</datalist>`).join("");
+  const kay = L._kaynak || {};
+  $("#listeDurum").innerHTML = kay.luca ? `<span class="rozet">Luca listeleri alındı · ${esc((kay.zaman || "").replace("T", " "))}</span>`
+    : "Luca'nın açılır listeleri (kayıt alt türü, KDV istisnası, stopaj kodu, vergi dairesi…) henüz alınmadı; şimdilik önerilen değerler gösteriliyor.";
+  $("#listeAl").hidden = !MW;
+  const d = V.disarida || [];
+  $("#uyarilar").innerHTML = d.length ? `<div class="uyari"><b>${d.length} fatura</b> firmanın kimliğiyle eşleşmedi ve listeye alınmadı. Şahıs firmasında hem VKN hem TCKN olabilir:
+      ${d.slice(0, 6).map(x => `<br>${esc(x.belge_no)} · alıcı ${esc(x.alici)} (${esc(x.alici_vkn)}) <button class="btn" style="min-height:24px;padding:0 8px" data-kimlik="${esc(x.alici_vkn)}" type="button">alıcıyı firma say</button> · satıcı ${esc(x.satici)} (${esc(x.satici_vkn)}) <button class="btn" style="min-height:24px;padding:0 8px" data-kimlik="${esc(x.satici_vkn)}" type="button">satıcıyı firma say</button>`).join("")}</div>` : "";
+  document.querySelectorAll("[data-kimlik]").forEach(b => b.onclick = () => { $("#kimlik").value = [...new Set([...$("#kimlik").value.split(/[,\s]+/).filter(Boolean), b.dataset.kimlik])].join(", "); ayarKaydet(); });
+  const hucre = (r, i, [k, , tur, w]) => {
+    const v = r[k] ?? "";
+    if (tur === "sec") return `<td style="min-width:${w}px"><select data-i="${i}" data-k="${k}">${["Gider", "Gelir"].map(x => `<option${x === v ? " selected" : ""}>${x}</option>`).join("")}</select></td>`;
+    if (tur === "sayi") return `<td class="n" style="min-width:${w}px"><input data-i="${i}" data-k="${k}" value="${esc(k === "kdv_orani" || k === "miktar" ? v : (+v).toFixed(2))}" inputmode="decimal"></td>`;
+    return `<td style="min-width:${w}px;width:${w}px"><input data-i="${i}" data-k="${k}" value="${esc(v)}"${tur === "liste" ? ` list="L_${k}"` : ""}${k === "kayit_alt_turu" && !v ? ' style="border-color:#e0a23a" placeholder="seçin"' : ""}></td>`;
+  };
+  $("#tablo").innerHTML = `<thead><tr><th><input type="checkbox" id="hepsi" checked title="Tümü"></th>${KOL.map(c => `<th>${esc(c[1])}</th>`).join("")}</tr></thead>
+    <tbody>${V.satirlar.map((r, i) => `<tr class="${dahil[i] ? "" : "cikar"}"><td><input type="checkbox" data-dahil="${i}" ${dahil[i] ? "checked" : ""}></td>${KOL.map(c => hucre(r, i, c)).join("")}</tr>`).join("")
+      || `<tr><td colspan="${KOL.length + 1}" class="ipucu" style="padding:24px;text-align:center">Bu dönemde aktarılacak fatura yok.</td></tr>`}</tbody>`;
+  ozet();
+}
+function ozet() {
+  const S = V.satirlar.filter((r, i) => dahil[i]);
+  const say = k => S.filter(r => r.islem === k).length;
+  const eksik = S.filter(r => !String(r.kayit_alt_turu || "").trim()).length;
+  $("#ozet").innerHTML = `${S.length} satır (${say("Gider")} gider, ${say("Gelir")} gelir) · toplam ${para(S.reduce((a, r) => a + (+r.toplam || 0), 0))} TL${eksik ? ` · <b style="color:#a3262c">${eksik} satırda kayıt alt türü boş</b>` : ""}`;
+}
+document.addEventListener("input", e => { const t = e.target; if (t.dataset.i == null || !t.dataset.k) return; const r = V.satirlar[+t.dataset.i]; r[t.dataset.k] = t.value;
+  if (["tutar", "kdv_tutari"].includes(t.dataset.k)) { r.toplam = (Number(String(r.tutar).replace(",", ".")) + Number(String(r.kdv_tutari).replace(",", "."))).toFixed(2); const x = document.querySelector(`[data-i="${t.dataset.i}"][data-k="toplam"]`); if (x) x.value = r.toplam; }
+  if (t.dataset.k === "islem") { r.alis_satis_turu = t.value === "Gider" ? "Normal Alım" : "Normal Satış"; }
+  ozet(); });
+document.addEventListener("change", e => { const t = e.target;
+  if (t.id === "hepsi") { dahil = dahil.map(() => t.checked); ciz(); return; }
+  if (t.dataset.dahil != null) { dahil[+t.dataset.dahil] = t.checked; t.closest("tr").classList.toggle("cikar", !t.checked); ozet(); return; }
+  if (t.dataset.k === "islem") ciz(); });
+async function ayarKaydet() {
+  hata("");
+  const r = await fetch("/api/isletme-fis/ayar", {method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify({firma: V.firma, kategori: $("#kategori").value,
+    faaliyet_kodu: $("#faaliyet").value.trim(), kimlikler: $("#kimlik").value.split(/[,\s]+/).filter(Boolean), kayit_alt_turu_gider: $("#altGider").value.trim(), kayit_alt_turu_gelir: $("#altGelir").value.trim()})});
+  if (!r.ok) { hata((await r.json()).detail || "Kaydedilemedi"); return; }
+  await yukle();
+}
+$("#ayarKaydet").onclick = ayarKaydet;
+$("#excel").onclick = async () => {
+  hata("");
+  const S = V.satirlar.filter((r, i) => dahil[i]).map(r => ({...r, kategori: $("#kategori").value, faaliyet_kodu: $("#faaliyet").value.trim()}));
+  if (!S.length) return hata("Aktarılacak satır seçin.");
+  const eksik = S.filter(r => !String(r.kayit_alt_turu || "").trim());
+  if (eksik.length && !confirm(`${eksik.length} satırda kayıt alt türü boş. Luca bu satırları kabul etmeyebilir. Yine de Excel hazırlansın mı?`)) return;
+  $("#excel").disabled = true;
+  try {
+    const r = await fetch("/api/isletme-fis/excel", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({...kaynak, satirlar: S})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.detail || "Excel hazırlanamadı");
+    $("#ozet").innerHTML = `<b>${j.adet} satırlık Excel hazırlandı.</b> Seçimleriniz bu karşı taraflar için hatırlanacak.`;
+    const a = document.createElement("a"); a.href = j.indir; a.download = ""; document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { hata(e.message); } finally { $("#excel").disabled = false; }
+};
+$("#listeAl").onclick = () => { $("#listeDurum").textContent = "Luca penceresindeki açılır listeler okunuyor…"; ust().postMessage({fk: true, tip: "isletmeListeleri", lucaId: kaynak.firma_id || (V && V.luca_id) || "", yil: (kaynak.bas || (V && V.bas) || "").slice(0, 4)}, "*"); };
+window.addEventListener("message", async e => {
+  const m = e.data; if (!m || !m.muhawin || m.tip !== "isletmeListeleriSonuc") return;
+  if (m.hata) { $("#listeDurum").textContent = m.hata; return; }
+  const r = await fetch("/api/isletme-fis/listeler", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({listeler: m.listeler || []})});
+  const j = await r.json();
+  if (!r.ok) { $("#listeDurum").textContent = j.detail || "Listeler kaydedilemedi"; return; }
+  await yukle();
+  $("#listeDurum").insertAdjacentHTML("beforeend", ` <span class="ipucu">${j.liste_sayisi} liste okundu; eşleşen alanlar: ${esc(j.bulunan.join(", ") || "yok")}</span>`);
+});
+yukle();
+</script>
+</body>
+</html>

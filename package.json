@@ -1,0 +1,112 @@
+{
+  "name": "muhawin",
+  "version": "2.9.12",
+  "description": "MuhaWin: Ekstre → Luca fiş aktarımı ve Fatura – Muavin kontrolü",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/",
+    "python:win": "python3 tools/python_win.py",
+    "dist": "python3 tools/python_win.py && electron-builder --win nsis --x64 --publish never"
+  },
+  "author": "SMMM Antalya",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9",
+    "pdfjs-dist": "^3.11.174",
+    "xlsx": "^0.18.5",
+    "@tesseract.js-data/tur": "^1.0.0",
+    "tesseract.js": "^5.1.1"
+  },
+  "productName": "MuhaWin",
+  "build": {
+    "appId": "tr.smmmantalya.muhawin",
+    "productName": "MuhaWin",
+    "files": [
+      "main.js",
+      "preload.js",
+      "luca.js",
+      "cloud.js",
+      "kur.js",
+      "datastore.js",
+      "sidecar.js",
+      "ocr_onisle.js",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "fk/fatura_kontrol",
+        "to": "fk/fatura_kontrol",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**"
+        ]
+      },
+      {
+        "from": "fk/requirements.txt",
+        "to": "fk/requirements.txt"
+      },
+      {
+        "from": "dist-python/python",
+        "to": "python",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "node_modules/@tesseract.js-data/tur/4.0.0",
+        "to": "tessdata",
+        "filter": [
+          "tur.traineddata.gz"
+        ]
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": true,
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "MuhaWin-Kurulum-${version}.exe",
+      "shortcutName": "MuhaWin",
+      "uninstallDisplayName": "MuhaWin",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
+      "installerHeaderIcon": "build/icon.ico"
+    },
+    "copyright": "SMMM Antalya",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "McLk007",
+        "repo": "muhawin-surumler",
+        "releaseType": "release"
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/tesseract.js/**",
+      "node_modules/tesseract.js-core/**"
+    ]
+  }
+}

@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/simge.ico">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mikro Denetim</title>
+<script src="/tema.js"></script>
+<script src="/captcha.js" defer></script>
+<link rel="stylesheet" href="/tema.css">
+<style>
+html,body{height:100%}body{display:flex;flex-direction:column;overflow:hidden;margin:0}
+header{flex:none;padding:0 22px;display:flex;align-items:center;gap:14px;height:52px}
+main{flex:1;min-height:0;display:grid;grid-template-columns:320px minmax(0,1fr);gap:14px;padding:14px;width:100%;box-sizing:border-box}
+aside{min-height:0;overflow:auto;display:flex;flex-direction:column;gap:12px}
+#icerik{min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.kart{padding:14px}.kart h3{margin:0 0 8px;font-size:14px}
+.btn{min-height:34px;border-radius:8px;padding:0 12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font:inherit;color:inherit;display:inline-flex;align-items:center;gap:6px}
+.btn.birincil{background:var(--brand-2);border-color:var(--brand-2);color:#fff;font-weight:600}.btn[disabled]{opacity:.5;cursor:default}
+input,select{min-height:34px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:inherit;padding:0 10px;font:inherit;box-sizing:border-box;width:100%}
+input[type=file]{padding:6px}
+label.alan{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.ipucu{font-size:12px;color:var(--muted);margin:0}
+.nav{display:flex;flex-direction:column;gap:6px}
+.nav button{display:grid;grid-template-columns:1fr auto;align-items:center;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font:inherit;color:inherit;cursor:pointer}
+.nav button b{font-size:14px}.nav button small{grid-column:1/-1;color:var(--muted);font-size:11.5px}
+.nav button[aria-pressed=true]{background:var(--brand,#16325C);border-color:var(--brand,#16325C);color:#fff}.nav button[aria-pressed=true] small{color:#dbe4f3}
+.nav button[disabled]{opacity:.45;cursor:default}
+.rozet{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600;white-space:nowrap}
+.rozet.ok{background:#dff5ea;color:#13694a}.rozet.kotu{background:#fde7e7;color:#a3262c}.rozet.gri{background:var(--line);color:var(--muted)}
+.uyari{padding:10px 12px;border-radius:8px;background:#fff6e5;border:1px solid #f0d49a;color:#7a4d00;font-size:13px}.uyari.ok{background:#dff5ea;border-color:#9ad8b9;color:#13694a}
+.hata{color:#a3262c;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;word-break:break-word}
+th{position:sticky;top:0;background:var(--panel);font-size:12px;color:var(--muted)}
+td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tk{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:auto;max-height:calc(100vh - 210px)}
+.durum{font-size:11.5px;padding:2px 7px;border-radius:6px;font-weight:600;display:inline-block}.d-ok{background:#dff5ea;color:#13694a}.d-hata{background:#fde7e7;color:#a3262c}.d-bilgi{background:#e7eefb;color:#1f4aa8}
+.araclar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ozetler{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.oz{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--panel)}.oz b{font-size:22px;display:block}.oz span{color:var(--muted);font-size:12px}
+.bos{color:var(--muted);padding:30px;text-align:center}
+table.dt{min-width:1120px}
+table.dt td.nw{white-space:nowrap}
+table.dt .durum{white-space:normal;line-height:1.3}
+.kt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:normal;overflow-wrap:anywhere}
+.fatura-btn{text-decoration:none;font-size:15px;padding:2px 4px;border-radius:5px;display:inline-block}.fatura-btn:hover{background:var(--accent,#e7eefb)}
+.yerel{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:10px;background:var(--hover,rgba(0,0,0,.02))}
+.yerel-bas{font-weight:600;font-size:12.5px;margin-bottom:4px}.yerel-satir{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:5px 0;border-top:1px dashed var(--line)}
+.yerel-satir:first-child{border-top:0}.yerel-satir .ipucu{font-size:11.5px}.yerel-dug{display:flex;gap:6px}.yerel-dug .btn{min-height:26px;padding:0 9px;font-size:12px}
+.fisbtn{white-space:nowrap;border:1px solid var(--line);background:var(--panel);color:var(--brand-2,#1f4aa8);border-radius:5px;padding:0 5px;font:inherit;font-size:11px;cursor:pointer;margin:1px 2px 0 0}
+.fisbtn:hover{background:var(--accent,#e7eefb)}
+#fisPen{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;place-items:center;z-index:60}#fisPen.acik{display:grid}
+#fisPen .ic{background:var(--panel);color:inherit;border-radius:12px;width:min(980px,94vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+#fisPen .bas{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}#fisPen .govde{overflow:auto;padding:12px 16px}
+#fisPen table{font-size:12.5px;table-layout:auto}#fisPen tfoot td{font-weight:700}
+.yukle{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;place-items:center;z-index:50}.yukle.acik{display:grid}.yukle div{background:var(--panel);padding:20px 26px;border-radius:12px;font-weight:600}
+</style>
+</head>
+<body>
+<header class="ust"><span class="logo" aria-hidden="true"></span><h1 style="font-size:16px;margin:0">Mikro Denetim</h1>
+  <span style="font-size:12.5px;opacity:.8">Mikro muavini ve e-faturalarla firma denetimi: KDV · matrah · cari · beyanname</span></header>
+<main>
+  <aside>
+    <section class="kart">
+      <h3>1. Firma</h3>
+      <select id="firma"><option value="">Firma seçin…</option></select>
+      <p class="ipucu" style="margin-top:6px">Firmayı buradan ya da MuhaWin'in üstündeki firma seçiminden değiştirin.</p>
+      <div id="yerelKutu" class="yerel" hidden><div class="yerel-bas">💾 Bu bilgisayarda kayıtlı belgeler <span class="ipucu">— yeni sorgu ya da yükleme yapmadan denetleyin</span></div><div id="yerelListe"></div></div>
+    </section>
+    <section class="kart" style="display:grid;gap:10px">
+      <h3 style="margin:0">2. Belgeler</h3>
+      <label class="alan">Alış ve satış e-faturaları (Mikro'dan alınan XML'ler ya da ZIP)<input type="file" id="xml" multiple accept=".xml,.zip"></label>
+      <div id="lucaKutu" hidden><button type="button" class="btn" id="lucaAl" style="justify-content:center;width:100%">Faturaları Luca'dan Al (seçili ay)</button>
+        <div class="ipucu" id="lucaNot" style="margin-top:4px"></div></div>
+      <label class="alan">Red / iptal fatura listeleri (Mikro Excel · xls / xlsx · birden çok, isteğe bağlı)<input type="file" id="red" multiple accept=".xls,.xlsx"></label>
+      <label class="alan">Firmanın Mikro muavini (Hesap hareket dökümü · tüm hesaplar · Excel)<input type="file" id="muavin" accept=".xlsx"></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="alan">Başlangıç<input type="date" id="bas"></label><label class="alan">Bitiş<input type="date" id="bit"></label></div>
+      <button type="button" class="btn birincil" id="basla">Denetimi Başlat</button>
+      <p class="hata" id="hata"></p>
+      <p class="ipucu">Dönem boşsa faturaların ayı alınır. Belgeler firmanın dönem klasörüne kaydedilir; aynı dönem yeniden yüklenirse yenisiyle değişir.</p>
+    </section>
+    <section class="kart">
+      <h3>3. Denetim</h3>
+      <div class="nav" id="nav">
+        <button type="button" data-g="ozet" aria-pressed="true"><b>Özet</b><span id="nOzet"></span><small>Tüm kontrollerin sonucu</small></button>
+        <button type="button" data-g="KDV"><b>KDV kontrolü</b><span id="nKDV"></span><small>Faturalardaki KDV ↔ muavindeki 191 / 391</small></button>
+        <button type="button" data-g="Matrah"><b>Matrah kontrolü</b><span id="nMatrah"></span><small>Gelir (60x, 64x, 67x) ve gider / stok hesapları ↔ fatura matrahı</small></button>
+        <button type="button" data-g="Cari"><b>Cari kontrolü</b><span id="nCari"></span><small>Faturanın ödenecek / tahsil edilecek tutarı ↔ cari hesap</small></button>
+        <button type="button" data-g="OIV"><b>ÖİV kontrolü</b><span id="nOIV"></span><small>Faturadaki Özel İletişim Vergisi ↔ fişteki 689 kayıtları</small></button>
+        <button type="button" data-g="faturasiz"><b>Faturası olmayan kayıtlar</b><span id="nFaturasiz"></span><small>Muavinde e-belge no'lu ama faturası yüklenmemiş kayıtlar</small></button>
+        <button type="button" data-g="red"><b>Red / iptal faturalar</b><span id="nRed"></span><small>Red / iptal listesindeki faturalar ↔ muavin kaydı</small></button>
+        <button type="button" data-g="muhtasar"><b>Muhtasar (deneme)</b><span id="nMuhtasar"></span><small>360 hesaplarındaki stopajlar</small></button>
+        <button type="button" data-g="beyan"><b>Beyanname ve çıktı raporu</b><span></span><small>KDV 1 · KDV 2 · çıktı raporu · Excel</small></button>
+      </div>
+    </section>
+    <section class="kart" id="gecmisKart" hidden><h3>Önceki denetimler</h3><div id="gecmis" class="nav"></div></section>
+  </aside>
+  <section id="icerik"><div class="bos" id="bos">Soldan firmayı seçin, alış / satış XML'lerini ve Mikro muavinini yükleyip “Denetimi Başlat”a basın.</div></section>
+</main>
+<div id="fisPen" role="dialog" aria-modal="true" aria-label="Fiş"><div class="ic"><div class="bas"><b id="fisBaslik">Fiş</b><span style="flex:1"></span>
+  <button class="btn" type="button" id="fisYazdir">🖨 Yazdır</button><button class="btn" type="button" id="fisPdf">PDF</button><button class="btn" type="button" id="fisKapat">Kapat</button></div>
+  <div class="govde" id="fisGovde"></div></div></div>
+<div class="yukle" id="yukle"><div>Denetim yapılıyor… (faturalar okunuyor, muavinle karşılaştırılıyor)</div></div>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const para = v => (v == null || v === "") ? "" : Number(v).toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const tarih = s => s ? String(s).slice(0, 10).split("-").reverse().join(".") : "";
+const MW = window.parent !== window && /Electron\//.test(navigator.userAgent);
+let veri = null, gor = "ozet", yalnizSorun = true, mwListe = [], liste = [];
+const firmaK = () => $("#firma").value;
+function firmaCiz(sec) {
+  const s = sec != null ? sec : firmaK();
+  $("#firma").innerHTML = '<option value="">Firma seçin…</option>' + mwListe.map(f => `<option value="${esc(f.mw)}"${f.mw === s ? " selected" : ""}>${esc(f.ad)}</option>`).join("");
+}
+const seciliFirma = () => mwListe.find(f => f.mw === firmaK()) || null;
+/* e-belgeler Luca'dan (Tek firma kontroldeki gibi; toplu otomasyon, yalnız faturalar) */
+let lucaFat = null, lucaCalisiyor = false;
+// Luca'dan faturalar inerken "Denetimi Başlat" kapalı; indirme bitince açılır
+function baslaDugmesi() { const b = $("#basla"); b.disabled = lucaCalisiyor; b.title = lucaCalisiyor ? "Faturalar Luca'dan indiriliyor; bitince açılır" : ""; }
+const lucaKullan = () => { const f = seciliFirma(), b = $("#bas").value, c = $("#lucaKullan");
+  return !!(lucaFat && f && f.id && String(f.id) === lucaFat.firma && b.slice(0, 7) === lucaFat.ay && c && c.checked); };
+let lucaEksik = [];
+function lucaCiz(mesaj) {
+  const f = seciliFirma(); $("#lucaKutu").hidden = !(f && f.id);
+  const n = $("#lucaNot"); if (mesaj != null) { n.textContent = mesaj; return; }
+  const ek = lucaEksik.length ? `<div class="hata" style="margin-top:6px">İndirilemeyen: ${lucaEksik.map(x => `<b>${esc(x.ad)}</b> <button type="button" class="btn" style="min-height:24px;padding:0 8px;font-size:12px" data-lucatekrar="${esc(x.kod)}">Luca'dan tekrar dene</button>`).join(" · ")}
+      <div style="margin-top:4px">ya da eksik kalanın XML / ZIP dosyasını yukarıdaki alana ekleyin: Luca'dan alınanlarla birlikte denetlenir.</div></div>` : "";
+  n.innerHTML = (lucaFat && lucaFat.adet ? `<label style="display:flex;gap:6px;align-items:center;cursor:pointer;color:inherit"><input type="checkbox" id="lucaKullan" checked style="width:auto;min-height:0">
+      <span>Luca'dan alınmış <b>${lucaFat.adet}</b> faturayı kullan (${esc(lucaFat.ay.split("-").reverse().join("."))}${lucaFat.zaman ? " · " + esc(lucaFat.zaman.replace("T", " ")) : ""})</span></label>`
+    : "Başlangıç tarihinin ayındaki e-Fatura, e-Arşiv ve e-SMM belgeleri Luca'dan indirilir (e-SMM satış yalnız serbest meslek defterinde; e-SMM alış bütün firmalarda) (açılan Luca tarayıcısında giriş gerekebilir). Mikro'dan alınan XML'leri yüklemek de olur.") + ek;
+  n.querySelectorAll("[data-lucatekrar]").forEach(b => b.onclick = () => lucaIndir(b.dataset.lucatekrar));
+}
+async function lucaKontrol() {
+  if (lucaCalisiyor) return;
+  const f = seciliFirma(), b = $("#bas").value;
+  if (!(f && f.id && b)) { lucaFat = null; lucaEksik = []; lucaCiz(); return; }
+  try { const j = await (await fetch(`/api/kontrol/luca-faturalari?firma_id=${encodeURIComponent(f.id)}&bas=${b}`)).json();
+    lucaFat = j.adet ? {firma: String(f.id), ay: b.slice(0, 7), adet: j.adet, zaman: j.zaman || ""} : null; lucaEksik = j.eksik || []; } catch (e) { lucaFat = null; lucaEksik = []; }
+  lucaCiz();
+}
+function gecmisCiz() {
+  const f = seciliFirma(); const ad = f ? f.ad.toLocaleUpperCase("tr-TR") : "";
+  const L = liste.filter(x => !f || String(x.firma || "").toLocaleUpperCase("tr-TR") === ad || (x.id || "").toLocaleUpperCase("tr-TR").startsWith(ad + "/"));
+  $("#gecmisKart").hidden = !L.length;
+  $("#gecmis").innerHTML = L.slice(0, 12).map(x => { const n = Object.values(x.sorunlu || {}).reduce((a, b) => a + b, 0);
+    return `<button type="button" data-id="${esc(x.id)}" aria-pressed="${veri && veri.rapor_id === x.id}"><b>${tarih(x.bas)} – ${tarih(x.bit)}</b><span class="rozet ${n ? "kotu" : "ok"}">${n ? n + " sorun" : "temiz"}</span><small>${esc(x.firma || "")}</small></button>`; }).join("");
+  $("#gecmis").querySelectorAll("[data-id]").forEach(b => b.onclick = () => ac(b.dataset.id));
+}
+/* Bu bilgisayardaki belgeler: firmanın daha önce indirilmiş / yüklenmiş faturaları ve muaviniyle yeniden denetim */
+const AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+const ayAdi = a => `${AYLAR[+a.slice(5, 7) - 1]} ${a.slice(0, 4)}`;
+const zmn = s => s ? s.slice(8, 10) + "." + s.slice(5, 7) + "." + s.slice(0, 4) + " " + s.slice(11, 16) : "";
+let yerel = null, yerelSira = 0;
+async function yerelYukle() {
+  const f = seciliFirma(), kutu = $("#yerelKutu"), sira = ++yerelSira;
+  if (!f) { kutu.hidden = true; yerel = null; return; }
+  const q = new URLSearchParams({firma_id: f.id || "", firma_ad: f.ad || "", vkn: f.vkn || ""});
+  let j = null; try { j = await (await fetch("/api/yerel-belgeler?" + q)).json(); } catch (e) {}
+  if (sira !== yerelSira) return;
+  yerel = j; const L = (j && j.donemler) || [];
+  kutu.hidden = !L.length;
+  $("#yerelListe").innerHTML = L.map(d => `<div class="yerel-satir"><div><b>${ayAdi(d.ay)}</b><br><span class="ipucu">${d.fatura} fatura · ${d.muavin.length ? "muavin (" + esc(d.program_ad) + ")" : "<b>muavin yok</b>"}${d.red ? ` · ${d.red} red / iptal listesi` : ""}${d.denetim ? ` · son denetim ${zmn(d.denetim)}` : ""}</span></div>
+    <div class="yerel-dug">${d.hazir ? `<button type="button" class="btn birincil" data-yerel="${esc(d.ay)}" title="${esc(d.bas)} – ${esc(d.bit)} dönemi; bilgisayardaki faturalar ve muavinle (Luca'ya bağlanmadan)">Bu belgelerle denetle</button>` : `<span class="ipucu">${d.fatura ? "muavin eksik" : "fatura eksik"}</span>`}
+    ${d.denetim ? `<button type="button" class="btn" data-yerelac="${esc(d.id)}" title="Son denetimi yeniden hesaplamadan aç">Son denetim</button>` : ""}</div></div>`).join("");
+  $("#yerelListe").querySelectorAll("[data-yerel]").forEach(b => b.onclick = () => yerelDenetim(b.dataset.yerel));
+  $("#yerelListe").querySelectorAll("[data-yerelac]").forEach(b => b.onclick = () => ac(b.dataset.yerelac));
+}
+async function yerelDenetim(ay) {
+  const f = seciliFirma(), d = ((yerel && yerel.donemler) || []).find(x => x.ay === ay);
+  if (!f || !d) return;
+  $("#hata").textContent = "";
+  let b0 = $("#bas").value, b1 = $("#bit").value;
+  if (!(b0 && b1 && b0.slice(0, 7) === ay && b1 >= b0)) { b0 = d.bas; b1 = d.bit; $("#bas").value = b0; $("#bit").value = b1; }
+  $("#yukle").classList.add("acik"); document.querySelectorAll("[data-yerel]").forEach(x => x.disabled = true);
+  try {
+    const r = await fetch("/api/denetim/yerel", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({firma_id: f.id || "", firma_ad: f.ad || "", vkn: f.vkn || "", ay, bas: b0, bit: b1})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || "Denetim yapılamadı");
+    veri = j.denetim; veri.rapor_id = j.rapor_id; gor = "ozet"; ciz(); listeYukle(); yerelYukle();
+  } catch (e) { $("#hata").textContent = e.message; }
+  finally { $("#yukle").classList.remove("acik"); document.querySelectorAll("[data-yerel]").forEach(x => x.disabled = false); }
+}
+async function listeYukle() { try { liste = (await (await fetch("/api/denetim/liste")).json()).liste || []; } catch (e) { liste = []; } gecmisCiz(); }
+async function ac(id) {
+  const r = await fetch("/api/denetim?id=" + encodeURIComponent(id)); if (!r.ok) return;
+  veri = await r.json(); veri.rapor_id = veri.rapor_id || id; gor = "ozet"; ciz(); gecmisCiz();
+}
+function rozet(id, n) { const el = $(id); if (el) el.innerHTML = n == null ? "" : `<span class="rozet ${n ? "kotu" : "ok"}">${n ? n + " sorun" : "temiz"}</span>`; }
+const sinif = s => s.sorunlu ? "d-hata" : /Uyumlu|uyumlu|Uygun/.test(s.durum) ? "d-ok" : "d-bilgi";
+function tablo(L) {
+  if (!L.length) return '<div class="bos">Kayıt yok.</div>';
+  const rid = veri && veri.rapor_id;
+  const pdf = s => rid && s.belge_no ? `<a class="fatura-btn" title="Faturayı PDF olarak aç" target="_blank" data-pdfid="${esc(rid)}" data-pdfbelge="${esc(s.belge_no)}" href="/api/fatura/goruntu?id=${encodeURIComponent(rid)}&belge=${encodeURIComponent(s.belge_no)}">📄</a>` : "";
+  return `<div class="tk"><table class="dt"><colgroup><col style="width:34px"><col style="width:132px"><col style="width:50px"><col style="width:150px"><col style="width:88px"><col style="width:190px"><col style="width:92px"><col style="width:92px"><col style="width:68px"><col style="width:120px"><col></colgroup>
+    <thead><tr><th title="Faturayı PDF olarak aç"></th><th>Durum</th><th>Yön</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Fatura</th><th class="n">Muavin</th><th class="n">Fark</th><th>Hesap / fiş</th><th>Açıklama</th></tr></thead>
+    <tbody>${L.map(s => `<tr><td>${pdf(s)}</td><td><span class="durum ${sinif(s)}">${esc(s.durum)}</span></td><td>${esc(s.yon)}</td><td class="mono nw">${esc(s.belge_no)}</td><td class="nw">${tarih(s.tarih)}</td>
+      <td><div class="kt" title="${esc(s.karsi_taraf)}">${esc(s.karsi_taraf)}</div><small style="color:var(--muted)">${esc(s.vkn || "")}${s.doviz ? " · " + esc(s.doviz) : ""}</small></td>
+      <td class="n">${para(s.fatura_tutari)}</td><td class="n">${para(s.muavin_tutari)}</td><td class="n" style="${Math.abs(s.fark) > 0.05 ? "color:#a3262c;font-weight:600" : ""}">${para(s.fark)}</td>
+      <td><span class="mono">${esc(s.hesaplar)}</span><br>${fisDugmeleri(s.fisler)}</td><td>${esc(s.aciklama || "")}</td></tr>`).join("")}</tbody></table></div>`;
+}
+// Hesap / fiş sütunu: "15619 (17.09.2026), 15620 (18.09.2026)" → fiş düğmeleri (muavinden fiş penceresi)
+function fisDugmeleri(fisler) {
+  return String(fisler || "").split(/,\s*(?=[^,]*\(\d{2}\.\d{2}\.\d{4}\))/).filter(Boolean).map(x => {
+    const m = x.trim().match(/^(.*?)\s*\((\d{2}\.\d{2}\.\d{4})\)$/);
+    return m ? `<button type="button" class="fisbtn" data-fis="${esc(m[1])}" data-tarih="${esc(m[2])}" title="Fişi aç">🧾 ${esc(m[1])} <span style="color:var(--muted)">(${esc(m[2])})</span></button>` : `<small style="color:var(--muted)">${esc(x)}</small>`;
+  }).join("");
+}
+let acikFis = null;
+const fisAdres = (yol, f, ek) => `${yol}?id=${encodeURIComponent(veri.rapor_id || "")}&fis=${encodeURIComponent(f.fis)}&tarih=${encodeURIComponent(f.tarih)}${ek || ""}`;
+async function fisAc(fis, ftarih) {
+  acikFis = {fis, tarih: ftarih}; $("#fisBaslik").textContent = `Fiş ${fis} · ${ftarih}`; $("#fisGovde").innerHTML = '<div class="bos">Fiş muavinden hazırlanıyor…</div>'; $("#fisPen").classList.add("acik");
+  try {
+    const r = await fetch(fisAdres("/api/denetim/fis", acikFis)); const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || "Fiş bulunamadı");
+    const tb = (b, a) => `<td class="n">${b ? para(b) : ""}</td><td class="n">${a ? para(a) : ""}</td>`;
+    $("#fisBaslik").textContent = `Fiş ${j.fis_no} · ${tarih(j.tarih)}${j.tip ? " · " + j.tip : ""}`;
+    $("#fisGovde").innerHTML = `<div class="tk tg-yok" style="max-height:none"><table><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Açıklama</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead>
+      <tbody>${j.satirlar.map(x => `<tr><td class="mono">${esc(x.hesap)}</td><td>${esc(x.hesap_adi)}</td><td>${esc(x.aciklama)}</td>${tb(x.borc, x.alacak)}</tr>`).join("")}</tbody>
+      <tfoot><tr><td colspan="3">Toplam${j.dengeli ? "" : " — fiş dengesiz"}</td>${tb(j.borc, j.alacak)}</tr></tfoot></table></div>
+      <h3 style="font-size:13px;margin:14px 0 6px">Ana hesaplar görünümü</h3>
+      <div class="tk tg-yok" style="max-height:none"><table><thead><tr><th>Ana hesap</th><th>Hesap adı</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead>
+      <tbody>${j.ana.map(x => `<tr><td class="mono">${esc(x.hesap)}</td><td>${esc(x.ad)}</td>${tb(x.borc, x.alacak)}</tr>`).join("")}</tbody>
+      <tfoot><tr><td colspan="2">Toplam</td>${tb(j.borc, j.alacak)}</tr></tfoot></table></div>`;
+  } catch (e) { $("#fisGovde").innerHTML = `<div class="hata" style="padding:20px">${esc(e.message)}</div>`; }
+}
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-fis]"); if (b) { e.preventDefault(); fisAc(b.dataset.fis, b.dataset.tarih); } });
+$("#fisKapat").onclick = () => $("#fisPen").classList.remove("acik");
+$("#fisPen").addEventListener("click", e => { if (e.target.id === "fisPen") $("#fisPen").classList.remove("acik"); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#fisPen").classList.contains("acik")) { e.stopPropagation(); $("#fisPen").classList.remove("acik"); } }, true);
+$("#fisYazdir").onclick = () => acikFis && window.open(fisAdres("/api/denetim/fis/yazdir", acikFis), "_blank");
+$("#fisPdf").onclick = async () => {
+  if (!acikFis) return;
+  if (!MW) { window.open(fisAdres("/api/denetim/fis/yazdir", acikFis), "_blank"); return; }
+  const html = await (await fetch(fisAdres("/api/denetim/fis/yazdir", acikFis, "&oto=0"))).text();
+  window.parent.postMessage({fk: true, tip: "htmlPdf", ad: `Fis_${acikFis.fis}`, html: html.replace(/<div class=yok[\s\S]*?<\/div>/, "")}, "*");
+};
+function ciz() {
+  document.querySelectorAll("#nav [data-g]").forEach(b => { b.setAttribute("aria-pressed", String(b.dataset.g === gor)); b.disabled = !veri && b.dataset.g !== "ozet"; });
+  if (!veri) { $("#icerik").innerHTML = `<div class="bos">Soldan firmayı seçin, alış / satış XML'lerini ve Mikro muavinini yükleyip “Denetimi Başlat”a basın.</div>`; ["#nKDV", "#nMatrah", "#nCari", "#nFaturasiz", "#nOzet", "#nMuhtasar", "#nOIV"].forEach(x => rozet(x, null)); return; }
+  const o = veri.ozet || {}; const fs = (veri.faturasi_olmayanlar || []).filter(s => s.uygun == null).length;
+  rozet("#nKDV", (o.KDV || {}).sorunlu || 0); rozet("#nMatrah", (o.Matrah || {}).sorunlu || 0); rozet("#nCari", (o.Cari || {}).sorunlu || 0); rozet("#nFaturasiz", fs);
+  rozet("#nOzet", ((o.KDV || {}).sorunlu || 0) + ((o.Matrah || {}).sorunlu || 0) + ((o.Cari || {}).sorunlu || 0) + fs);
+  const redL = veri.red_iptal || [], redS = redL.filter(x => x.muavinde).length;
+  $("#nRed").innerHTML = redL.length ? `<span class="rozet ${redS ? "kotu" : "ok"}">${redS ? redS + " kayıtlı" : redL.length + " · temiz"}</span>` : "";
+  document.querySelector('#nav [data-g=red]').hidden = !redL.length;
+  const oivL = veri.oiv || [], oivS = oivL.filter(x => x.sorunlu).length;
+  rozet("#nOIV", oivL.length ? oivS : null); document.querySelector('#nav [data-g=OIV]').hidden = !oivL.length;
+  $("#nMuhtasar").innerHTML = veri.muhtasar && veri.muhtasar.satirlar.length ? `<span class="rozet gri">${para(veri.muhtasar.odenecek)}</span>` : "";
+  const bas = `<div class="araclar"><b style="font-size:15px">${esc(veri.firma || "")}</b><span style="color:var(--muted)">VKN ${esc(veri.vkn || "")} · ${tarih(veri.bas)} – ${tarih(veri.bit)} · ${veri.alis || 0} alış, ${veri.satis || 0} satış faturası</span><span style="flex:1"></span>
+    ${["KDV", "Matrah", "Cari", "OIV"].includes(gor) ? `<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="sorunlu" style="width:auto;min-height:0" ${yalnizSorun ? "checked" : ""}> Yalnız sorunlular</label>` : ""}</div>
+    ${(veri.uyarilar || []).length ? `<div class="uyari">${veri.uyarilar.map(esc).join("<br>")}</div>` : ""}`;
+  let govde = "";
+  if (gor === "ozet") {
+    govde = `<div class="ozetler">${["KDV", "Matrah", "Cari"].map(k => { const x = o[k] || {adet: 0, sorunlu: 0}; return `<div class="oz" style="cursor:pointer" data-git="${k}"><b style="color:${x.sorunlu ? "#a3262c" : "#13694a"}">${x.sorunlu}</b><span>${esc(x.ad || k)} · ${x.adet} kontrol · ${x.sorunlu ? "sorunlu" : "temiz"}</span></div>`; }).join("")}
+      ${(veri.oiv || []).length ? `<div class="oz" style="cursor:pointer" data-git="OIV"><b style="color:${veri.oiv.filter(x => x.sorunlu).length ? "#a3262c" : "#13694a"}">${veri.oiv.filter(x => x.sorunlu).length}</b><span>ÖİV kontrolü · ${veri.oiv.length} fatura · ${veri.oiv.filter(x => x.sorunlu).length ? "sorunlu" : "temiz"}</span></div>` : ""}
+      <div class="oz" style="cursor:pointer" data-git="faturasiz"><b style="color:${fs ? "#a3262c" : "#13694a"}">${fs}</b><span>Faturası bulunamayan muavin kaydı</span></div>
+      ${(veri.red_iptal || []).length ? `<div class="oz" style="cursor:pointer" data-git="red"><b style="color:${(veri.red_iptal.filter(x => x.muavinde).length) ? "#a3262c" : "#13694a"}">${veri.red_iptal.filter(x => x.muavinde).length}</b><span>Red / iptal faturası muavinde kayıtlı · ${veri.red_iptal.length} listede</span></div>` : ""}
+      <div class="oz" style="cursor:pointer" data-git="muhtasar"><b>${para((veri.muhtasar || {}).odenecek || 0)}</b><span>Muhtasar (deneme) · 360 stopajları</span></div></div>
+      <h3 style="margin:8px 0 0;font-size:14px">Sorunlu kayıtlar</h3>${tablo((veri.sonuclar || []).filter(s => s.sorunlu))}`;
+  } else if (["KDV", "Matrah", "Cari"].includes(gor)) {
+    const L = (veri.sonuclar || []).filter(s => (s.kontrol === gor || (gor === "KDV" && s.kontrol === "Kayıt")) && (!yalnizSorun || s.sorunlu));
+    const x = o[gor] || {};
+    govde = `<div class="araclar">${(x.durumlar || []).map(d => `<span class="durum ${d.sorunlu ? "d-hata" : "d-ok"}">${esc(d.ad)}: ${d.adet}</span>`).join(" ")}</div>
+      <p class="ipucu">${gor === "KDV" ? "Binek araçta KDV'nin %70'i, dövizli faturalarda TL karşılığı, tevkifatlı satışta tahsil edilen KDV beklenir." : gor === "Matrah" ? "Alışta gider / stok / duran varlık hesaplarının (binek araç KKEG ve indirilemeyen KDV dahil) toplamı, satışta 60x / 64x / 67x gelir hesapları faturanın matrahıyla karşılaştırılır. İade faturaları bu kontrole girmez." : "Faturanın ödenecek (tahsil edilecek) tutarı, faturanın fişindeki cari / ödeme hesaplarının (alışta alacak, satışta borç) toplamıyla karşılaştırılır; tevkifatta tevkif sonrası tutar beklenir."}</p>${tablo(L)}`;
+  } else if (gor === "faturasiz") {
+    const L = veri.faturasi_olmayanlar || [];
+    govde = L.length ? `<div class="tk"><table><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Fiş tarihi</th><th>Fiş no</th><th>Belge no</th><th>Ünvan</th><th class="n">Tutar</th></tr></thead><tbody>${L.map(s => `<tr><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)}</td><td>${tarih(s.fis_tarihi)}</td><td>${esc(s.fis_no)}</td><td class="mono">${esc(s.belge_no || "")}</td><td>${esc(s.unvan || "")}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Faturası bulunamayan kayıt yok.</div>';
+  } else if (gor === "OIV") {
+    const L = (veri.oiv || []).filter(x => !yalnizSorun || x.sorunlu);
+    govde = `<p class="ipucu">Faturadaki Özel İletişim Vergisi (ÖİV), faturanın fişindeki 689 hesap kayıtlarıyla karşılaştırılır (adında ÖİV / iletişim geçen 689 alt hesabı varsa yalnız o).</p>
+      ${L.length ? `<div class="tk"><table class="dt"><colgroup><col style="width:120px"><col style="width:50px"><col style="width:150px"><col style="width:88px"><col style="width:180px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:68px"><col style="width:120px"><col></colgroup><thead><tr><th>Durum</th><th>Yön</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Matrah</th><th class="n">Fatura ÖİV</th><th class="n">689 kaydı</th><th class="n">Fark</th><th>Hesap / fiş</th><th>Açıklama</th></tr></thead>
+      <tbody>${L.map(x => `<tr><td><span class="durum ${x.sorunlu ? "d-hata" : "d-ok"}">${esc(x.durum)}</span></td><td>${esc(x.yon)}</td><td class="mono nw">${esc(x.belge_no)}</td><td class="nw">${tarih(x.tarih)}</td>
+        <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td><td class="n">${para(x.oiv)}</td><td class="n">${para(x.muavin)}</td>
+        <td class="n" style="${Math.abs(x.fark) > 0.05 ? "color:#a3262c;font-weight:600" : ""}">${para(x.fark)}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}</td><td>${esc(x.aciklama)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Kayıt yok.</div>'}`;
+  } else if (gor === "red") {
+    const L = veri.red_iptal || [];
+    govde = `<p class="ipucu">Red / iptal listesindeki faturalar muavinde kayıtlı olmamalı. Kayıtlıysa kayıt iptal edilmeli ya da ters kayıt yapılmalı.</p>
+      ${L.length ? `<div class="tk"><table class="dt" style="min-width:1000px"><thead><tr><th>Sonuç</th><th>Red / iptal</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Matrah</th><th class="n">KDV</th><th>Döviz</th><th>e-Fatura dosyasında</th><th>Hesap / fiş</th><th>Liste durumu</th></tr></thead>
+      <tbody>${L.map(x => `<tr><td><span class="durum ${x.muavinde ? "d-hata" : "d-ok"}">${x.muavinde ? "Muavinde kayıtlı" : "Kayıt yok – uyumlu"}</span></td><td>${esc(x.ne)}</td><td class="mono nw">${esc(x.belge_no)}</td><td class="nw">${tarih(x.tarih)}</td>
+        <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td><td class="n">${para(x.kdv)}</td><td>${esc(x.doviz)}</td>
+        <td>${x.faturada ? "var" : "yok"}</td><td><span class="mono">${esc(x.hesaplar)}</span><br><small style="color:var(--muted)">${esc(x.fisler)}</small></td><td>${esc(x.durum)}<br><small style="color:var(--muted)">${esc(x.dosya)}</small></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Red / iptal listesi yüklenmedi.</div>'}`;
+  } else if (gor === "muhtasar") {
+    const m = veri.muhtasar || {satirlar: []};
+    govde = `<div class="uyari">${esc(m.not || "")}</div>
+      <div class="tk"><table><thead><tr><th>Tür</th><th class="n">Oran</th><th class="n">Matrah (gayrisafi)</th><th class="n">Kesilen vergi</th><th class="n">Kayıt</th></tr></thead>
+      <tbody>${m.satirlar.map(x => `<tr><td><b>${esc(x.baslik)}</b></td><td class="n">${x.oran ? "%" + x.oran : ""}</td><td class="n">${x.matrah != null ? para(x.matrah) : "—"}</td><td class="n">${para(x.vergi)}</td><td class="n">${x.adet}</td></tr>`).join("") || '<tr><td colspan="5" class="bos">Dönemde 360 stopaj tahakkuku yok.</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="3"><b>Muhtasar ile ödenecek (SGK hariç)</b></td><td class="n"><b>${para(m.odenecek)}</b></td><td></td></tr></tfoot></table></div>
+      ${m.satirlar.map(x => `<details><summary style="cursor:pointer;font-size:13px">${esc(x.baslik)} · ${x.adet} kayıt</summary><div class="tk" style="margin-top:6px"><table><thead><tr><th>Tarih</th><th>Fiş</th><th>Hesap</th><th>Ünvan / açıklama</th><th class="n">Matrah</th><th class="n">Vergi</th></tr></thead><tbody>${x.satirlar.map(s => `<tr><td>${tarih(s.tarih)}</td><td>${esc(s.fis_no)}</td><td class="mono">${esc(s.hesap)}</td><td>${esc(s.unvan || "")} ${esc(s.aciklama || "")}</td><td class="n">${s.matrah != null ? para(s.matrah) : ""}</td><td class="n">${para(s.vergi)}</td></tr>`).join("")}</tbody></table></div></details>`).join("")}
+      ${(m.eslesmeyen || []).length ? `<details><summary style="cursor:pointer;font-size:13px">Türü bulunamayan 360 kayıtları (${m.eslesmeyen.length})</summary><div class="tk"><table><tbody>${m.eslesmeyen.map(s => `<tr><td>${tarih(s.tarih)}</td><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)} · ${esc(s.aciklama)}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
+      <p class="ipucu">Muhtasar ve prim hizmet beyannamesi örneğini gönderdiğinizde bu bölüm GİB biçimine göre tamamlanacak.</p>`;
+  } else if (gor === "beyan") {
+    const id = encodeURIComponent(veri.rapor_id || "");
+    govde = `<div class="ozetler">
+      <div class="oz"><b style="font-size:16px">KDV 1 / KDV 2 beyannamesi</b><span>Denetlenen dönemin muavininden, GİB görünümünde</span><div class="araclar" style="margin-top:8px"><button class="btn birincil" type="button" data-ac="/beyanname?id=${id}">Beyannameyi aç</button></div></div>
+      <div class="oz"><b style="font-size:16px">Çıktı raporu</b><span>Kontrol özeti, açıklamalı muavin dökümü, KDV / KDV2 beyanname örnekleri (yazdırılabilir)</span><div class="araclar" style="margin-top:8px"><button class="btn birincil" type="button" data-ac="/api/rapor/cikti?id=${id}">Çıktı raporunu aç</button></div></div>
+      <div class="oz"><b style="font-size:16px">Excel raporu</b><span>Kontrol sonuçları ve faturalar</span><div class="araclar" style="margin-top:8px"><a class="btn" href="/api/rapor/excel?id=${id}">Excel'i indir</a></div></div>
+      <div class="oz"><b style="font-size:16px">Muhtasar (deneme)</b><span>360 stopajlarından taslak</span><div class="araclar" style="margin-top:8px"><button class="btn" type="button" data-git="muhtasar">Muhtasar taslağı</button></div></div></div>`;
+  }
+  $("#icerik").innerHTML = bas + govde;
+  const cb = $("#sorunlu"); if (cb) cb.onchange = () => { yalnizSorun = cb.checked; ciz(); };
+  $("#icerik").querySelectorAll("[data-git]").forEach(b => b.onclick = () => { gor = b.dataset.git; ciz(); });
+  $("#icerik").querySelectorAll("[data-ac]").forEach(b => b.onclick = () => window.open(b.dataset.ac, "_blank"));
+}
+// MuhaWin içinde: fatura PDF'e dönüştürülüp ayrı pencerede açılır (Fatura Kontrol raporundaki gibi)
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest("a[data-pdfbelge]");
+  if (!a || window.top === window) return;
+  e.preventDefault();
+  window.top.postMessage({fk: true, tip: "faturaPdf", id: a.dataset.pdfid, belge: a.dataset.pdfbelge}, "*");
+});
+document.querySelectorAll("#nav [data-g]").forEach(b => b.onclick = () => { if (b.disabled) return; gor = b.dataset.g; ciz(); });
+$("#basla").onclick = async () => {
+  $("#hata").textContent = "";
+  const f = seciliFirma();
+  const x = [...$("#xml").files], m = $("#muavin").files[0];
+  const luca = lucaKullan();
+  if (!x.length && !luca) { $("#hata").textContent = "Alış / satış e-fatura XML'lerini (ya da ZIP) seçin ya da faturaları Luca'dan alın."; return; }
+  if (!m) { $("#hata").textContent = "Firmanın Mikro muavinini seçin."; return; }
+  const fd = new FormData(); x.forEach(y => fd.append("faturalar", y)); fd.append("muavinler", m); [...$("#red").files].forEach(y => fd.append("red_iptal", y)); fd.append("program", "mikro"); if (luca) fd.append("fatura_kaynak", "luca");
+  fd.append("bas", $("#bas").value); fd.append("bit", $("#bit").value);
+  if (f) { fd.append("firma_ad", f.ad); if (f.id) fd.append("firma_id", f.id); }
+  $("#yukle").classList.add("acik"); $("#basla").disabled = true;
+  try {
+    const r = await fetch("/api/denetim", {method: "POST", body: fd}); const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || "Denetim yapılamadı");
+    veri = j.denetim; veri.rapor_id = j.rapor_id; gor = "ozet"; ciz(); listeYukle(); yerelYukle();
+  } catch (e) { $("#hata").textContent = e.message; }
+  finally { $("#yukle").classList.remove("acik"); $("#basla").disabled = false; baslaDugmesi(); }
+};
+$("#firma").onchange = () => { veri = null; ciz(); gecmisCiz(); lucaKontrol(); yerelYukle(); const f = seciliFirma(); if (MW && f) window.parent.postMessage({fk: true, tip: "firmaSec", mw: f.mw}, "*");
+  const L = liste.filter(x => f && String(x.firma || "").toLocaleUpperCase("tr-TR") === f.ad.toLocaleUpperCase("tr-TR")); if (L[0]) ac(L[0].id); };
+window.addEventListener("message", e => {
+  if (e.source !== window.parent || !e.data || !e.data.muhawin || e.data.tip !== "firma") return;
+  const m = e.data; if (Array.isArray(m.liste)) mwListe = m.liste;
+  const once = firmaK(); firmaCiz(m.mw || ""); if (once !== firmaK()) $("#firma").onchange(); else lucaKontrol();
+});
+async function lucaIndir(adim) {
+  const f = seciliFirma(); if (!f || !f.id) { $("#hata").textContent = "Luca'dan eklenmiş bir firma seçin."; return; }
+  const b = $("#bas").value; if (!b) { $("#hata").textContent = "Önce başlangıç tarihini seçin (faturalar o ay için indirilir)."; return; }
+  $("#hata").textContent = ""; $("#lucaAl").disabled = true; lucaCalisiyor = true; baslaDugmesi(); lucaCiz("Luca'ya bağlanılıyor…");
+  try {
+    const r = await fetch("/api/toplu/baslat", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ay: b.slice(0, 7), idler: [String(f.id)], yalniz_fatura: true, ...(adim ? {adim} : {})})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.detail || "Başlatılamadı");
+    let d = null;
+    for (;;) { await new Promise(z => setTimeout(z, 2000)); try { d = await (await fetch("/api/toplu/durum")).json(); } catch (e) { continue; }
+      const il = d.ilerleme || {}; if (!d.calisiyor) break;
+      lucaCiz((il.captcha ? "Luca tarayıcısında doğrulamayı tamamlayın · " : il.asama === "giris" ? "Açılan Luca tarayıcısında giriş yapın · " : "") + (il.mesaj || "Faturalar indiriliyor…")); }
+    if (d.cikis_kodu) throw new Error(((d.gunluk || []).slice(-1)[0]) || "Luca'dan faturalar alınamadı.");
+    lucaCalisiyor = false; await lucaKontrol(); if (!lucaFat && !lucaEksik.length) lucaCiz("Bu ay için Luca'da fatura bulunamadı.");
+  } catch (e) { lucaCalisiyor = false; await lucaKontrol(); $("#hata").textContent = e.message; }
+  finally { lucaCalisiyor = false; $("#lucaAl").disabled = false; baslaDugmesi(); }
+}
+$("#lucaAl").onclick = () => lucaIndir();
+$("#bas").addEventListener("change", lucaKontrol);
+ciz(); listeYukle(); lucaCiz();
+if (MW) window.parent.postMessage({fk: true, tip: "denetimHazir"}, "*");
+</script>
+</body>
+</html>

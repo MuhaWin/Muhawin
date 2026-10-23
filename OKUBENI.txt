@@ -1,0 +1,632 @@
+MuhaWin 2.9.12  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Hızlı Fiş Girişi · Ofisinize Özel Çözümler · (yakında: Denetim ve Analiz · Geçici Vergi · Personel)
+=========================================================================================================================================================
+
+ÖNCE SUNUCU (bir kez)
+1. Supabase paneli → SQL Editor → New query → sunucu\supabase-moduller.sql dosyasının tamamını yapıştırın → Run.
+   (Mevcut kayıtları silmez; tekrar çalıştırılabilir. Eski Ekstre Luca 1.5.x kurulu olanlar etkilenmez.)
+2. Aynı yerde sunucu\fatura-kodlari-1000.sql dosyasını çalıştırın: Fatura – Muavin Kontrol için 1000 lisans kodu
+   (yalnız özetleri) sunucuya eklenir. Kodların kendisi GIZLI-fatura-lisans-kodlari-1000.csv dosyasındadır;
+   kimseyle toplu paylaşmayın, yedekleyin.
+   SQL çalıştırılmadan da program açılır; o durumda tüm modüller tek (Ekstre) lisansa bağlı çalışır.
+3. (2.2.0) sunucu\supabase-ofis.sql dosyasını çalıştırın: ofis hesapları ve çalışan davetleri.
+4. (2.8.0 / 2.9.0) sunucu\supabase-yonetim.sql dosyasını çalıştırın (2.8.0'da çalıştırdıysanız yeni hâlini bir kez daha): Yönetim modülü (üye fatura bilgileri, satış ve
+   tahsilat kayıtları, işlem günlüğü, duyuru, kod partileri). Yönetici yalnız bilgi@smmmantalya.com olur;
+   başka bir hesap yönetici listesindeyse çıkarılır. Çalıştırılmazsa Yönetim modülünde yalnız üye listesi ve
+   temel lisans işlemleri çalışır, ekranda uyarı görünür.
+
+KURULUM
+1. MuhaWin-2.9.12-BIRLESTIR.bat → MuhaWin-Kurulum-2.9.12.exe oluşur → çalıştırın. Python gerekmez.
+2. İlk açılışta önceki "Ekstre Luca" verileri MuhaWin'e kopyalanır (eski klasör silinmez).
+
+KULLANIM
+- Girişten sonra modül seçimi ekranı açılır. Her kartta o modülün lisans durumu yazar.
+  Sağ üstteki "Modüller" düğmesiyle istediğiniz an modül değiştirirsiniz.
+- Lisanslar modül bazındadır:
+  · Mevcut lisanslar ve eski 1000 kod → Ekstre → Luca modülü.
+  · Yeni Fatura kodları → Fatura – Muavin Kontrol modülü.
+  · Her modülün 7 günlük denemesi, modül ilk açıldığında başlar.
+  · Kod hangi modüle aitse o modülü 1 yıl uzatır; yanlış modül ekranında girilirse program uyarır.
+- Ayarlar yalnız ana menüde (sağ üst). Fatura Kontrol de oradaki Luca bilgileriyle otomatik giriş yapar.
+- Fatura Kontrol → Firmalar:
+  · Ekstre modülünde "Luca'dan firma ekle" ile eklenen firmalar buraya kendiliğinden gelir.
+  · "Luca'dan listeyi çek / yenile" artık MuhaWin'in Luca penceresini kullanır: Luca bağlı değilse giriş
+    penceresi açılır, girişten sonra liste kendiliğinden gelir. Seçimleriniz ve notlarınız korunur.
+- Fatura Kontrol verilerini silmek / klasörünü açmak: Ekstre modülü → Veri ve yedek.
+- Sorun olursa günlük: %APPDATA%\MuhaWin\hesaplar\<hesap>\fatura_kontrol\muhawin-modul.log
+
+2.9.12 YENİLİKLER
+- Toplu kontrol → Sonuçlar (ve filtre satırı olan diğer listeler): liste aşağı kaydırılınca sütun başlıkları ve filtre satırı üstte kalır.
+- Yeni tema: "Kırmızı" (Tema menüsü). Muhasebe İşlemleri ekranları da aynı renklere geçer.
+
+2.9.11 YENİLİKLER
+- Luca girişi arka planda: Ayarlarda Luca bilgileri kayıtlıysa Luca penceresi ekrana gelmez. Doğrulama kodu resmi programda
+  "Luca doğrulama kodu" kutusunda gösterilir; kodu siz yazarsınız, program Luca'ya yazıp Giriş'e basar.
+  · Kod yanlışsa kutu Luca'nın mesajıyla yeniden açılır. "Yeni kod" kodu yeniler, "Luca'yı göster" Luca penceresini açar.
+  · Toplu kontrolde de kod programda sorulur; Chrome penceresi küçük kalır. Luca'da açık oturum varsa yeniden giriş istenmez.
+- e-SMM: Satış yalnız serbest meslek defterli firmalarda sorgulanır (bilanço / işletmede atlanır, raporda not düşülür).
+  Alış tüm firmalarda sorgulanır.
+- Serbest meslek defteri sorgu ve kontrollerde işletme defteri gibi işlenir ("Ser.Mes.Defteri" tanınır).
+- İşletme ve serbest meslek defterlerinde Excel fiş hazırlama ve Luca'ya fiş / fatura aktarma şimdilik kapalı ("Çok yakında").
+  Tek ve toplu kontrol, raporlar bilanço defterlerindeki gibi çalışır.
+- Kaydedilmeyecek kuralları (şahsi faturalar: ev elektriği, su, telefon…): Tek firma raporunda "Kullanıcı kararı" penceresinde
+  "Kural yap: her ay kaydedilmeyecek". Abone / tesisat no, kelime, VKN ya da ünvana göre; kurallar firma klasöründe saklanır.
+- Luca'da Çalış: yalnız Luca ana ekranı açılır (indirme sayfası değil). Luca ekranında sağ altta "↩ Muavine dön" düğmesi.
+- Toplu → Firmalar: "Kontrol edilmeyenler" / "Kontrol edilenler" süzgeçleri.
+
+2.9.10 YENİLİKLER
+- Luca bağlantısı:
+  · Luca'ya bağlıyken bütün ekran ve modüllerdeki "Luca'ya bağlan" düğmeleri birlikte yeşil görünür; bağlıyken düğme yeni giriş
+    sayfası açmaz, açık Luca ekranını öne getirir.
+  · Girişte bilgiler doldurulunca imleç doğrulama kodu (captcha) kutusuna gelir; kodu yazıp Enter'a basınca giriş yapılır.
+    Mali Müşavir Paketi'ne hemen basılır ve Luca ana ekranı açılır açılmaz program öne gelir.
+  · "Faturaları Luca'dan Al" ve toplu kontrolün Luca tarayıcısı, MuhaWin'deki Luca oturumuyla açılır; yeniden giriş istemez.
+  · "Luca'da Çalış": Luca'nın kendi yeni pencere düğmesiyle (firma / dönem seçiminin altındaki beyaz düğme) aynı oturumda tam ekran
+    çalışma penceresi açar. Luca içinden açtığınız ek pencereler sizi programa geri atmaz.
+- İşletme / serbest meslek defteri:
+  · Luca menüsünde "Ser.Meslek Deft." yazan serbest meslek defterli firmalar artık tanınır; muavin yerine Gelir ve Gider Listesi
+    alınır (işletme defteriyle aynı).
+  · "Muavini Luca'dan Çek" işletme / serbest meslek defterinde de MuhaWin'in Luca oturumuyla, ayrı tarayıcı açmadan çalışır.
+  · "Luca listelerini al": kayıt alt türü, KDV istisnası, stopaj kodu, vergi dairesi gibi açılır listeler Luca'da ekran açmadan
+    okunur.
+- Faturaları Luca'ya kaydet: "Fiş" seçimi — her fatura ayrı fiş, her gün tek fiş, 10 günlük, 15 günlük ya da ay sonuna tek fiş
+  (alış ve satış ayrı; her faturanın satırları kendi evrak no ve tarihiyle kalır). Seçim firma bazında hatırlanır.
+
+2.9.9 YENİLİKLER
+- Red / iptal fatura listeleri: Tek firma ve Mikro Denetim'e Mikro'nun red / iptal Excel listeleri (xls / xlsx, birden çok) eklenebilir.
+  Listedeki fatura muavinde kayıtlı değilse uyumlu, kayıtlıysa sorun olarak raporlanır (rapor sekmesi, Excel, çıktı raporu).
+- Mikro Denetim:
+  · Konaklama vergisi matraha eklenerek karşılaştırılır; bu faturalar ayrı kategoride ("Konaklama vergili").
+  · Açıklamasında "iade" geçen satış faturası 610 borcunda bulunursa "İade (satış faturasıyla, 610) – uyumlu".
+  · Yeni "ÖİV kontrolü" sekmesi: faturadaki Özel İletişim Vergisi, fişteki 689 kayıtlarıyla karşılaştırılır.
+  · Seri harfi farklı yazılmış belge no (ör. LIL ↔ LII): sıra no, tarih ve KDV tutuyorsa ünvan tutmasa da uyumlu, ayrı bölümde.
+  · Hesap / Fiş sütunundaki fiş düğmesi: muavinden oluşturulan fiş ortada pencerede açılır; altta ana hesaplar görünümü.
+    Yazdır / PDF; çıktıda Hazırlayan ve Onaylayan imza alanları.
+- Toplu kontrol:
+  · Sonuçlar tablosunda seçim kutuları: seçilenleri yeniden çalıştır ya da sonuçlarını sil (isteğe bağlı indirilen belgeler de).
+  · Firmalar sekmesinde not yerine defter türü; defter türüne göre süz, "Yalnız görünenler" ile yalnız o firmaları dahil et.
+- Üst çubukta "Luca'da Çalış": programın sorgu yapmadığı ayrı bir Luca penceresi tam ekran, MuhaWin'in önünde açılır.
+- e-SMM alış yalnız serbest meslek defterli firmalarda sorgulanır. Luca arşivinde aynı fatura iki kez sayılmaz.
+- "Luca fiş Excel'i (işletme)" düğmesi yalnız işletme / serbest meslek defterli firmalarda görünür.
+- Tek firma ve Mikro Denetim: firma seçilince "Bu bilgisayarda kayıtlı belgeler" kutusu çıkar; daha önce indirilmiş / yüklenmiş
+  faturalar ve muavinle, Luca'ya bağlanmadan ve dosya yüklemeden "Bu belgelerle kontrol et / denetle" ya da son raporu aç.
+
+2.9.8 YENİLİKLER
+- İşletme / serbest meslek defteri: fatura kontrol raporunda "📒 Luca fiş Excel'i (işletme)". Faturalar Luca'nın Excel'den fiş
+  aktarma düzeninde listelenir (alışlar Gider / Diğer Alışlar, satışlar Gelir / Diğer Satışlar; fatura başına tek satır; ünvan
+  kısaltmaları açılır). Hücreler düzenlenebilir; kayıt alt türü gibi seçimler karşı tarafa göre hatırlanır. Kategori, faaliyet kodu
+  ve firma kimlikleri (şahıs firmasında VKN + TCKN) firma ayarıdır. "Luca listelerini al": Luca'da işletme fiş giriş ekranı açıkken
+  açılır listeler (kayıt alt türü, KDV istisnası, stopaj, vergi dairesi…) okunur. Excel indirilir; Luca'ya yüklemeyi şimdilik siz yaparsınız.
+- Luca girişi: "Mali Müşavir Paketi"ne program basar; paket açılınca Luca penceresi küçülür, MuhaWin öne gelir.
+- Luca'dan fatura indirme: 500'lük sayfaların hepsi sırayla (tümünü seç → indir → sonraki sayfa); eksik kalırsa uyarı.
+- Mikro Denetim › 2. Belgeler: "Faturaları Luca'dan Al".
+- Faturalar / muavin Luca'dan inerken "Kontrol et" ve "Denetimi Başlat" kapalı, bitince açılır.
+- İndirilemeyen belge türü için "Luca'dan tekrar dene" ya da o türün XML'ini dosyadan ekleme (Luca'dan inenlerle birlikte kontrol).
+- Tek firma rapor ekranı sıkılaştırıldı; ◀ ile sol form gizlenir, liste geniş ve yüksek.
+- Kontrol: fişte faturaya ait 689 kaydında araç / yakıt / binek geçiyorsa binek araç (KDV %70) gibi kontrol edilir. Muavinde evrak no
+  kısa ya da farklı yazılmışsa (AAA-889, aaa889) fatura bulunur ve not düşülür; tek hane hatası (AAA-899) "farklı yazılmış olabilir"
+  olarak önerilir. Eski raporlar açılınca yeni kurallarla yeniden hesaplanır.
+
+2.9.7 YENİLİKLER
+- Muhasebe İşlemleri › Tek firma / dosyadan kontrol › 2. e-Fatura / e-Arşiv: "Faturaları Luca'dan Al (seçili ay)". Luca'dan
+  eklenmiş firmada seçili ayın e-Fatura, e-Arşiv ve e-SMM belgeleri toplu kontroldeki gibi Luca'dan indirilir; dosya seçmeden
+  "Kontrol et"e basılabilir. Muavin bölümü değişmedi (dosyadan ya da Luca'dan); firmanın muavinine dokunulmaz.
+- Mikro Denetim: hatalı kayıtlar listesinde karşı taraf ünvanı artık en çok 2 satır (tam adı üzerine gelince); satırlar aşağı
+  uzamıyor. Her satırda 📄 düğmesiyle fatura PDF olarak açılır.
+- Telefon yönetim paneli (mobil-yonetim klasörü; GitHub Pages ile yayınlanır): üyeler, lisans, satış ve tahsilat, lisans kodları,
+  ofisler, duyuru ve işlem günlüğü iPhone'dan.
+
+2.9.6 YENİLİKLER
+- Hızlı Fiş Girişi (eski adı ÖKC Fiş Girişi): ÖKC fişi, Z raporu ve YURT DIŞI FATURALARI (Meta, Google vb.; PDF / görüntü).
+  Net tutar brüte çevrilir: %15 stopaj 360'a, %20 sorumlu KDV 191 / 360'a, brüt 760 / 770'e; TCMB kuru kendiliğinden alınır.
+  Tüm fiş türlerinde tutar düzeltilebilir, satır eklenebilir. Binek araç %30 nazım kaydı 950 / 951'e de yazılır.
+- Raporlarda toplu seçim: birden çok satır tek açıklamayla "uygun" ya da "kaydedilmeyecek" yapılır; Luca'ya kaydet ekranında
+  "Seçilenleri kaydetme".
+- Mizan / Muavin: muavin Luca oturumuyla yerinde çekilir ("Arka planda bekle" ile işe devam edebilirsiniz);
+  "Tümünü Luca'dan Çek" (hesap planı → muavin → mizan). Muavin dosyaları birleştirilir, dönem süzgeci tümü / yıl / ay.
+  Hesap planında bir hesaba tıklayınca muavini açılır. Veri eklenince mizan kendiliğinden çekilir.
+- Banka: döviz bozumu / arbitrajda TL tarafı sabit kalır; para birimi ve banka dosya içeriğinden bulunur; banka kutusuna
+  tıklayınca tüm liste açılır. Döviz kodu bölümü kaldırıldı (Luca'ya aktar Excel gibi çalışır).
+- Ctrl+F: ekranda ara (rapor ve beyanname sayfaları dahil); Ctrl+K: komut paleti.
+- Modül ekranında Luca bağlı değilse bağlanma önerisi; lisans durumu tek satırda.
+- Fiş Listesi %30 / %70 düzen, yatay kaydırma yok. KDV beyannamesi: firma seçimi üstte, toplu bölüm kaldırıldı.
+- Ayarlar: Yönetim düğmesi kaldırıldı; büro çalışanı yalnız ad soyad ve telefon girer (büro bilgisini sahibi doldurur);
+  "Veri ve yedek" Ayarlar'da. Temalar: Sistem kaldırıldı; Kum ve Zümrüt eklendi. Fiş girişi açılırken imleç hesap koduna gitmez.
+- Ofisinize Özel Çözümler › MİKRO DENETİM (ofisinize tanımlanırsa): e-fatura XML / ZIP ve Mikro muavini yükleyin;
+  KDV, Matrah ve Cari kontrolü, KDV 1 / KDV 2 beyanname ve çıktı raporu, muhtasar taslağı (360 hesapları; deneme).
+- Luca istek kaydı tüm Luca adreslerini, yüklenen dosya bilgisini ve uzun yanıtları kaydeder (şifre alanları gizlenir).
+
+2.9.5 YENİLİKLER
+- Otomatik güncelleme GitHub'daki McLk007/muhawin-surumler deposundan yapılır. 2.9.5'i her bilgisayara BİR KEZ elle kurun;
+  sonraki sürümler program açıkken kendiliğinden indirilir (Ayarlar → Hakkında → Güncellemeleri Denetle).
+
+2.9.4 YENİLİKLER — Faturaları Luca'ya kaydet (fiş)
+- Binek araç: mevcut kayda (gider %70 + %30 770 KKEG, KDV %70 191 + %30 770 indirilemeyen KDV) ek olarak faturanın %30'u
+  (KKEG gider + indirilemeyen KDV) 950'deki "binek araç" adlı nazım hesabın BORCUNA, 951'deki aynı adlı hesabın ALACAĞINA
+  yazılır. Hesaplar firmanın hesap planından bulunur; yoksa uyarı verilir, nazım kayıt eklenmez.
+- Ödenecek tutar ≠ fatura toplamı (telefon, elektrik faturalarındaki yuvarlama vb.): cari = ödenecek tutar; fark
+  alacak yönündeyse 679 Diğer Olağandışı Gelir ve Kârlar'a, borç yönündeyse 689'daki KKEG / KVK 11 hesabına yazılır.
+  689'a yazılırsa aynı tutar 950'deki aynı adlı hesabın borcuna ve 951'deki aynı adlı hesabın alacağına da yazılır.
+  (Satırda ya da firmada farklı bir fark hesabı seçtiyseniz o kullanılır.)
+- Fiş satırlarında BORÇ / ALACAK tutarları kutudan değiştirilebilir (elle değişen tutar işaretlenir, ↺ ile önerilene
+  dönülür; 0 yazılırsa satır fişten çıkar). "＋ Satır ekle" ile hesap planından herhangi bir gelir / gider ya da başka
+  hesap satırı eklenebilir, silinebilir. Cari bu değişikliklere göre kendiliğinden yeniden dengelenir; fiş dengesiz
+  kalırsa (ör. cari tutarı elle değiştirildiyse) kayıt yapılmaz. Hesap listesi artık hesap planındaki tüm alt hesapları içerir.
+
+2.9.3 YENİLİKLER
+- Fiş Listesi (muavinden fişler) ve muavindeki "fişi göster": fiş artık FİŞ NUMARASINA göre toplanır. Aynı numaranın
+  satırları tek fişte birleşir; aynı numara farklı ay / fiş tipinde kendi içinde denk ayrı fişlerse ayrı gösterilir.
+  Devir / nakli yekün gibi numarasız satırlar fiş sayılmaz; birden çok muavin dosyasında tekrarlanan satırlar ve üst
+  hesapta tekrar eden alt hesap satırları bir kez sayılır. Borcu alacağına eşit olmayan fiş "dengesiz" işaretlenir.
+- Mizan: bir hesabın satırına tıklayınca Muavin sekmesine geçilir ve yalnız o hesabın (ana hesapsa alt hesaplarının)
+  hareketleri tarih sırasıyla, borç ve alacağın sağında YÜRÜYEN BAKİYE (B / A) sütunuyla gösterilir; alt satırda
+  dönem sonu bakiyesi. "← Mizana dön" ya da Esc ile mizanda kaldığınız yere dönülür; ✕ ile tüm muavin gösterilir.
+
+2.9.2 YENİLİKLER
+- Banka İşlemleri – otomatik yeni cari önerisi yeniden yazıldı:
+  · IBAN, hesap / sorgu / referans numaraları, TCKN, tarih ve saatler açıklamadan ayıklanır; numaralı ya da anlamsız
+    parçalara hesap önerilmez.
+  · Ünvan sırasıyla şuradan alınır: etiket (GÖNDEREN, ALICI, KARŞI HESAP ÜNVANI, AD SOYAD …), şirket türü eki
+    (LTD. ŞTİ., A.Ş., KOOPERATİF …), işlem sözcüğünden sonraki ad (FAST GELEN AHMET YILMAZ …), " - " ya da "/" ile
+    ayrılmış parça (EFT - AYŞE KAYA - … , GİDEN-HASAN ÖZTÜRK-AVANS).
+  · Kişi adında açıklama sözcükleri (KİRA, FATURA, AVANS, TAKSİT, ay adları …) ad sayılmaz; POS, komisyon, faiz, vergi,
+    SGK, kredi kartı, virman, ATM, fatura kurumları (elektrik, Turkcell …) gibi hareketlerde cari önerilmez.
+
+2.9.1 YENİLİKLER
+- Hesap planı artık Luca'nın Raporlar → "Excel Hesap Planı" raporundan çekilir (Luca'nın kendi ekranının yaptığı gibi:
+  rapor talebi → hazır olunca Excel indirilir → hesap kodu ve adı okunur). Rapor alınamazsa eskisi gibi Hesap Planı
+  Listesi ekranından okunur ve bir uyarı gösterilir. Hesap planı ekranının üstünde kaynağı yazar.
+
+2.9.0 YENİLİKLER
+- TEK LİSANS: bir lisans (ya da üyelikle başlayan deneme) tüm modülleri açar. Daha önce hangi modülün koduyla lisans
+  alınmış olursa olsun en uzun geçerli süre her modülde geçerlidir; yeni kodlar da tüm modülleri uzatır.
+- "Ofisinize Özel Çözümler" yalnız Yönetim → "Ofisler ve özel çözümler" sekmesinde kendisine çözüm tanımlanmış ofisin
+  sahibine, yöneticilerine ve tüm çalışanlarına görünür; diğer üyelerde kart, kısayol ve menü yoktur.
+  (Sunucu güncellenene kadar hiçbir ofiste görünmez; SQL'den sonra kendi ofisinize "Çek / Senet Kayıtları"nı işaretleyin.)
+- Yönetim modülüne girerken şifre sorulur. İlk şifre 55555; yalnız Yönetim → Ayarlar ve duyuru → "Yönetim şifresi"nden
+  değiştirilir (sunucuda bcrypt özeti tutulur; 15 dakikada 5 hatalı denemede kilit). Modül ekranına dönünce kilitlenir.
+- Fatura kontrolü (Tek firma / Toplu): fatura, muavinde FATURA NO + FATURANIN AYI ile eşleştirilir. O ayda yoksa yılın
+  diğer aylarındaki kayıtlardan yalnız AYNI CARİYE (ünvan / VKN) ait olanla karşılaştırılır. Aynı numaralı başka firma
+  faturası artık "uyumsuz" çıkarmaz; "bu firmaya ait kayıt bulunamadı (aynı numara … fişte var)" notu düşülür ve o kayıt
+  "faturası olmayan kayıtlar"da görünür. Luca kayıt önerilerinin öğrenmesi de aynı kuralla yapılır.
+- Banka İşlemleri – DÖVİZLİ HESAPLAR: para birimi banka hesabının adından (USD, EURO, $, DOLAR …), yoksa ekstre
+  başlığından ("Para Birimi: USD") bulunur; dosya satırındaki para birimi listesinden değiştirilebilir. Ekstredeki
+  tutar döviz tutarıdır; TL karşılığı = döviz × TCMB DÖVİZ ALIŞ kuru (işlem tarihinden ÖNCEKİ son iş gününün bülteni,
+  tcmb.gov.tr/kurlar; hafta sonu / tatil atlanır; kurlar bilgisayarda saklanır). Tabloda her satırın altında para
+  birimi ve TL karşılığı görünür. Luca Excel'inde "Para Birimi", "Kur", "Döviz Tutar" sütunları doldurulur (dövizli
+  banka satırında; karşı hesap da aynı dövizli hesapsa onda da).
+  Doğrudan "Luca'ya aktar"da Luca'nın döviz numarası gerekir (TL = 0): program Luca ekranlarından bulmayı dener;
+  bulamazsa çıktı bölümündeki "Luca döviz kodları"na yazın (Luca fiş giriş ekranındaki döviz listesi) ya da Excel ile aktarın.
+
+2.8.0 YENİLİKLER — YÖNETİM MODÜLÜ (yalnız bilgi@smmmantalya.com)
+- Modül seçim ekranında yalnız program sahibine "Yönetim" kartı görünür (ayrıca Ayarlar → Hesap, Ctrl+F, Alt+9).
+  Başka hesaplarda kart, kısayol ve işlemler yoktur; yetki sunucuda ayrıca denetlenir.
+- Pano: üye sayısı, bu ay yeni, son 7 / 30 gün aktif, 30 gün içinde bitecek lisanslar, doğrulanmamış ve kapalı
+  hesaplar, bu ay / bu yıl tahsilat, bekleyen tahsilat; modüllere göre lisanslı / denemede / süresi dolan / hiç
+  açmayan sayıları (tıklayınca liste), son 12 ay yeni üye ve tahsilat grafiği, kullanılan sürümler.
+- Üyeler: arama (e-posta, büro, unvan, VKN, telefon, not), durum süzgeçleri, sıralama, her modülün durumu tek
+  satırda, Excel'e aktarma, listedeki e-postaları kopyalama (toplu e-posta için).
+- Üye sayfası: modül modül deneme ver, lisans ver (hazır süreler ya da istediğiniz gün), bitiş tarihini belirli bir
+  güne ayarla, bitir; lisans geçmişi; ofis ve çalışanları; FATURA BİLGİLERİ (unvan, VKN/TCKN, vergi dairesi, adres,
+  il/ilçe, fatura e-postası, e-Fatura mükellefi) — üyenin büro bilgilerinden doldurulur, düzeltilip kaydedilir,
+  tek tuşla kopyalanır; yalnız sizin gördüğünüz yönetici notu; bilgisayarlar (tek tek sil ya da sıfırla); işlem
+  geçmişi; hesabı kapat / aç (üyeye gösterilecek notla); üyeliği sil (e-posta yazılarak onaylanır).
+- Satışlar ve tahsilat: üye, modül, süre, tutar (KDV hariç), KDV %, fatura no / tarihi, ödeme durumu, tarihi ve
+  yöntemi; "Lisansı şimdi tanımla" ile lisans aynı anda verilir. Dönem (bu ay / bu yıl / aralık) ve durum süzgeci,
+  toplamlar (satış, KDV, tahsil edilen, bekleyen), "Tahsil edildi" düğmesi, Excel'e aktarma.
+- Lisans kodları: yeni kod partisi üretme — kodlar bu bilgisayarda üretilir, seçtiğiniz GİZLİ CSV dosyasına yazılır,
+  sunucuya yalnız özetleri gider (20 ve altı adette kodlar ekranda da kopyalanabilir). Kod sorgulama: hangi modül,
+  hangi parti, kullanıldı mı, kim kullandı. Parti bazında kullanılan / kalan.
+- Ayarlar ve duyuru: hesap başına bilgisayar sınırı, çevrimdışı gün, modül deneme süreleri, liste fiyatları
+  (satış formuna önerilir); tüm üyelere modül seçim ekranında gösterilen duyuru (bilgi / uyarı, son gün).
+- İşlem günlüğü: yönetimde yapılan her işlem (kim, ne zaman, hangi üye, ayrıntı).
+- Büro bilgilerine isteğe bağlı "Adres" ve "İl / ilçe" alanları eklendi (fatura için).
+
+2.7.16 YENİLİKLER
+- Esc = geri: açık pencere / menü yoksa bir önceki ekrana döner (Muhasebe İşlemleri alt sayfası → Toplu Kontrol,
+  Çek / Senet → Ofisinize Özel Çözümler, modül → Modüller ekranı). Açık pencereyi önce Esc kapatır.
+- Komut paleti kısayolu Ctrl+F oldu.
+- Banka İşlemleri: tarih filtresi başlangıç – bitiş tarih aralığı; tablonun üstünde ekstrelerdeki aylar düğme olarak
+  (Temmuz · Ağustos · Eylül …): tıklayınca yalnız o ay, Ctrl+tık ile birden çok ay, "Tümü" ile hepsi.
+- Kurallar: kural listesinde "Düzenle" (kuralı formda açar, "Kuralı güncelle"). Kural eklerken karşı hesap 335 seçilirse
+  Luca açıklaması kendiliğinden "{BANKA} - MAAŞ ÖDEMESİ" olur (satır altındaki "Kural yap"ta da).
+- Faturaları Luca'ya Kaydet: "Muavini Luca'dan Çek"te ekranın ortasında "Muavin Luca'dan indiriliyor…" penceresi; muavin
+  inip kontrol yenilenince kendiliğinden kapanır ("Arka planda devam etsin" ile kapatılabilir).
+- Muavin çekme (Fiş Listesi "Muavini Luca'dan Yenile", fatura kaydı, kayıt sonrası yenileme) artık YALNIZ muavini
+  indirir; o ay için daha önce toplu çalışma yoksa e-belgeler yeniden indirilmez.
+- Fiş Listesi: "Hesaplar" sütunu kaldırıldı, yazılar küçüldü, fiş ayrıntısı geniş ve kendi içinde kaydırılır.
+- Ayarlar › Firmalar boşsa "Luca'ya bağlan ve firma ekle" düğmesi.
+- Mikro muavini: 190 Devreden KDV'nin dönem başı bakiyesi okunur (beyannamede önceki dönemden devreden). Beyanname:
+  "Satışlardan İade KDV" (191) artık 102 iade indirimi (önceden yanlışlıkla 109 sorumlu sıfatıyla sayılıyordu); 600-602
+  net satış KDV'li matrahtan belirgin büyükse (harç / yansıtma / istisna) uyarı notu.
+- Denetim ve Analiz modülü şimdilik pasif (Yakında).
+
+2.7.15 YENİLİKLER
+- Komisyoncu (HKS, fatura tipi KOMISYONCU) faturaları: fatura mal sahibine alış olarak gelse de içindeki mal bedeli ve
+  KDV'si mal sahibinin satışıdır.
+  · Kontrol: mal KDV'si 391 Hesaplanan KDV'de, komisyon / masraf KDV'leri 191 İndirilecek KDV'de aranır (oran bazında).
+  · Luca kaydı: 600 (mal KDV oranına uyan satış hesabı) ve 391 alacak; komisyon, navlun, hamaliye, rüsum, diğer
+    masraflar gider (760, adına göre bulunur) ve KDV'leri 191 borç; komisyoncu 120 carisine net tutar (fatura tutarı) borç.
+    Masraf hesabını fişte değiştirirseniz o masraf türü için firmada hatırlanır. Listede "Komisyoncu · satış" rozeti çıkar.
+
+2.7.14 YENİLİKLER
+- Yeni cari önerisi: Banka / kredi kartı ekstrelerinde ve Faturaları Luca'ya Kaydet ekranında mizanda bulunamayan karşı
+  taraf için program önce firmanın hesap planında ünvanla arar; yoksa firmanın 120 / 320 düzenine göre (harf grupları
+  320.A.0012 ya da sayısal 320.01.046) sıradaki kodu oluşturup cari kutusuna yazar. Bu hesaplar mor renkte ve "yeni"
+  rozetiyle görünür; fiş varmış gibi hazırlanır.
+  · Bankada karşı taraf ünvanı açıklamadan çıkarılır ("GÖNDEREN: …", "ALICI: …" ya da LTD. ŞTİ. / A.Ş. ile biten ad);
+    POS, komisyon, vergi, SGK gibi hareketlerde cari önerilmez (askıda kalır). Girişte 120, çıkışta 320.
+- "Luca'ya aktar" / "Luca'ya kaydet" dendiğinde önce yeni cariler hesap planına açılır (onay sorulur): Luca'dan güncel
+  hesap planı çekilip kod çakışması denetlenir, vergi numarası olan cari Luca'da varsa o kullanılır; sonra fişler kesilir.
+  Hesaplar açılamazsa fiş gönderilmez. Excel'e aktarırken yeni cari varsa uyarı verilir (Luca içe aktarımı hesap açmaz).
+
+2.7.13 YENİLİKLER
+- Mizan / Muavin penceresi: Hesap Planı, Muavin ve Mizan sekmeleri aynı firmayı kullanır. Hangi sekmede firma
+  değiştirirseniz diğer sekmeye geçince de o firma açılır; programın ana firması da o firmaya geçer (Banka, ÖKC, Fiş
+  Girişi vb. aynı firmayla açılır). Muavin sekmesinde firma ve dönem ayrı listelerdir; firmanın muavini yoksa başka
+  firmanın muavini gösterilmez, "indirilmiş muavin yok" yazar.
+
+2.7.12 YENİLİKLER
+- Dinlenme Alanı (Satranç, Sudoku, Kelime Avı) programdan tamamen kaldırıldı; oyun dosyaları silindi, bilgisayarda kalan
+  oyun kayıtları ilk açılışta temizlenir. Komut paletinde Alt+9 artık yok (Alt+1…8).
+
+2.7.11 YENİLİKLER
+- Banka İşlemleri: ekstre eklenince banka hesabı dosya adındaki ve ekstre başlığındaki banka adı + hesap/IBAN numarasından
+  mizandaki 102 hesaplarıyla eşleştirilir. Yanında güven rozeti: %100 (banka adı ve hesap no tutuyor ya da bankanın tek
+  hesabı var) ya da turuncu "%xx · kontrol edin" (yalnız banka adı tuttu, aynı bankanın birden çok hesabı var vb.).
+  Listeden elle seçince "seçildi" olur ve mizan yenilense de değişmez.
+
+2.7.10 YENİLİKLER
+- Eksik / Dolu filtresi: Faturaları Luca'ya Kaydet (matrah hesabı ya da carisi boş faturalar), ÖKC Fiş Girişi (hesap, karşı
+  hesap ya da tutarı eksik fişler) ve Banka İşlemleri (karşı hesabı boş / askıdaki hareketler: Boş · Dolu sekmeleri).
+  "Eksik" seçiliyken alanları doldurdukça liste kendiliğinden azalır; sayaçlar üstte görünür.
+
+2.7.9 YENİLİKLER (gözden geçirme listesi: 19, 21, 22, 34 dışındaki tüm maddeler)
+- Komut paleti: Ctrl+F (2.7.16'dan önce Ctrl+K; ya da üst şeritte "Ara") → ekran, işlem, firma, tema araması; Alt+1…8 hızlı ekran geçişi; F1 yardım
+  ve tüm kısayollar; Ctrl+S Ayarlar.
+- Türkçe tarih kutuları: her tarih alanının yanında gg.aa.yyyy yazılan kutu (2 haneli yıl → 20yy, ↑/↓ gün, Alt+↓ / F4
+  ya da simge: takvim). Fiş Girişi tablosundaki evrak tarihi kendi klavye gezintisini korur.
+- Denetim ve Analiz modülü açıldı (ana lisansla): Ters bakiyeli hesaplar · Banka bakiye mutabakatı (Banka İşlemleri'nde
+  yüklü ekstre ↔ 102 muavini: aktarılmamış, fazla/mükerrer adayı, dönem sonu bakiye farkı; Excel) · Günün özeti (bugün /
+  seçilen aralıkta Luca'ya kaydedilen fişler, indirilen muavinler; firma bazında; PDF). "Mizan ve Muavin" kartı kalktı
+  (üstteki Mizan / Muavin düğmesi var).
+- KDV Beyannamesi: "Toplu (tüm firmalar)" sekmesi — bir dönemde kontrolü yapılmış tüm firmaların KDV1/KDV2 kutuları tek
+  listede, Excel ve PDF. "GİB beyannamesi ile karşılaştır": e-Beyanname PDF'ini seçin, kutular MuhaWin ile tek tek
+  karşılaştırılır (PDF bilgisayarınızda okunur; VKN ve dönem kontrolü).
+- Fatura Kontrol › "✓ Uygun" penceresi artık "Kullanıcı kararı": Uygun kabul et (açıklama) ya da Kaydedilmeyecek (fatura
+  Luca'ya hiç kaydedilmeyecek; muavinde yoksa eksik sayılmaz). Geri al düğmesi iki karar için de var.
+- Fiş Girişi: ▤ Şablonlar (firmaya özel; mevcut fişi şablon yap, şablondan doldur, sil). Fiş Ayarları'nda Luca fiş tipi
+  kodları (Tahsil/Tediye/Açılış/Kapanış) değiştirilebilir — Mahsup=3 doğrulandı, diğerlerini Luca İstek Kaydı ile teyit edin.
+- Fiş Listesi: "Luca'da Aç" (firma/dönem seçilir, fiş no panoya kopyalanır, Luca penceresi açılır). Muavin ve Fiş Listesi
+  büyük listelerde parça parça yüklenir (ilk 300–400 satır hemen, kaydırdıkça devamı; toplamlar tümünden).
+- Tablolar: başlık kenarından sürükleyerek sütun genişliği (kalıcı), başlığa sağ tık → sütun gizle/göster, sıfırla.
+- Luca oturumu düşerse: "Luca oturumu düştü" penceresi → giriş yapınca yarım kalan işlem kendiliğinden devam eder
+  (arka plan yenilemeleri sormaz).
+- Kayıt sonrası yenileme: art arda kayıtlarda istekler 2,5 sn içinde birleştirilir; muavin indirme sürüyorsa bitince bir
+  kez daha çekilir. Üst şeritte ⟳ rozeti arka planda süren işleri gösterir. Not: Luca muavini artımlı vermediği için
+  muavin yine bütün yıl indirilir.
+- ÖKC: görüntü okuma ilerlemesi (x / n) ve İptal düğmesi.
+- Ayarlar › Yedekleme ve hata günlüğü: Yedek Al / Yedekten Geri Yükle (tüm veriler, klasöre), Hata Günlüğünü Aç / Son
+  Hataları Göster (Belgeler\MuhaWin Günlük\hatalar.log; arayüz hataları otomatik yazılır). Firmalar listesinde Luca'dan
+  okunan defter sınıfı (SINIF) gösterilir.
+- Bildirimler kuyruklu (aynı mesaj ×n birleşir, en çok 3 satır). Tüm modüller tek "firma değişti" olayına abone.
+- Hesap açmada Luca'nın döndürdüğü kesin kod (result) kullanılır. Firma seçimi, Luca'dan muavin çekme metinleri tek tip.
+- Teknik: arayüz biçemleri renderer\style.css dosyasına ayrıldı (JS tek dosyada kalıyor: modüller ortak kapanış
+  değişkenlerini paylaşıyor, bölmek davranışı bozabilir). Testler: e2e 173 kontrol, pytest 67.
+
+2.7.8 YENİLİKLER
+- Tarih kutuları: yıl yazılırken (2 → 20 → 202 → 2026) ekran yenilenip yazım kesilmiyor (tüm tarih kutuları).
+- Fatura kaydı › Fiş detayı: kutudan çıkıp "Fiş" / "Kural yap" / Binek araç düğmelerine tıklayınca tıklama kaybolmuyor.
+- Hesap planı: 146'da kalma düzeltildi — sayfalar yeni satır gelmeyinceye kadar okunur (tam liste).
+- KDV Beyannamesi: "PDF Yazdır" hatası (api is not defined) düzeltildi; sol sütunda sekmeler alt alta.
+- Fiş Girişi: kısayollar fiş sayfası açıkken ekranın neresine tıklanmış olursa olsun çalışır (son çalışılan satıra uygulanır);
+  Alt kombinasyonları tarayıcıya kaptırılmaz; üstteki firma kutusu kaldırıldı (firma üst şeritten).
+- YENİ: Muhasebe İşlemleri › **Fiş Listesi** — firmanın yıllık muavininden fişler (tarih, fiş no, tip, açıklama, hesaplar, satır,
+  borç, alacak), tarih aralığı / tip / arama, başlığa tıklayınca sıralama; fişe tıklayınca içeriği yanda açılır; fişi PDF /
+  Excel, listeyi Excel'e aktar; "Muavini Luca'dan Yenile".
+- Luca'ya kayıt sonrası (fatura, ÖKC, çek/senet, fiş girişi) ve "Muavin kontrolünü yenile" düğmesi: mizan, muavin (tüm yıl),
+  hesap planı ve fiş listesi ARKA PLANDA güncellenir; sayfa değişmez, Toplu Kontrol'e atlanmaz.
+
+2.7.7 YENİLİKLER
+- Hesap planı adlarındaki bozuk Türkçe karakterler düzeltildi (Luca sayfası UTF-8 geliyormuş; artık karakter kümesi
+  otomatik algılanır). Önceki sürümde bozuk çekilmiş adlar Hesap Planı sekmesi açılınca kendiliğinden onarılır; emin olmak
+  için “Hesap Planını Luca'dan Çek” ile yenileyin.
+- Güncelleme: "No published versions on GitHub" → GitHub'da henüz yayınlanmış Release yok; guncelleme-X klasöründeki 3
+  dosyayı vX.Y.Z etiketiyle Publish edin (OKUBENI'deki adımlar).
+
+2.7.6 YENİLİKLER
+- HESAP PLANI DÜZELTİLDİ: Luca listesinde hücre kimliği hesap KODUNU, hücre metni hesap ADINI taşıyormuş; önceki sürüm
+  metni kod sanıp yalnız rakamla başlayan adları ("2025 Vadeli…") alıyordu. Artık tüm plan, 150'lik sayfalar gezilerek
+  eksiksiz çekilir; Hesap Ekle panelinde kodla başlayan liste, "planda yok / kullanabilirsiniz" ve sıradaki kod çalışır.
+  Luca'ya hesap eklendikten sonra plan kendiliğinden yeniden çekilir.
+- Mizan / Muavin penceresi: sekme sırası Hesap Planı → Muavin → Mizan; pencere Hesap Planı ile açılır. Muavin'de tarih
+  aralığı (yalnız aralıktaki hareketler). Mizan'da "Kaynak: Muavinden oluştur" — ay seçerek ya da tarih aralığı girerek
+  yıllık muavinden o dönemin mizanı (örn. yalnız Temmuz, ya da 15 Temmuz'a kadar) hesaplanır.
+- Fiş kaydından sonra güncellik: Fatura kaydı, ÖKC, Çek/Senet ve Fiş Girişi'nden Luca'ya fiş kesilince firmanın mizanı
+  hemen, muavini (tüm yıl) arka planda yeniden çekilir.
+- Fiş Girişi yeniden: fiş tipi (Mahsup varsayılan; Tahsil, Tediye, Açılış, Kapanış), sütunlar hesap kodu → evrak no →
+  evrak tarihi → belge türü → açıklama → borç / alacak; tutarlar binlik ayraçlı; borç doluysa alacak kilitli (ve tersi);
+  toplamlar anında. Kısa yollar (⌨ Kısa Yollar düğmesi): F7/F8/F9 %1/%10/%20 KDV ayır + kapat hesabıyla eşitle; Alt+1 üst
+  satırı kopyala; Alt+2 alanı üstten kopyala; Alt+3 mini hesap planı; Alt+4 evrak no/tarih/açıklama kopyala; Alt+E satır;
+  Alt+G genel bakiye kapat; Alt+H hesaba kapat; Alt+C kasayla kapat; Alt+M hesabın muavini; Alt+S satırı sil; Alt+Y yeni
+  fiş; Alt+K kaydet ve Luca'ya aktar. "⚙ Fiş Ayarları": KDV %1/10/20 hesapları (191 ve 391), kapat hesabı, kasa hesabı.
+- KDV Beyannamesi sekmesi gerçek: kontrolü yapılmış dönemi seçin → KDV 1 (Gerçek Usul) ve KDV 2 (Vergi Sorumluları)
+  GİB yeni beyanname görünümüyle (Mükellef bilgileri, Matrah, İndirimler, İstisnalar, Sonuç, Diğer bilgiler, detay tabloları,
+  Kesinti yapılanlar bildirimi). "Yeniden Hazırla", "Excel'e Aktar", "PDF Yazdır"; iade talebi sorusu; sorunlu kayıt varsa
+  üstte uyarı. "Muavin dosyasından" ile muhasebe programı olmayan firmalarda yüklenen muavinden hazırlanır.
+- Hesap kutusu açılır listesi artık opak (tanımsız --panel rengi düzeltildi), satırlar hizalı; çubuklardaki kutu/düğmeler tek
+  yükseklik ve aynı yuvarlak köşe. Giriş ekranı: "Beni hatırla" yanındaki açıklama kalktı (üzerine gelince görünür);
+  "Program SMMM Mehmet Çelik tarafından geliştirilmiştir." notu.
+- Firma eklenirken "Mizan gelmeyen firmalar — silinsin mi?" sorusu kaldırıldı: defter türü Luca'dan okunur
+  (1. sınıf → bilanço; 2. sınıfta menüde "Ser.Mes.Defteri" varsa serbest meslek, yoksa işletme) ve firma kartına yazılır.
+- ÖKC: tek fotoğrafta yan yana / alt alta birden çok fiş kendiliğinden ayrı belgelere bölünür. "WhatsApp'tan Al":
+  ofisin WhatsApp Business numarasına gelen fiş fotoğrafları gönderen numaraya göre firmaya düşer (numara eşlemesi
+  Ayarlar › Firmalar › "WhatsApp no"; eşleşmeyen numarada firma sorulur ve kaydedilir). Sunucu kurulumu: Ayarlar ›
+  WhatsApp Fiş Kutusu (sunucu\supabase-whatsapp.sql + sunucu\edge\whatsapp-webhook ve whatsapp-al).
+
+2.7.5 YENİLİKLER
+- Hesap planı (Luca):
+  · Mizan / Muavin penceresine "Hesap Planı" sekmesi: firmanın Luca hesap planı ("Hesap Planını Luca'dan Çek"),
+    Excel'den yükleme, Excel'e aktarma, PDF yazdırma. Sağ tık → "Bu hesabın altına hesap ekle" kodu hazır getirir.
+  · "+ Hesap Ekle": geniş pencere; kodu yazdıkça planda o kodla başlayan hesaplar sağda daralarak listelenir,
+    "Sıradaki boş kod" önerilir, çok satır birden Luca'ya aktarılır (Luca'da Hesap Planı Listesi → + Yeni Hesap ile aynı).
+  · Programdaki TÜM hesap kodu kutularında (banka / kredi kartı ekstresi, fatura kaydı, ÖKC, çek/senet, fiş girişi)
+    yazdıkça canlı hesap listesi; planda olmayan kod yazılınca "bu hesap yok, Luca'ya eklensin mi?" sorulur, ad girilir,
+    hesap hemen Luca'ya açılır.
+  · Fatura kaydı: "+ Eksik Carileri Aç" — carisi bulunamayan karşı taraflar önce vergi numarasıyla Luca'da aranır,
+    yoksa firmanın 120 / 320 kod düzenine göre sıradaki kodla cari hesap açılır.
+  · Çek / senet: 101-103-121-321 yıl/ay vade hesapları mizanda yoksa dosya eklenince sorulur ve Luca'ya açılır;
+    açılan hesaplar bildirilir. "+ Eksik Hesapları Aç" ile cariler de açılabilir. Çek numarası listede yanlışsa
+    satırda düzeltilebilir; kayıt düzeltilen numarayla yapılır.
+- Muhasebe İşlemleri: üstte sabit sekmeler — Toplu Kontrol · Tek Firma / Dosyadan Kontrol · Fiş Girişi · KDV Beyannamesi.
+  · Fiş Girişi (yeni): fiş tarihi + açıklama; satırlarda hesap kodu (plan listesi, yoksa ekleme) → tarih → belge türü →
+    açıklama → borç/alacak (hesabın çalıştığı tarafa gelir); Enter ile ilerler, tutardan sonra yeni satır açılır ve tarih /
+    belge türü / açıklama üst satırdan gelir. "Fişi Luca'ya Kaydet" doğrudan fiş keser; "Excel'e Aktar" Luca aktarım dosyası.
+  · Tek Firma kontrol: 1. adım firma listesi MuhaWin firmalarıdır; seçim üstteki firmayı da değiştirir.
+  · Kontrol sonuçlarında "✓ Uygun": sorunlu bir fatura ya da faturası bulunamayan kayıt, açıklama yazılarak (zorunlu,
+    5–300 karakter) kullanıcı kararıyla uygun kabul edilir; raporda, Excel'de ve PDF çıktıda açıklamasıyla görünür,
+    firma toplu özette "Temiz" olur. "Geri al" ile kaldırılır.
+  · KDV Beyannamesi sekmesi açıldı (hazırlanıyor; GİB yeni beyanname biçimine göre KDV 1 / KDV 2 üretilecek).
+- Muavin artık her yerde YILIN TAMAMI indirilir (Ocak–Aralık); karşılaştırma seçilen dönemden süzülür. Mizan / Muavin
+  penceresinde "Tüm Yıl" seçeneği. Fatura kaydı önerileri tüm yılın (ve önceki dönemlerin) kayıtlarından öğrenir,
+  yakın tarihli kayıtlar daha ağırlıklı.
+- Fatura kaydı ve ÖKC: "Fiş" açılınca "🚗 Binek araç gideri mi? Evet / Hayır" — Evet'te KDV'nin ve giderin %30'u
+  770'e yazılır, fiş hemen değişir. Fiş satırlarındaki hesap kutuları elle düzeltilebilir (boş hesaplar kırmızı çerçeveli);
+  yazılan hesap planda yoksa eklenmesi sorulur.
+- Kurallı sayfalar (banka / kredi kartı ekstresi, fatura kaydı, ÖKC): "Kurallı / Kuralsız" filtresi ve
+  "⟳ Kuralları Uygula" düğmesi (elle değiştirilmiş satırlara uygulanıp uygulanmayacağı sorulur).
+- Fatura kaydı: hesap / cari çoğunlukla boş geliyorsa üstte hatırlatma — mizanı ve muavini Luca'dan çekme düğmeleriyle.
+- Muavin fişleri: fiş numarasına tıklayınca açılan fişte "PDF Yazdır" ve "Excel'e Aktar". Mizan / Muavin / Hesap Planı
+  listelerinde "PDF Yazdır".
+- Üst şerit tüm modüllerde aynı: Firma · Yeni Firma · Mizan/Muavin · Modüller · Tema · Ayarlar. ÖKC ve çek/senet
+  sayfalarında firma artık üstten seçilir. Banka İşlemleri her açılışta Banka Ekstreleri ile başlar; oturum içinde
+  son seçilen (banka / kart) korunur.
+- Firma ayarları penceresinde "Kaydet / Vazgeç": değişiklikler Kaydet'e basılmadan kaydedilmez; "Yeni Firma" da
+  Kaydet'e basılınca eklenir, kapatılırsa sorulur.
+- Giriş ekranında "Beni hatırla": şifre yalnız bu bilgisayarda Windows'un kullanıcıya özel şifrelemesiyle (DPAPI)
+  saklanır; sonraki açılışlarda şifre sorulmaz. Çıkış yapınca / şifre değişince silinir.
+- Pencere sağ üstten kapatılırken "MuhaWin'den çıkmak istediğinize emin misiniz?" sorulur.
+- Modüller: "Özel İşlemler" → "Ofisinize Özel Çözümler" (sadece sizin ofisinize özel, talep ettiğiniz yazılımlar);
+  "Personel" (işe giriş-çıkış, bordro) kartı eklendi — yakında.
+
+2.7.4 YENİLİKLER
+- Muhasebe İşlemleri › Tek Firma / Dosyadan Kontrol:
+  · 1. adım firma: MuhaWin'in en üstündeki Firma seçiminden gelir (Toplu Kontrol hariç); kontrol firmanın klasörüne
+    Luca firma numarasıyla kaydedilir, "Faturaları Luca'ya kaydet" artık firmayı tanır. Firma VKN alanı kaldırıldı.
+  · "Muavini Luca'dan Çek (yılbaşından dönem sonuna)" düğmesi ve muavin programı olarak "Luca'dan çekilmiş muavin"
+    (dosya yüklemeden).
+- Luca hesap planına hesap ekleme (ilk aşama): Mizan / Muavin › Mizan › "＋ Luca'ya Hesap Ekle". "Luca Hesap Planını
+  Oku" ile güncel plan alınır; üst hesabı yazıp "Sıradaki Kodu Öner" ile boş ilk kod gelir (320.01 → 320.01.008);
+  var olan kod ve üst hesabı olmayan kod uyarılır; onaydan sonra hesaplar Luca'da (Hesap Planı Listesi → + Yeni
+  Hesap ile aynı istekle) açılır ve programdaki mizana da eklenir. Hangi modüllerde kullanılacağı sonra belirlenecek.
+- Mizan / Muavin sayfası üstte seçili firmayla açılır.
+- Faturaları Luca'ya kaydet:
+  · "🚗 Binek" düğmesi (alış faturalarında): giderin %30'u 770 altındaki KKEG hesabına, KDV'nin %30'u 770 altındaki
+    "İndirilemeyen Binek Araç KDV" hesabına; kalanlar ilgili gider ve oranına göre 191 hesabına. Muavin kontrolünde
+    binek araç görünen faturalarda kendiliğinden açık gelir.
+  · Hesap önerileri: yakın dönemlerdeki kayıtlar daha ağır basar; aynı karşı taraf yoksa geçmişte benzer kalemli
+    faturaların kaydedildiği hesap önerilir ("benzer kalem").
+  · "Tümünü Seç" / "Seçimi Kaldır" düğmeleri; başlıktaki kutu görünen satırların durumunu gösterir (düzeltildi).
+- Programdaki tüm tablolar (kendi sıralaması olmayanlar dahil — ÖKC, Toplu Kontrol sonuçları, firmalar, geçmiş,
+  ayar listeleri…): başlığa tıklayınca sıralama, başlık altında filtre, ilk sütunda onay kutusu olan listelerde
+  "tümünü seç" kutusu.
+
+2.7.3 YENİLİKLER
+- Ayarlar › Luca Giriş Bilgileri › "Luca İstek Kaydı": Luca'da elle yapılan bir işlemin (ör. hesap planına hesap
+  ekleme) Luca'ya hangi isteklerle gönderildiğini kaydeder (Belgeler\MuhaWin Luca Kayıtları\…json). Yalnız Luca'ya
+  giden isteklerin adresi, gönderilen alanlar ve yanıtları tutulur; çerez ve parola kaydedilmez. Hesap planına hesap
+  ekleme özelliği bu kayıtla geliştirilecek.
+- Muhasebe İşlemleri › Tek firma / dosyadan kontrol: muavin programı olarak "Mikro" eklendi (Mikro Hesap hareket
+  dökümü Excel'i; e-belge numarası açıklamadan ya da evrak no'dan, KDV oranı hesap adından okunur).
+
+2.7.2 YENİLİKLER
+- ÖKC fişleri: hesaplar firmanın mizanından otomatik gelir —
+  · Gider: fişteki harcama türüne (yiyecek, akaryakıt, otopark, kırtasiye, temizlik, aksesuar/elektronik, kargo,
+    bakım-onarım…) göre mizandaki 7xx alt hesabı (önce 770); bulunamazsa ayardaki ya da 770'teki "çeşitli / diğer".
+  · KDV: oranına göre 191 alt hesabı (%10 → "%10" geçen 191 hesabı).
+  · Ödeme: nakit → 100 Kasa, kredi kartı → 331 Ortaklara Borçlar (adında "ortak" geçen; ayardan değiştirilebilir).
+  · Listede elle yazdığınız gider hesabı aynı harcama türü / işyeri için hatırlanır.
+  · Üst çubukta firmanın mizan durumu ve "Mizanı Luca'dan Çek" düğmesi (mizan yoksa hesaplar boş kalıyordu).
+- KDV2: yalnız tevkifatlı ALIŞ faturaları listelenir (satış faturasındaki tevkifatı alıcı beyan eder). Satış
+  faturaları raporda fatura tipi "Tevkifatlı satış" olarak görünür (alışlar "Tevkifatlı alış").
+- Firma defter türü (Ayarlar › Firmalar › Defter Türü): Bilanço / İşletme Defteri / Serbest Meslek Defteri.
+  Mizanı Luca'dan gelen firmalar kendiliğinden Bilanço, gelmeyenler İşletme Defteri işaretlenir (mizan çekilince
+  uyarı penceresi çıkar); serbest meslek olanları buradan değiştirin. Toplu kontrol bilanço firmalarda muavin,
+  işletme / serbest meslek firmalarında Gelir / Gider listesini indirir. Luca menüsünde "Ser.Mes.Defteri" yazan
+  firmalar da artık kendiliğinden tanınır.
+- Çek / Senet Kayıtları: muavin karşılaştırması kaldırıldı. Excel'ler mizandaki hesaplarla eşleştirilip rapor,
+  Luca fiş dosyası ya da doğrudan Luca kaydı yapılır. Sekmeler: Kaydedilecek · MuhaWin ile Kaydedilen · Tümü.
+
+2.7.1 YENİLİKLER
+- Çek / Senet Kayıtları:
+  · Sütun başlığına tıklayınca sıralama (metin A→Z, tarih eskiden yeniye, tutar küçükten büyüğe; ikinci tıklama ters),
+    başlıkların altında filtre kutuları (tutarda >1000, <500, 100..200), altta (filtrelenen) toplam.
+  · "Tümünü Seç" (hesabı eksik satırlar hariç), "Seçimi Kaldır", satır tikleri tek tek kaldırılabilir,
+    "Tabloyu Temizle" ile eklenen tüm dosyalar ve satırlar tek tuşla silinir.
+  · Sayfa hızlandı (uzun listeler 300'er satır çizilir, "… Satır Daha Göster"; hesap eşleştirmeleri önbellekte).
+  · "Muavini Luca'dan Çek": muavin bu sayfadan indirilir, bitince kendiliğinden seçilir.
+  · Cari eşleştirme iyileşti (kısaltmalar: TUR/TURZ, TİC, SAN, İNŞ…; yazım farkı; Mikro cari kodu Luca'da varsa
+    doğrudan); şüpheli eşleşme "Cari eşleşmesini kontrol edin" uyarısı alır, elle düzeltme Mikro koduyla hatırlanır.
+  · Luca satır açıklaması 100 karakter: "MÇ çekno BANKA Vd.gg.aa.yyyy CARİ".
+  · Raporda "Bakılacaklar" sayfası: açılması gereken çek hesapları, bulunamayan / kontrol edilecek cariler,
+    aynı çek numarası.
+- ÖKC Fiş Girişi: fotoğraf okuma baştan düzenlendi — fiş kağıdı fotoğraftan kırpılır (masa / zemin atılır),
+  büyütülüp kontrast artırılır; okunan metinde '*' işaretinin 4 okunması, '%' işaretinin x / 4 okunması, bozuk
+  TOPKDV yazımı, yanlış yıl gibi hatalar toplam / TUTAR / kredi satırlarıyla karşılaştırılarak düzeltilir.
+- İşletme / serbest meslek defteri:
+  · Toplu kontrolde "Muavin" adımı artık "Tamamlandı" görünür (gelir / gider listesi alınmıştı ama adım "yapılmadı"
+    görünüyordu); başka bir adım tekrar çalıştırılınca da liste kullanılır.
+  · Mizan ve Muavin → Muavin yükle: "Luca İşletme / Serbest Meslek Defteri" seçeneği — Luca İşletme Defteri →
+    Raporlar → Genel Raporlar → Gelir/Gider Raporu (Excel) dosyası yüklenebilir.
+- Tevkifatlı satış faturasında KDV kaydı "KDV − tevkifat" ise uyumlu sayılır (önceden "Tutar farkı").
+
+2.7.0 YENİLİKLER
+- SUNUCU: sunucu\supabase-moduller.sql dosyasının en altındaki "2.7.0 (son)" bölümünü SQL Editor'da çalıştırın
+  (Fiş İşlemleri kaldırılır, Özel İşlemler eklenir, ÖKC açılır, Denetim ve Geçici Vergi "yakında").
+- Özel İşlemler › Çek / Senet Kayıtları (yeni):
+  · Logo (Müşteri Çek ve Senetleri / Kendi Çek-Senetlerimiz) ve Mikro (çek giriş / çıkış bordro dökümü)
+    Excel dosyaları eklenir; alınan / verilen fark etmez, birden fazla dosya eklenebilir.
+  · Hesaplar firmanın Luca mizanından bulunur: çek hesabı vadeye göre 101/103/121/321.YY.AA, cari ünvana göre
+    120/320, banka 102 altından. "Mizanı Luca'dan çek" düğmesi vardır; "Hesap ayarları"ndan varsayılanlar girilir.
+  · Muavin (Luca'dan çekilmiş ya da Excel'den yüklenmiş) ile hesap + tutar + çek no / tarih eşleştirilir:
+    "Muavinde yok / Muavinde var / MuhaWin ile kaydedilen / Tümü" sekmeleri, vade aralığı filtresi.
+  · Rapor Excel'e, fişler Luca Excel aktarım biçimine; "Luca'ya kaydet" ile doğrudan fiş kaydı.
+    Mikro'da bordro başına, Logo'da işlem türü + işlem tarihi başına fiş (Logo listesinde tarih olmadığından
+    üstten "Logo işlem tarihi" girilir).
+- ÖKC Fiş Girişi açıldı: fiş ve Z raporu görüntüleri bilgisayardan eklenir, program okur (OCR), fiş hazırlar,
+  Luca'ya işler.
+- Muhasebe İşlemleri:
+  · Faturaları kaydet ekranında her satırda PDF düğmesi; rapor sayfasında "PDF" başlığı.
+  · Rapor sayfasında tutar sütunlarının toplamı tablonun altında; filtre / arama varsa yalnız görünenlerin toplamı.
+  · Tevkifatlı alışta: tevkif edilen KDV (360 alacağına yazılan tutar) 191 altındaki TEVKİFATLI KDV hesabının
+    borcuna, kalan KDV normal oranlı 191 hesabına.
+  · Telefon faturalarında ÖİV (Özel İletişim Vergisi) 689 hesabına (adında İLETİŞİM / ÖİV geçen 689 alt hesabı,
+    yoksa ilk 689 alt hesabı) gider tarafına yazılır.
+  · Cari önerisi: geçmiş kayıtlardan yalnız cari hesap grupları (120/320/336/340…) öğrenilir; 302 gibi hesaplar
+    cari olarak önerilmez, ünvandan cari bulunur.
+  · İşletme / serbest meslek defteri firmaları: toplu kontrolde muavin yerine Luca İşletme Defteri → Gelir
+    Listesi ve Gider Listesi tarih aralığıyla okunur, faturaların KDV'si bu listelerle karşılaştırılır.
+    İşletme defteri fişi oluşturma ekranı iskelet olarak eklendi (içeriği sonra belirlenecek).
+  · Toplu kontrol sonuçları: "İndirme hataları" kırmızı rozet (ayrıntı üzerine gelince); işlemler satırda
+    simgeli düğme grubu (Rapor · Çıktı · Klasör · Luca'ya kaydet · Sadece muavin · Yeniden), tablonun sağına sabit.
+- Mizan sağ tık: "Ters bakiyeli hesaplar" (yalnız kırmızı satırlar).
+- Ayarlar › Firmalar: "Tüm Firmaları Sil" (silinecekleri seçip "Emin misiniz?" onayıyla programı sıfırlama).
+- Giriş ekranında "Güncellemeleri Denetle" düğmesi.
+- Düğme, sekme, başlık ve tablo başlıklarında her kelime büyük harfle başlar (açıklamalar hariç).
+
+2.6.0 YENİLİKLER
+- Modüller yeniden adlandırıldı ve sıralandı: 1. Muhasebe İşlemleri (eski Fatura – Muavin Kontrol + faturaları
+  Luca'ya kaydet) · 2. Banka İşlemleri (eski Ekstre → Luca) · 3. ÖKC Fiş Girişi (yakında) · 4. Denetim ve Analiz
+  (artık açık) · 5. Fiş İşlemleri (yeni). Mevcut lisanslar aynen geçerlidir; Denetim ve Fiş İşlemleri için
+  ilk açılışta 7 günlük deneme başlar.
+- Denetim ve Analiz: işlemler kart kart. Açık olanlar: Mizan ve Muavin, Ters bakiyeli hesaplar.
+  Geliştiriliyor: Cari mutabakat ve yaşlandırma, Banka bakiye mutabakatı (mükerrer / aktarılmayan satırlar),
+  KDV iade listeleri.
+- Fiş İşlemleri: Çeyrek dönem sonu kur değerlemesi (TCMB, 646/656) — geliştiriliyor.
+- Otomatik güncelleme: program açıldıktan sonra ve her 4 saatte bir yeni sürümü denetler, arka planda indirir;
+  hazır olunca sağ altta "Yeniden başlat ve güncelle" çıkar (ya da program kapanınca kurulur).
+  Ayarlar → Hakkında → "Güncellemeleri denetle". Sürümler: github.com/MuhaWin/muhawin-surumler (Releases).
+- Luca penceresinde (Banka İşlemleri / fiş kesme / mizan çekme) "Zaman Aşımı – Parola Girişi" çıkarsa
+  Ayarlar'daki parola yazılıp Giriş'e basılır.
+
+YENİ SÜRÜM YAYINLAMA (otomatik güncelleme için)
+1. github.com/MuhaWin/muhawin-surumler → Releases → "Draft a new release".
+2. Tag: v<sürüm> (örn. v2.6.0), başlık: MuhaWin <sürüm>.
+3. Şu üç dosyayı sürükleyin: MuhaWin-Kurulum-<sürüm>.exe, MuhaWin-Kurulum-<sürüm>.exe.blockmap, latest.yml
+   (üçü de aynı derlemeden olmalı). "Publish release".
+4. Kurulu programlar birkaç saat içinde (ya da açılışta) yeni sürümü kendiliğinden indirir.
+
+2.5.0 YENİLİKLER
+- Faturaları Luca'ya kaydet:
+  · Tarih, belge no, yön, karşı taraf, matrah, KDV, toplam başlıklarına tıklayınca sıralama (artan / azalan),
+    başlıkların altında filtre kutuları (sayılarda >1000, <500, 100..200).
+  · Satırda "Kaydetme": bu firmada kaydedilmeyecek faturalar işaretlenir, "Kaydedilmeyecekleri onayla" ile
+    kesinleşir. Bu faturalar muavin kontrolünde artık "Muavinde yok" (eksik) çıkmaz, "Kaydedilmeyecek
+    (kullanıcı kararı)" olarak görünür; kontrol Luca'ya bağlanmadan hemen yenilenir. "Geri al" ile kaldırılır.
+  · Ödenecek tutar ile hesaplanan cari farklıysa "Fiş"te farkın atılacağı hesap sorulur; cari = ödenecek olur,
+    fark seçilen hesaba yazılır. İsterseniz firma için hatırlanır; geçmişte aynı karşı tarafta kullanılan hesap önerilir.
+  · Geçmiş kayıtlardan öğrenme genişledi: aynı karşı taraf için matrah hesabı, cari, KDV hesabı (oran bazında)
+    ve fark hesabı önceki kayıtlardaki gibi gelir. Faturası elde olmayan önceki aylar da muavin açıklamasındaki
+    ünvandan öğrenilir.
+  · Luca'ya yazılan fiş satırı açıklaması yalnız ünvan (Luca başına tarih ve belge no'yu kendisi ekliyor;
+    önceden muavinde tarih-belge no iki kez görünüyordu).
+- KDV oranı yazılmayan faturalar (ör. CK Akdeniz elektrik faturaları): oran KDV / matrah'tan bulunur
+  (%10 artık %0 görünmez); eski raporlar açılırken yeniden hesaplanır.
+- Kurallarda "+" (hepsi geçmeli) ve "|" (ya da): örn. KİRA + OCAK → iki kelime de geçerse; SGK | SOSYAL GÜVENLİK
+  → biri geçerse. Ekstre ve fatura kurallarının ikisinde de geçerli.
+- Mizan: ters bakiye veren hesapların satırı kırmızı (tek düzen hesap planına göre); sayısı üstte yazar.
+- Toplu / muavin indirme: Luca'nın "Zaman Aşımı – Parola Girişi" kutusu çıkarsa kayıtlı parolayla geçilir
+  (parola kayıtlı değilse ekranda uyarı çıkar, siz girince devam eder). Önceden "Locator.hover: Timeout" hatası veriyordu.
+
+2.4.0 YENİLİKLER
+- Tek firma / dosyadan kontrol: 2. adım artık "Muavin dökümü". Önce muavinin hangi programa ait olduğu seçilir
+  (şimdilik Luca; programlar eklendikçe listeye gelecek), dosya o programın okuyucusuyla okunur.
+- Firma silerken kuralların, mizanın, muavinlerin ve indirilen belgelerin silinip silinmeyeceği sorulur.
+  Saklanan kurallar ve mizan, aynı firma (aynı Luca firması) yeniden eklenince geri gelir.
+- Mizan / Muavin ve Faturaları Luca'ya kaydet sayfalarında "Luca'ya bağlan" düğmesi; Luca'dan çekme / kaydetme
+  Luca bağlı değilse giriş penceresini açar ve bağlanınca kendiliğinden devam eder.
+- Program ilk açılışta ekranı kaplayacak şekilde açılır.
+- Mizan ekranında tabloya sağ tıklayınca (ya da "Görünüm" listesinden): 1. Sadece çalışan hesaplar (hiç hareket
+  görmemişler gizlenir) · 2. Bakiyeli hesaplar (bakiye vermeyenler gizlenir) · 3. Tümü.
+- Mizan / Muavin: "Excel'den yükle" — mizanı ya da muavini dosyadan yükleyin. Önce dosyanın hangi programa ait
+  olduğu sorulur (şimdilik Luca; diğer programlar eklendikçe listeye gelecek). Mizan borç/alacak tutarlarıyla okunur;
+  muavin seçilen firma ve aya yazılır. Mizanı olmayan firmalar da listede görünür.
+- Muavin sekmesinde "Luca'dan yeniden çek": firma ve ay seçilir, muavin Fatura – Muavin Kontrol'de Luca'dan indirilir.
+- Fatura – Muavin Kontrol'ün üst bandı Ekstre'deki sekmeler gibi (Toplu kontrol · Tek firma / dosyadan kontrol).
+- Sol üstteki MuhaWin logosuna tıklayınca modül seçimine dönülür.
+- Ayarlar: büro bilgilerinden "Not" alanı kaldırıldı. Giriş ekranında modüllerimiz ve becerileri yazar.
+- "Ofis ve çalışanlar" ya da yönetim ekranında "schema cache / Could not find the function" hatası görürseniz
+  sunucu SQL'leri (supabase-moduller.sql, supabase-ofis.sql) henüz çalıştırılmamıştır.
+
+FATURALARI LUCA'YA KAYDET (2.3.0)
+- Fatura – Muavin Kontrol'de rapor açıkken (ya da Sonuçlar satırında) "📒 Faturaları Luca'ya kaydet".
+- Liste varsayılan olarak muavinde kaydı olmayan faturaları gösterir ("Tümü" ile hepsi). Her fatura bir mahsup fişi olur:
+  · Alış: gider/stok hesabı borç, KDV oranına göre 191 borç, cari (320) alacak; tevkifatta 360 alacak.
+  · Satış: cari (120) borç, gelir hesabı alacak, 391 alacak (tevkifatta tahsil edilen KDV kadar).
+  · İadeler ters kaydedilir; ihraç kayıtlı faturada KDV kayda alınmaz; alışta ÖTV/ÖİV gibi vergiler maliyete eklenir.
+- Hesap önerisi sırası: KURAL → geçmiş kayıtlar (bu firmada aynı satıcı/alıcı daha önce hangi hesapla kaydedildiyse)
+  → varsayılan hesap. Cari: kural → geçmiş → mizanda ünvanı tutan 320/120 alt hesabı.
+- Kural: "Kural yap" → şart (ünvan içerir / VKN / fatura içeriği içerir) + matrah hesabı (+ isteğe bağlı cari).
+  "Kurallar" düğmesinden kurallar silinir, kural tutmazsa kullanılacak varsayılan alış/satış hesabı girilir.
+- Hesap kutularına elle de yazılabilir (mizan listesi açılır); "Toplu hesap" seçili satırlara uygular.
+- "Excel'e aktar": Luca'nın Excel'den fiş aktarımı biçiminde dosya. "Luca'ya kaydet": fişleri bağlı Luca
+  oturumuna keser; kaydedilen faturalar işaretlenir, ikinci kez kaydedilmez.
+- Kayıttan sonra muavin otomatik yeniden indirilir ve kontrol yenilenir ("Sadece muavin").
+- İlk kullanımda bir iki faturayla deneyip Luca'daki fişi kontrol edin. Belge türü kodu Luca'da gerekiyorsa
+  "Belge türü" kutusuna yazın (firma için hatırlanır).
+
+OFİS VE ÇALIŞANLAR (2.2.0)
+- Ayarlar → "Ofis ve çalışanlar": ofis adı ve Luca üye numarasıyla ofisi oluşturun (bir kez).
+- Çalışan davet etmek: e-posta yazın → "Davet kodu oluştur". Kod (MW-XXXX-XXXX-XXXX) yalnız o e-postayla,
+  14 gün içinde ve bir kez kullanılabilir; e-posta programınızda hazır bir davet mesajı açılır.
+- Çalışan programı kurar, aynı e-postayla "Üye ol" der ve "Ofis davet kodu" kutusuna kodu yazar
+  (üyeyse: Ayarlar → Ofis ve çalışanlar → "Ofisimden davet kodu aldım").
+- Çalışanlar ofisin lisanslarını kullanır (kullanıcı sınırı yok). Luca'ya yalnız ofisin üye numarasıyla
+  girebilirler: üye no alanı kilitlidir; başka üye numarasıyla açılan Luca oturumu (Ekstre ve Fatura Kontrol)
+  reddedilir. Böylece yalnız ofisin mükellefleriyle işlem yapılır. Çalışanı ofisten çıkarınca erişimi biter.
+
+MİZAN / MUAVİN SAYFASI (2.2.0)
+- Başlıktaki "Mizan / Muavin" düğmesi. Mizan: Luca'dan çekilen mizanlar (bakiyeleriyle; eski mizanlar için
+  "Luca'dan yeniden çek"). Muavin: Fatura Kontrol'ün indirdiği muavinler; "Hesap bazında topla" ile özet.
+- Başlığa tıklayarak sıralama, sütun altındaki kutularla filtre (sayılarda >1000, <500, 100..200), arama,
+  toplamlar, Excel'e aktarma. Muavinde fiş numarasına tıklayınca o fişin tüm satırları açılır.
+
+GÖRSEL KİMLİK (2.2.0)
+- Logo, simge (.ico), imleç seti, açılış ekranı (durum/yüzde/sürüm programdan yazılır), giriş ekranı (sol panel),
+  uzun işlemlerde yükleme penceresi ("Mizan hazırlanıyor…"), Ayarlar → Hakkında bandı, kurulum sihirbazı görselleri.
+- Varsayılan tema "MuhaWin" (lacivert/turkuaz); Tema menüsünden değiştirilebilir.
+
+TEK FİRMA KONTROLÜ (2.2.0)
+- Toplu kontrolle aynı yolu izler: yüklenen dosyalar firmanın dönem klasörüne arşivlenir, aynı kurallarla
+  (fatura tipi, ihraç kayıtlı, istisna, binek, döviz, tevkifat) kontrol edilir; çıktı raporunda muavin dökümü,
+  KDV ve KDV2 beyannamesi örnekleri ve fatura görüntüleri toplu kontroldeki gibi vardır.
+
+YENİ LİSANS KODU ÜRETME
+- node tools\kod_uret.js <modül> <adet> [gün] [parti] [klasör]
+  örn: node tools\kod_uret.js okc 500 365 okc-ilk-500 .\gizli
+  CSV (kodlar, gizli) + SQL (özetler; Supabase'de çalıştırılır) üretir.
+- Yakında modülleri açmak için Supabase'de: update public.modules set active = true where id = 'okc';
+
+YENİ SÜRÜM DERLEME (teknik)
+- Kaynak: MuhaWin-kaynak-2.6.0.zip · Node.js 20+, Python 3.11+, (Linux'ta) wine.
+- npm install  →  npm run dist  →  dist\MuhaWin-Kurulum-x.y.z.exe
+- Testler: cd fk && python -m pytest tests   ·   xvfb-run -a node test/e2e.js (Linux, playwright gerekir)

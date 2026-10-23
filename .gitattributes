@@ -1,0 +1,3 @@
+test/ornek export-ignore
+fk/tests/veri_isletme_gelir_gider.xlsx export-ignore
+fk/tests/veri_mikro_muavin.xlsx export-ignore
