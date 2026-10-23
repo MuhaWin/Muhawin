@@ -15,7 +15,7 @@ name: MuhaWin sürüm
 on:
   push:
     tags: ['v*']
-    branches: ['surum-*', 'claude/practical-ride-*']
+    branches: ['surum-*']
     paths: ['package.json']
   workflow_dispatch:
     inputs:
@@ -92,12 +92,24 @@ jobs:
         run: python -m pytest -q
       - name: Mobil yönetim testi
         run: node test/mobil.js
+      - name: Güncelleme sorusu testi
+        run: node test/guncelleme.js
       - name: Luca testleri
         run: for f in test/luca/*.js; do echo "== $f"; node "$f"; done
       - name: Uçtan uca test (e2e)
+        env:
+          OUT: ${{ runner.temp }}/muhawin-e2e
         run: |
           # "Logo fişleri" adımı ara sıra düşer; bir kez yeniden denenir
           xvfb-run -a node test/e2e.js || { echo "::warning::e2e yeniden deneniyor"; xvfb-run -a node test/e2e.js; }
+      - name: e2e ekran görüntüleri (yalnız hata olursa)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-ekran-goruntuleri
+          path: ${{ runner.temp }}/muhawin-e2e
+          retention-days: 14
+          if-no-files-found: ignore
 
   derle:
     name: Windows derlemesi
@@ -133,6 +145,7 @@ jobs:
           grep -q "owner: muhawin" win-unpacked/resources/app-update.yml && grep -q "repo: muhawin-surumler" win-unpacked/resources/app-update.yml \
             || { echo "::error::app-update.yml sürüm deposu muhawin/muhawin-surumler değil"; cat win-unpacked/resources/app-update.yml; exit 1; }
           boyut=$(stat -c %s "$exe")
+          echo "SONUC exe=$exe bayt=$boyut sha512_ilk12=${beklenen:0:12}"
           { echo "| Dosya | Bayt |"; echo "|---|---|"; echo "| $exe | $boyut |"; echo "| sha512 (ilk 12) | \`${beklenen:0:12}\` |"; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
