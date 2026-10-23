@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Giriş · MuhaWin</title>
+<link rel="icon" href="/gorsel/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<style>
+.giris-kap { min-height: calc(100vh - 65px); display: grid; place-items: center; padding: 32px 16px; }
+.kutu { width: min(400px, 100%); background: var(--kart); border: 1px solid var(--cizgi); border-radius: 14px; padding: 28px; box-shadow: var(--golge); }
+.kutu h1 { font-size: 1.4rem; margin-bottom: 4px; }
+.kutu .alt-yazi { color: var(--yazi-2); font-size: .92rem; margin: 0 0 20px; }
+.kutu label { display: grid; gap: 4px; font-size: .85rem; color: var(--yazi-2); margin-bottom: 12px; }
+.kutu input { min-height: 42px; border-radius: 8px; border: 1px solid var(--cizgi); background: var(--zemin); color: var(--yazi); padding: 0 12px; font: inherit; }
+.kutu .dugme { width: 100%; justify-content: center; border: 0; cursor: pointer; font: inherit; font-weight: 600; }
+.kutu .dugme[disabled] { opacity: .6; cursor: default; }
+.hata { color: #C0392B; font-size: .9rem; min-height: 1.3em; margin: 10px 0 0; }
+.bilgi { color: var(--turkuaz-koyu); font-size: .9rem; margin: 10px 0 0; }
+.baglanti { background: none; border: 0; color: var(--turkuaz-koyu); font: inherit; font-size: .9rem; cursor: pointer; padding: 0; margin-top: 14px; text-decoration: underline; }
+.not { color: var(--yazi-2); font-size: .82rem; margin: 18px 0 0; }
+</style>
+</head>
+<body>
+<header class="ust"><div class="kap ust-ic">
+  <a href="/" class="marka" aria-label="MuhaWin ana sayfa">
+    <img src="/gorsel/logo_yatay_acik.svg" alt="MuhaWin" class="logo acik">
+    <img src="/gorsel/logo_yatay_koyu.svg" alt="MuhaWin" class="logo koyu">
+  </a>
+</div></header>
+<main class="giris-kap">
+  <form class="kutu" id="girisForm">
+    <h1>Giriş</h1>
+    <p class="alt-yazi">MuhaWin hesabınızla giriş yapın.</p>
+    <label>E-posta<input type="email" id="eposta" autocomplete="username" required autofocus></label>
+    <label>Şifre<input type="password" id="parola" autocomplete="current-password" required></label>
+    <button class="dugme" type="submit" id="gir">Giriş yap</button>
+    <p class="hata" id="hata" role="alert"></p>
+    <button class="baglanti" type="button" id="unuttum">Şifremi unuttum</button>
+    <p class="not">Belgeleriniz bu bilgisayardan çıkmaz; sunucuya yalnız giriş ve lisans bilgisi gider. Henüz üye değilseniz <a href="/#indir">MuhaWin programını indirip</a> üye olun.</p>
+  </form>
+  <form class="kutu" id="sifreForm" hidden>
+    <h1>Şifre yenileme</h1>
+    <p class="alt-yazi" id="sifreAciklama">E-posta adresinize bir kod göndereceğiz.</p>
+    <label>E-posta<input type="email" id="s_eposta" autocomplete="username" required></label>
+    <div id="kodAlani" hidden>
+      <label>E-postadaki kod<input id="s_kod" inputmode="numeric" autocomplete="one-time-code"></label>
+      <label>Yeni şifre<input type="password" id="s_yeni" autocomplete="new-password"></label>
+    </div>
+    <button class="dugme" type="submit" id="sifreDugme">Kod gönder</button>
+    <p class="hata" id="s_hata" role="alert"></p>
+    <button class="baglanti" type="button" id="geriDon">← Girişe dön</button>
+  </form>
+</main>
+<script src="/ortak/ayar.js"></script>
+<script src="/ortak/oturum.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+// Girişten sonra yalnız bu sitedeki bir sayfaya dönülür (başka siteye yönlendirme yok)
+const geri = (() => { const g = new URLSearchParams(location.search).get('geri') || ''; return /^\/(?!\/)[^\s\\]*$/.test(g) ? g : '/denetim/'; })();
+const mesgul = (b, v) => { b.disabled = v; };
+
+$('#girisForm').onsubmit = async e => {
+  e.preventDefault(); $('#hata').textContent = ''; mesgul($('#gir'), true);
+  try { await Oturum.giris($('#eposta').value, $('#parola').value); location.replace(geri); }
+  catch (x) { $('#hata').textContent = x.message; $('#parola').value = ''; $('#parola').focus(); }
+  finally { mesgul($('#gir'), false); }
+};
+let kodGitti = false;
+$('#unuttum').onclick = () => { $('#girisForm').hidden = true; $('#sifreForm').hidden = false; $('#s_eposta').value = $('#eposta').value; $('#s_eposta').focus(); };
+$('#geriDon').onclick = () => { $('#sifreForm').hidden = true; $('#girisForm').hidden = false; };
+$('#sifreForm').onsubmit = async e => {
+  e.preventDefault(); $('#s_hata').textContent = ''; mesgul($('#sifreDugme'), true);
+  try {
+    if (!kodGitti) {
+      await Oturum.sifreKoduIste($('#s_eposta').value);
+      kodGitti = true; $('#kodAlani').hidden = false; $('#sifreDugme').textContent = 'Şifreyi yenile';
+      $('#sifreAciklama').textContent = 'E-postanıza gelen kodu ve yeni şifrenizi yazın.'; $('#s_kod').focus();
+    } else {
+      await Oturum.sifreYenile($('#s_eposta').value, $('#s_kod').value, $('#s_yeni').value);
+      location.replace(geri);
+    }
+  } catch (x) { $('#s_hata').textContent = x.message; }
+  finally { mesgul($('#sifreDugme'), false); }
+};
+Oturum.acikMi().then(a => { if (a) location.replace(geri); }).catch(() => {});
+</script>
+</body>
+</html>
