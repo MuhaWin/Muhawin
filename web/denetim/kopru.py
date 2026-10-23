@@ -4,10 +4,9 @@ Pyodide'de (Web Worker) yüklenir. Sunucu yoktur: sayfanın /api/... istekleri J
 calisan.js) buraya gelir ve app.py'deki uç nokta fonksiyonları doğrudan çağrılır. Böylece denetim kuralları ve
 uç noktalar programdakiyle aynı kalır; burada yalnız küçük bir FastAPI taklidi vardır.
 
-Tarayıcıda bulunmayan ya da gerekmeyen paketlerin yerine boş modüller konur:
-  * fastapi / pydantic → aşağıdaki taklit (yönlendirme tablosu + yanıt sınıfları)
-  * playwright → yok (Luca otomasyonu tarayıcıda çalışmaz; toplu kontrol uç noktaları kapalıdır)
-  * sqlite3 → yalnız Pyodide'de yoksa: geçmiş tablosu yazılmaz (denetim listesi dosyalardan okunur)
+Tarayıcıda yalnız fastapi / pydantic yerine aşağıdaki taklit (yönlendirme tablosu + yanıt sınıfları) kullanılır.
+Luca otomasyonu (playwright) ve geçmiş veritabanı (sqlite3) Görev 08'den beri yalnız gerektiğinde içe aktarılır;
+tarayıcıda yoktur, Luca'ya bağlanan uç noktalar burada kapalıdır.
 """
 from __future__ import annotations
 
@@ -153,43 +152,6 @@ def taklitleri_kur():
     fa.responses = _modul("fastapi.responses", **yanitlar)
     _modul("pydantic", BaseModel=BaseModel)
 
-    class _PWHata(Exception):
-        pass
-
-    def _yok(*a, **k):
-        raise RuntimeError("Luca otomasyonu tarayıcıda çalışmaz.")
-    _modul("playwright")
-    _modul("playwright.sync_api", Error=_PWHata, TimeoutError=_PWHata, sync_playwright=_yok, Page=object,
-           BrowserContext=object, Browser=object)
-    try:
-        import sqlite3  # noqa: F401
-    except ImportError:
-        class _Baglanti:
-            def execute(self, *a, **k):
-                return self
-
-            def executemany(self, *a, **k):
-                return self
-
-            def fetchall(self):
-                return []
-
-            def fetchone(self):
-                return None
-
-            def commit(self):
-                pass
-
-            def close(self):
-                pass
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *a):
-                return False
-        _modul("sqlite3", connect=lambda *a, **k: _Baglanti(), Row=object, Error=Exception)
-
 
 # ------------------------------------------------------------------ istek → uç nokta
 def _json_hazirla(o):
@@ -207,6 +169,8 @@ def _json_hazirla(o):
 
 
 def _cevir(deger, tip):
+    if tip in (bool, "bool"):          # FastAPI gibi: 1 / true / on / yes → True
+        return str(deger).strip().lower() in ("1", "true", "on", "yes")
     if tip in (int, "int"):
         return int(deger)
     if tip in (float, "float"):

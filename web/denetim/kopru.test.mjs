@@ -85,6 +85,19 @@ test('denetim: yükle → sonuç → liste → Excel → çıktı raporu → fi�
   assert.strictEqual(yeniden.durum, 200, yeniden.govde);
 });
 
+test('Denetim program seçimi: yalnız denetime uygun programlar (?denetim=1)', async () => {
+  const hepsi = json(await istek('GET', '/api/muavin/programlar')).programlar.map(p => p.kod);
+  const denetim = json(await istek('GET', '/api/muavin/programlar', { sorgu: { denetim: '1' } })).programlar.map(p => p.kod);
+  const sifir = json(await istek('GET', '/api/muavin/programlar', { sorgu: { denetim: '0' } })).programlar.map(p => p.kod);
+  assert.ok(denetim.includes('mikro') && denetim.length < hepsi.length, JSON.stringify({ hepsi, denetim }));
+  assert.deepStrictEqual(sifir, hepsi);
+});
+
+test('Luca ve sqlite olmadan çalışır (taklit yalnız fastapi / pydantic)', async () => {
+  const y = py.runPython("import sys; json_ = __import__('json'); json_.dumps([m in sys.modules for m in ('playwright', 'sqlite3', 'fastapi')])");
+  assert.deepStrictEqual(JSON.parse(y), [false, false, true]);
+});
+
 test('hatalar ve kapalı bölümler', async () => {
   const eksik = await istek('POST', '/api/denetim', { form: { bas: ['2026-09-01'] } });
   assert.strictEqual(eksik.durum, 422);
