@@ -1,0 +1,28 @@
+# MuhaWin web: tanıtım sitesi + alt alan adlarındaki uygulamalar.
+# Başlatma:  cd web && cp .env.example .env && (alan adını düzenleyin) && docker compose up -d
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/srv/site:ro
+      - ../mobil-yonetim:/srv/yonetim:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # Yeni uygulama örneği (Caddyfile'daki uygulama.{$DOMAIN} bloğuyla birlikte açın):
+  # uygulama:
+  #   image: <imaj adı>
+  #   restart: unless-stopped
+  #   expose:
+  #     - "8080"
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -4,3 +4,4 @@ dist-python/
 __pycache__/
 .venv/
 __pycache__/
+web/.env

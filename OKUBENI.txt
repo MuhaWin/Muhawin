@@ -534,6 +534,7 @@ YENİ SÜRÜM YAYINLAMA (otomatik güncelleme için)
 3. Şu üç dosyayı sürükleyin: MuhaWin-Kurulum-<sürüm>.exe, MuhaWin-Kurulum-<sürüm>.exe.blockmap, latest.yml
    (üçü de aynı derlemeden olmalı). "Publish release".
 4. Kurulu programlar birkaç saat içinde (ya da açılışta) yeni sürümü kendiliğinden indirir.
+5. Web sitesi: "node tools/site_uret.js" ile sürüm notlarını yenileyin, sunucuda git pull (web\KURULUM.md).
 
 2.5.0 YENİLİKLER
 - Faturaları Luca'ya kaydet:

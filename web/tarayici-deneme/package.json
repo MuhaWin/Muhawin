@@ -1,0 +1,7 @@
+{
+  "name": "muhawin-tarayici-deneme",
+  "private": true,
+  "description": "Mikro Denetim'in Pyodide (tarayıcıdaki Python) üzerinde çalıştığını gösteren deneme",
+  "scripts": { "deneme": "node deneme.mjs" },
+  "dependencies": { "pyodide": "0.27.2" }
+}

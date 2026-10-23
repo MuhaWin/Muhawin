@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MuhaWin indiriliyor</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/gorsel/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main class="bolum"><div class="kap" style="text-align:center">
+  <img src="/gorsel/logo.svg" alt="" width="72" height="72">
+  <h2 style="margin-top:16px">MuhaWin indiriliyor…</h2>
+  <p class="not" id="durum">Son sürüm aranıyor.</p>
+  <p><a class="dugme" id="elle" href="https://github.com/muhawin/muhawin-surumler/releases/latest">İndirme başlamazsa buraya tıklayın</a></p>
+</div></main>
+<script>
+/* indir.<alan adı> ve /indir.html: en son kurulum dosyasına yönlendirir. */
+'use strict';
+(async function () {
+  const git = (url, metin) => { document.getElementById('elle').href = url; document.getElementById('durum').textContent = metin; location.replace(url); };
+  let v = {};
+  try { v = await (await fetch('/surum.json', { cache: 'no-cache' })).json(); } catch (e) {}
+  if (v.depo) document.getElementById('elle').href = `https://github.com/${v.depo}/releases/latest`;
+  try {
+    const j = await (await fetch(`https://api.github.com/repos/${v.depo}/releases/latest`)).json();
+    const exe = (j.assets || []).find(a => /\.exe$/i.test(a.name));
+    if (exe) return git(exe.browser_download_url, `${exe.name} indiriliyor.`);
+  } catch (e) {}
+  if (v.indir) git(v.indir, `${v.dosya} indiriliyor.`);
+  else document.getElementById('durum').textContent = 'Son sürüm bulunamadı; düğmeyle sürümler sayfasına gidin.';
+})();
+</script>
+</body>
+</html>

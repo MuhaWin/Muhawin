@@ -1,0 +1,4 @@
+node_modules/
+wheels/
+ornek/
+package-lock.json
