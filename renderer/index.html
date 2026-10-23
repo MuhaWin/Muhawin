@@ -110,8 +110,8 @@ th.kz-gizli,td.kz-gizli{display:none}
         <label class="lbl" for="firmSel">Firma</label>
         <select id="firmSel"></select>
       </div>
-      <button class="btn ic-plus" id="newFirmBtn" style="align-self:flex-end">Yeni firma</button>
-      <button class="btn" id="mmBtn" style="align-self:flex-end" title="Luca'dan çekilen mizan ve muavinleri görüntüle">☷ Mizan / Muavin</button>
+      <button class="btn luca-off lucabag" id="lucaTopBtn" data-lucabag="1" style="align-self:flex-end" title="Luca giriş penceresini aç">Luca'ya giriş</button>
+      <button class="btn" id="mmBtn" style="align-self:flex-end" title="Luca'dan çekilen mizan, muavin ve hesap planını görüntüle">☷ Mizan / Muavin / Hesap Planı</button>
       <button class="btn" id="lucaCalisBtn" style="align-self:flex-end" hidden title="Luca'yı ayrı, tam ekran bir pencerede açar (programın sorgu yapmadığı çalışma penceresi). Oturum yoksa önce giriş ekranı açılır.">⧉ Luca'da Çalış</button>
       <button class="btn" id="modulesBtn" style="align-self:flex-end" title="Modül seçimine dön">▦ Modüller</button>
       <button class="btn" id="komutBtn" style="align-self:flex-end" title="Komut paleti: her ekrana, işleme hızlı geçiş (Ctrl+K) · Ekranda ara: Ctrl+F · Yardım: F1">⌕ Ara <kbd class="kbd">Ctrl+K</kbd></button>
@@ -120,12 +120,12 @@ th.kz-gizli,td.kz-gizli{display:none}
       <button class="btn ic-settings" id="ayarlarBtn" data-regopen="1" style="align-self:flex-end" title="Ayarlar, büro bilgileri ve Luca giriş">Ayarlar</button>
     </div>
   </header>
+  <nav class="modsekme" id="modSekme" role="tablist" aria-label="Modüller"></nav>
   <div class="modetabs" id="modeTabs" role="tablist" aria-label="Ekstre türü"></div>
   <nav class="toolbar" id="toolbar" aria-label="Firma ve kurallar"></nav>
 
   <section id="okcPanel" hidden>
     <div class="mmtop"><h2>Hızlı Fiş Girişi</h2><span class="note">Yazar kasa fişleri, Z raporları ve yurt dışı faturaları: belgeyi ekleyin, program okusun, kontrol edip Luca'ya kaydedin.</span><span style="flex:1"></span>
-      <button class="btn small luca-off lucabag" data-lucabag="1" title="Luca bağlantısı">Luca'ya bağlan</button>
       <button class="btn small" id="okcXls" title="Luca'nın Excel'den fiş aktarımı biçiminde">Excel'e aktar</button>
       <button class="btn small primary" id="okcGo">Luca'ya kaydet</button></div>
     <div class="mmbar" id="okcBar"></div>
@@ -138,7 +138,6 @@ th.kz-gizli,td.kz-gizli{display:none}
   <section id="mdPanel" hidden><iframe id="mdFrame" title="Mikro Denetim"></iframe><div class="note" id="mdBekle" style="padding:30px">Mikro Denetim açılıyor…</div></section>
   <section id="cekPanel" hidden>
     <div class="mmtop"><h2>Çek / Senet Kayıtları</h2><span class="note">Logo / Mikro çek-senet dosyaları → hesaplar Luca mizanından → rapor, Luca fiş dosyası ya da doğrudan Luca kaydı.</span><span style="flex:1"></span>
-      <button class="btn small luca-off lucabag" data-lucabag="1" title="Luca bağlantısı">Luca'ya bağlan</button>
       <button class="btn small" id="cekRapor">Raporu Excel'e aktar</button>
       <button class="btn small" id="cekXls" title="Luca'nın Excel'den fiş aktarımı biçiminde">Fişleri Excel'e aktar</button>
       <button class="btn small primary" id="cekGo">Luca'ya kaydet</button></div>
@@ -210,7 +209,6 @@ th.kz-gizli,td.kz-gizli{display:none}
   <img class="bimg" alt="" width="64" height="64"><b id="mwBusyT">Lütfen bekleyin…</b><span id="mwBusyS">Bu işlem birkaç saniye sürebilir.</span><div class="bbar"><i></i></div><button class="btn small" id="mwBusyIptal" hidden style="margin-top:10px">İptal</button></div></div>
 <div id="fkKayit" hidden>
   <div class="mmtop"><h2>Faturaları Luca'ya kaydet</h2><div id="fkkHead" class="note"></div><span style="flex:1"></span>
-    <button class="btn small luca-off lucabag" data-lucabag="1" title="Luca bağlantısı">Luca'ya bağlan</button>
     <label class="note" title="Faturalar Luca'ya hangi fişlerle kaydedilsin? Toplu seçeneklerde alış ve satış ayrı fiş olur; her faturanın satırları kendi evrak no / tarihiyle fişte kalır (muavin kontrolü bozulmaz).">Fiş <select id="fkkGrup" style="width:auto">
       <option value="ayri">Her fatura ayrı fiş</option><option value="gun">Her gün tek fiş</option><option value="on">10 günlük (10, 20, ay sonu)</option>
       <option value="onbes">15 günlük (15, ay sonu)</option><option value="ay">Ay sonuna tek fiş</option></select></label>
@@ -226,8 +224,8 @@ th.kz-gizli,td.kz-gizli{display:none}
 <div class="modal" id="delFirmModal" hidden><div class="mbox" style="width:min(560px,100%)" role="alertdialog" aria-modal="true" aria-labelledby="dfT">
   <div class="mhead"><h2 id="dfT"></h2></div><div class="mbody" id="dfB"></div></div></div>
 <div id="mmPanel" hidden>
-  <div class="mmtop"><h2>Mizan ve muavin</h2><div class="mmtabs"><button class="btn small" data-mmtab="plan" aria-pressed="true">Hesap Planı</button><button class="btn small" data-mmtab="muavin" aria-pressed="false">Muavin</button><button class="btn small" data-mmtab="mizan" aria-pressed="false">Mizan</button></div>
-    <span style="flex:1"></span><button class="btn small tumcek" id="mmTumCek" title="Seçili firmanın hesap planını, muavinini ve mizanını sırayla Luca'dan çeker (bu ekrandan çıkmadan)">⤓ Tümünü Luca'dan Çek</button><button class="btn small luca-off lucabag" data-lucabag="1" title="Luca bağlantısı">Luca'ya bağlan</button><button class="btn small" id="mmXls">Excel'e aktar</button><button class="btn small" id="mmPdf" title="Görünen listeyi PDF yapar; açılan pencereden yazdırabilir ya da kaydedebilirsiniz">PDF Yazdır</button><button class="btn small primary" id="mmClose">✕ Kapat</button></div>
+  <div class="mmtop"><h2>Mizan / Muavin / Hesap Planı</h2><div class="mmtabs"><button class="btn small" data-mmtab="mizan" aria-pressed="true">Mizan</button><button class="btn small" data-mmtab="muavin" aria-pressed="false">Muavin</button><button class="btn small" data-mmtab="plan" aria-pressed="false">Hesap Planı</button></div>
+    <span style="flex:1"></span><button class="btn small tumcek" id="mmTumCek" title="Seçili firmanın hesap planını, muavinini ve mizanını sırayla Luca'dan çeker (bu ekrandan çıkmadan)">⤓ Tümünü Luca'dan Çek</button><button class="btn small" id="mmXls">Excel'e aktar</button><button class="btn small" id="mmPdf" title="Görünen listeyi PDF yapar; açılan pencereden yazdırabilir ya da kaydedebilirsiniz">PDF Yazdır</button><button class="btn small primary" id="mmClose">✕ Kapat</button></div>
   <div class="mmbar" id="mmBar"></div>
   <div class="mmwrap"><table id="mmTable"></table></div>
   <div class="modal" id="mmFis" hidden><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mmFisT" style="width:min(1100px,100%)">
@@ -1274,7 +1272,7 @@ function renderSide(){
   const dr=S.draftRule||{k:'',dir:'all',acc:'',ld:''};
   $('#firmBody').innerHTML=`
       <div class="actions" style="justify-content:space-between"><span class="note">Bu ayarlar seçili firmaya kaydedilir.</span>${isExample()?'':`<button class="btn small ghost danger" id="delFirm">${S.confirmDel?'Silmeyi onayla':'Firmayı sil'}</button>`}</div>
-      ${isExample()?`<div class="banner">Örnek veriyle açıldı. Kendi firmanız için <b>+ Yeni firma</b> ile başlayın; mizan ve kurallar firmaya kaydedilir.</div>`:''}
+      ${isExample()?`<div class="banner">Örnek veriyle açıldı. Kendi firmanız için <b>Ayarlar › Firmalar</b> bölümünden (Luca'dan firma ekle ya da Yeni firma) başlayın; mizan ve kurallar firmaya kaydedilir.</div>`:''}
       <div><label class="lbl" for="fName">Firma adı</label><input type="text" id="fName" value="${esc(f.name)}"></div>
       <div>
         <label class="lbl">Luca mizanı</label>
@@ -1318,7 +1316,7 @@ function renderSide(){
 function renderToolbar(){
   const f=S.firm;const banks=accts().filter(b=>b.code).length;
   const sum=`${banks} ${ML().accs} · ${S.miz?S.miz.leaf.size+' hesaplık mizan':'mizan yok'} · askı ${esc(f.askiIn||'—')} / ${esc(f.askiOut||'—')}`;
-  const btns=`<button class="btn ic-link ${Desk.lucaClass()}" data-luca="connect" title="Luca'ya kendi bilgilerinizle giriş yapın">${Desk.lucaLabel()}</button><button class="btn ic-add" data-luca="firms">Luca'dan firma ekle</button><button class="btn ic-sync" data-luca="mizan">Mizanları güncelle</button><button class="btn ic-db" data-dataopen="1">Veri ve yedek</button><span class="tsep"></span><button class="btn ic-firm" data-open="firm">Firma ayarları</button><button class="btn ic-plus" data-open="add">Kural ekle</button><button class="btn ic-list" data-open="list">Kurallar <span class="count">${S.rules.length}</span></button>`;
+  const btns=`<button class="btn ic-sync" data-luca="mizan">Mizanları güncelle</button><button class="btn ic-db" data-dataopen="1">Veri ve yedek</button><span class="tsep"></span><button class="btn ic-firm" data-open="firm">Firma ayarları</button><button class="btn ic-plus" data-open="add">Kural ekle</button><button class="btn ic-list" data-open="list">Kurallar <span class="count">${S.rules.length}</span></button>`;
   $('#toolbar').innerHTML=`${btns}<span class="sum">${isExample()?'<b>Örnek firma</b> · ':''}${sum}</span>`;
   $('#bottombar').innerHTML=`${btns}<button class="btn ghost" data-top="1">↑ Başa dön</button>`;
   Desk.renderLicenseFoot();
@@ -1718,12 +1716,14 @@ $('#cardsBox').addEventListener('click',e=>{const t=e.target.closest('button');i
   if(t.id==='addCard'){S.firm.cards=[...(S.firm.cards||[]),{label:'',code:''}];S.files.forEach(f=>{if(f.bankIdx<0)f.bankIdx=0;});saveCards(true);const ins=$('#cardsBox').querySelectorAll('[data-f="label"]');if(ins.length)ins[ins.length-1].focus();}
   else if(t.dataset.delcard!=null){const i=+t.dataset.delcard;S.firm.cards.splice(i,1);const n=S.firm.cards.length;S.files.forEach(f=>{if(f.bankIdx===i)f.bankIdx=n?0:-1;else if(f.bankIdx>i)f.bankIdx--;});saveCards(true);}
 });
-$('#newFirmBtn').addEventListener('click',async()=>{
+// Yeni firma: Ayarlar › Firmalar'daki düğme ve komut paleti (üst şeritte değil)
+document.addEventListener('click',e=>{if(e.target.closest('[data-yenifirma]'))yeniFirma();});
+async function yeniFirma(){
   // yeni firma "Kaydet"e basılınca kaydedilir; pencere kaydetmeden kapatılırsa eklenmez
   const id=uid();const f={id,name:'Yeni firma '+(S.firms.length+1),banks:[],askiIn:'',askiOut:'',createdAt:new Date().toISOString()};
   S.oncekiFirm=S.firmId;S.firms.push(f);S.firmId=id;S.firm={...f};S.taslakId=id;
   await selectFirm(id);S.firmKirli=true;openModal('firm');setTimeout(()=>{const i=$('#fName');if(i){i.focus();i.select();}},50);
-});
+}
 
 const side=$('#side');
 side.addEventListener('change',e=>{
@@ -2228,7 +2228,7 @@ const Desk=(()=>{
   document.addEventListener('click',async e=>{
     const b=e.target.closest('[data-fmiz]');if(!b)return;
     await refreshLuca();
-    if(!luca.loggedIn){closeModal();openLuca('connect');toast('Önce Luca\'ya bağlanın.');return;}
+    if(!luca.loggedIn){closeModal();openLuca('connect');LucaBag.uyar('Önce Luca\'ya bağlanın (üst şeritteki "Luca\'ya giriş").');return;}
     if(!S.firm.lucaId){closeModal();openLuca('mizan');toast('Bu firmayı listeden Luca\'daki karşılığıyla eşleştirin.');return;}
     const year=+($('#fmizYear')||{}).value||thisYear;
     b.disabled=true;b.textContent='Alınıyor…';busy=true;
@@ -2441,6 +2441,7 @@ const Desk=(()=>{
       <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px">
         <h3 style="margin:0;font-family:var(--f-display);font-size:16px">Firmalar <span class="note" style="font-weight:400">(${S.firms.length})</span></h3>
         <p class="note" style="margin:0">Programdaki firmalar. İstemediğiniz firmayı buradan silebilirsiniz (firmanın kuralları ve mizanı da silinir; Luca'daki kayda dokunulmaz).</p>
+        <div class="actions" style="margin:0" id="regFirmEkle"><button class="btn small ic-add" type="button" data-luca="firms" data-regkapat="1">Luca'dan firma ekle</button><button class="btn small ic-plus" type="button" data-yenifirma="1" data-regkapat="1">Yeni firma</button></div>
         <div id="regFirms">${firmRows()}</div>
       </section>`;
     // Luca giriş alanlarını mevcut kayıttan doldur
@@ -2738,7 +2739,7 @@ const Desk=(()=>{
     const f=S.firm;
     if(!f.lucaId){toast('Bu firma Luca\'dan eklenmemiş. Önce "Luca\'dan firma ekle" ile ekleyin.');return;}
     await refreshLuca();
-    if(!luca.loggedIn){openLuca('connect');toast('Önce Luca\'ya bağlanın, sonra tekrar "Luca\'ya aktar" deyin.');return;}
+    if(!luca.loggedIn){openLuca('connect');LucaBag.uyar('Önce Luca\'ya bağlanın (üst şeritteki "Luca\'ya giriş"), sonra tekrar "Luca\'ya aktar" deyin.');return;}
     try{await kurHazirla();}catch(e){toast(cleanErr(e));return;}
     {const pbs=dovizPBler();if(pbs.some(pb=>!lucaDovizKod(pb)))await dovizKodBul(true);}
     const keys=aktKeys();const log=aktLog(f.id);
@@ -2850,7 +2851,7 @@ const Desk=(()=>{
     if(e.target.closest('#aktGecmisBtn')){showHistory();return;}
   });
 
-  return {pullMizan,authGate,ensureSetup,moduleGate,lucaLabel,lucaClass,licenseGate,renderLicenseFoot,refreshLuca,lucaAyarla,firmMizanButton,aktarButtons,aktChip,choose};
+  return {openLuca,modlar:()=>mods,modState,pullMizan,authGate,ensureSetup,moduleGate,lucaLabel,lucaClass,licenseGate,renderLicenseFoot,refreshLuca,lucaAyarla,firmMizanButton,aktarButtons,aktChip,choose};
 })();
 
 /* ---------- Fatura Kontrol modülü (Python fatura_kontrol; program içinde arka planda çalışır) ---------- */
@@ -2886,7 +2887,7 @@ const FKUI=(()=>{
     if(ifSayfa!==k){ifSayfa=k;f.src=url+SAYFA_YOL[k];}}
   const SAYFA_YOL={toplu:'/toplu',tek:'/',kdv:'/beyanname'};
   let ifSayfa='toplu';
-  function place(){const p=$('#fkPanel');if(!p||p.hidden)return;const t=document.body.classList.contains('mod-fatura')?$('header.top'):$('#modeTabs');const r=t?t.getBoundingClientRect():{bottom:0};p.style.top=Math.max(0,Math.round(r.bottom+6))+'px';}
+  function place(){const p=$('#fkPanel');if(!p||p.hidden)return;const t=document.body.classList.contains('mod-fatura')?($('#modSekme')||$('header.top')):$('#modeTabs');const r=t?t.getBoundingClientRect():{bottom:0};p.style.top=Math.max(0,Math.round(r.bottom+6))+'px';}
   function wait(t,n,err){$('#fkWait').hidden=false;$('#fkFrame').hidden=true;$('#fkWaitT').textContent=t;$('#fkWaitN').textContent=n||'';$('#fkWaitA').hidden=!err;$('#fkWaitN').classList.toggle('mono',!!err);}
   async function start(restart){
     if(started&&url)return;
@@ -3037,26 +3038,29 @@ const LucaBag=(()=>{
   const api=window.desktop;let son={loggedIn:false},sorgu=null;
   function boya(d){son=d||{loggedIn:false};
     document.querySelectorAll('[data-lucabag]').forEach(b=>{b.classList.toggle('luca-on',!!son.loggedIn);b.classList.toggle('luca-off',!son.loggedIn);
-      b.textContent=son.loggedIn?'● Luca bağlı':son.wrongUye?'Luca: yanlış üye no':'Luca\'ya bağlan';b.title=son.error||(son.loggedIn?'Luca oturumu açık · Luca ekranını öne getir':'Luca giriş penceresini aç');});
-    document.querySelectorAll('[data-luca="connect"]').forEach(b=>{b.classList.toggle('luca-on',!!son.loggedIn);b.classList.toggle('luca-off',!son.loggedIn);
-      const t=son.loggedIn?'Luca bağlı':'Luca\'ya bağlan';if(b.textContent!==t)b.textContent=t;});
+      b.textContent=son.loggedIn?'● Luca bağlı':son.wrongUye?'Luca: yanlış üye no':'Luca\'ya giriş';b.title=son.error||(son.loggedIn?'Luca oturumu açık · Luca ekranını öne getir':'Luca giriş penceresini aç');
+      if(son.loggedIn)b.classList.remove('vurgu');});
     try{if(typeof Desk!=='undefined'&&Desk.lucaAyarla&&Desk.lucaLabel()!==(son.loggedIn?'Luca bağlı':'Luca\'ya bağlan'))Desk.lucaAyarla(son);}catch(e){}
     modBoya();}
   async function yenile(){if(sorgu)return sorgu;
     sorgu=(async()=>{let d;try{d=await api.luca.status();}catch(e){d={loggedIn:false};}boya(d);return son;})();
     try{return await sorgu;}finally{sorgu=null;}}
   function modBoya(){
-    // modül seçim ekranında: bağlı değilse önce Luca'ya bağlanmayı öner (modüllerin içinde unutulmasın)
+    // modül seçim ekranında yalnız durum yazar; Luca girişi tek yerden, üst şeritteki düğmeden yapılır
     const ml=document.getElementById('modLuca');
     if(ml){ml.hidden=false;ml.className='modluca'+(son.loggedIn?' bagli':'');
       ml.innerHTML=son.loggedIn?`<span>● <b>Luca bağlı</b> — fiş aktarımı, mizan / muavin çekme ve fatura kaydı hazır.</span>`
-        :`<span><b>Luca ile işlem yapmak için Luca'ya bağlanın.</b> ${son.wrongUye?esc(son.error||''):'Mizan / muavin çekme, fiş aktarımı ve fatura kaydı Luca oturumu ister; şimdi bağlanırsanız modüllerin içinde ayrıca bağlanmanız gerekmez.'}</span><button class="btn primary" id="modLucaBag">Luca'ya bağlan</button>`;}}
+        :`<span><b>Luca bağlı değil.</b> ${son.wrongUye?esc(son.error||''):'Mizan / muavin çekme, fiş aktarımı ve fatura kaydı Luca oturumu ister. Modüle girdikten sonra üst şeritteki <b>Luca\'ya giriş</b> düğmesiyle bağlanın.'}</span>`;}}
+  // Luca gerektiren işlem bağlantı yokken: açık uyarı + üst şeritteki giriş düğmesi vurgulanır (düğme tek; sayfalarda ayrı bağlan düğmesi yok)
+  function uyar(msg){toast(msg||'Bu işlem için Luca\'ya bağlı olmalısınız. Üst şeritteki "Luca\'ya giriş" düğmesini kullanın.');
+    const b=document.getElementById('lucaTopBtn');if(!b||son.loggedIn)return;b.classList.remove('vurgu');void b.offsetWidth;b.classList.add('vurgu');
+    clearTimeout(uyar._t);uyar._t=setTimeout(()=>b.classList.remove('vurgu'),8000);}
   // Luca oturumu yoksa giriş penceresini açar ve bağlanana kadar bekler (en çok 15 dk)
   async function bekle(){let st=await yenile();if(st.loggedIn)return st;if(st.wrongUye)throw new Error(st.error);
-    const ac=await api.luca.open();toast(ac&&ac.gizli?'Luca arka planda açılıyor; doğrulama kodu sorulursa açılan kutuya yazın.':'Luca penceresinde giriş yapıp Mali Müşavir Paketi\'ni açın; bağlanınca işlem kendiliğinden devam eder.');
+    const ac=await api.luca.open();uyar('Luca bağlı değil. '+(ac&&ac.gizli?'Luca arka planda açılıyor; doğrulama kodu sorulursa açılan kutuya yazın.':'Luca penceresinde giriş yapıp Mali Müşavir Paketi\'ni açın; bağlanınca işlem kendiliğinden devam eder.')+' (Giriş düğmesi: üst şerit)');
     const t0=Date.now();while(!st.loggedIn&&Date.now()-t0<15*60e3){await new Promise(r=>setTimeout(r,2000));st=await yenile();if(st.wrongUye)throw new Error(st.error);}
     if(!st.loggedIn)throw new Error('Luca girişi yapılmadı.');return st;}
-  document.addEventListener('click',async e=>{if(!e.target.closest('[data-lucabag],#modLucaBag'))return;
+  document.addEventListener('click',async e=>{if(!e.target.closest('[data-lucabag]'))return;
     // bağlıysa yeniden giriş açılmaz: ana süreç açık Luca ekranını öne getirir
     try{const r=await api.luca.open();if(r&&r.bagli)boya({...son,loggedIn:true});}catch(x){}setTimeout(yenile,1500);});
   try{api.luca.on((ev,d)=>{if(ev==='durum'&&d){boya(d);if(d.loggedIn){const k=document.getElementById('lucaCap');if(k)k.remove();}}
@@ -3067,10 +3071,10 @@ const LucaBag=(()=>{
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='hidden')yenile();});
   window.addEventListener('focus',()=>yenile());
   // ekranlar / modüller değişip yeni düğmeler çizildiğinde son durumla boyanır (bekletmeden)
-  try{new MutationObserver(()=>{if(document.querySelector('[data-lucabag].luca-off,[data-luca="connect"].luca-off')&&son.loggedIn||document.querySelector('[data-lucabag].luca-on,[data-luca="connect"].luca-on')&&!son.loggedIn)boya(son);})
+  try{new MutationObserver(()=>{if(document.querySelector('[data-lucabag].luca-off')&&son.loggedIn||document.querySelector('[data-lucabag].luca-on')&&!son.loggedIn)boya(son);})
     .observe(document.body,{childList:true,subtree:true});}catch(e){}
   setTimeout(yenile,300);
-  return {yenile,bekle,boya,durum:()=>son};
+  return {yenile,bekle,boya,uyar,durum:()=>son};
 })();
 
 /* ---------- veri eklenince mizan yoksa Luca'dan kendiliğinden çekilir (kullanıcının "Mizanı Luca'dan Çek"e basmasını beklemez) ---------- */
@@ -3260,7 +3264,7 @@ const MMUI=(()=>{
         ${mz.ay==='aralik'?`<label class="note"><input type="date" id="mmMzBas" value="${esc(mz.bas||'')}"> – <input type="date" id="mmMzBit" value="${esc(mz.bit||'')}"></label>`:''}<span class="note">Mizan, firmanın indirilmiş yıllık muavinindeki hareketlerden seçilen aralık için hesaplanır.</span>`:''}</div>`;
     $('#mmLevel').value=st.level;
     if(mz.kaynak==='muavin'){await muavindenMizan(f,mz);return;}
-    if(!f){st.rows=[];st.note='Henüz firma yok. Ekstre modülünde “Luca\'dan firma ekle” ile firma ekleyin ya da “Excel\'den yükle” ile mizan yükleyin.';return;}
+    if(!f){st.rows=[];st.note='Henüz firma yok. Ayarlar › Firmalar › “Luca\'dan firma ekle” ile firma ekleyin ya da “Excel\'den yükle” ile mizan yükleyin.';return;}
     if(!f.mizanInfo){st.rows=[];st.note=`${esc(f.name)} için mizan yok. ${f.lucaId?'“Luca\'dan yeniden çek” ile Luca\'dan alın ya da ':''}“Excel'den yükle” ile dosyadan yükleyin.`;return;}
     const acc=await Store.getMizan(f.id,(f.mizanInfo||{}).parts)||[];
     const has=acc.some(x=>x.length>=4);
@@ -3523,7 +3527,7 @@ const MMUI=(()=>{
   async function hesapEkleAc(baslangic){
     let all;try{all=Object.values(Store.local().firms||{});}catch(x){all=S.firms||[];}
     const f=all.find(x=>x.id===st.firm);if(!f){toast('Önce firma seçin.');return;}
-    if(!f.lucaId){toast('Bu firmanın Luca karşılığı yok (Ekstre modülünde “Luca\'dan firma ekle”).');return;}
+    if(!f.lucaId){toast('Bu firmanın Luca karşılığı yok (Ayarlar › Firmalar › “Luca\'dan firma ekle”).');return;}
     await hpBilinen(f);hp.satirlar=[{kod:baslangic||'',ad:''}];hp.odak=0;
     const yil=String((f.hesapPlaniInfo&&f.hesapPlaniInfo.year)||(f.mizanInfo&&f.mizanInfo.year)||new Date().getFullYear());
     let P=$('#hpPanel');if(!P){document.body.insertAdjacentHTML('beforeend','<div class="modal" id="hpPanel" hidden></div>');P=$('#hpPanel');}
@@ -3576,7 +3580,7 @@ const MMUI=(()=>{
     if(tur==='muavin'&&!muavinProg){try{muavinProg=(await window.desktop.fk.muavinProgramlar()).programlar||[];}catch(e){toast(clean(e));return;}}
     const progs=tur==='mizan'?Object.entries(MIZAN_PROG).map(([kod,p])=>({kod,...p})):muavinProg;
     const firmalar=tur==='mizan'?tumFirmalar().filter(x=>x.firm):tumFirmalar();const sec=secili();
-    if(!firmalar.length){toast('Önce firma ekleyin (Ekstre modülü → Luca\'dan firma ekle ya da Ayarlar → Firmalar).');return;}
+    if(!firmalar.length){toast('Önce firma ekleyin (Ayarlar › Firmalar › Luca\'dan firma ekle ya da Yeni firma).');return;}
     ykAc(tur==='mizan'?'Mizanı Excel\'den yükle':'Muavini Excel\'den yükle',`
       <label class="lbl" for="mmYkProg">Bu ${tur} hangi programa ait?</label>
       <select id="mmYkProg"><option value="">— Program seçin —</option>${progs.map(p=>`<option value="${esc(p.kod)}">${esc(p.ad)}</option>`).join('')}</select>
@@ -3613,7 +3617,7 @@ const MMUI=(()=>{
   }
   function cekAc(){
     const firmalar=tumFirmalar().filter(x=>x.lucaId);const sec=secili();
-    if(!firmalar.length){toast('Luca firma numarası bilinen firma yok. Ekstre modülünde “Luca\'dan firma ekle” ile ekleyin.');return;}
+    if(!firmalar.length){toast('Luca firma numarası bilinen firma yok. Ayarlar › Firmalar › “Luca\'dan firma ekle” ile ekleyin.');return;}
     st.yilSecenek=true;ykAc('Muavini Luca\'dan çek',`
       <label class="lbl" for="mmYkFirma">Firma</label>
       <select id="mmYkFirma">${firmalar.map(x=>`<option value="${esc(x.key)}"${x.key===sec?' selected':''}>${esc(x.ad)}</option>`).join('')}</select>
@@ -3753,7 +3757,7 @@ const MMUI=(()=>{
   };
   return {open,close,_st:st,_mojibake:mojibakeDuzelt};
 })();
-$('#mmBtn').addEventListener('click',()=>MMUI.open('plan'));
+$('#mmBtn').addEventListener('click',()=>MMUI.open('mizan'));
 // Luca'da Çalış: kullanıcının kendi çalışacağı, programın sorgu yapmadığı tam ekran Luca penceresi (MuhaWin'in önünde)
 if(window.desktop&&window.desktop.luca&&window.desktop.luca.calis){$('#lucaCalisBtn').hidden=false;
   $('#lucaCalisBtn').addEventListener('click',async()=>{const b=$('#lucaCalisBtn');b.disabled=true;
@@ -4114,7 +4118,7 @@ const OKC=(()=>{
     if(!st.fid||!fs.some(f=>f.id===st.fid))st.fid=(fs[0]&&fs[0].id)||'';
     const tum=belgeler();const say=t=>tum.filter(b=>b.tur===t).length;
     const vis=gorunen();const sec=vis.filter(b=>b.sec&&!b.logged);const bad=sec.filter(b=>satirlar(b).err.length);
-    $('#okcBar').innerHTML=`${fs.length?'':'<span class="chip aski">Önce üstten firma ekleyin</span>'}
+    $('#okcBar').innerHTML=`${fs.length?'':'<span class="chip aski">Önce Ayarlar › Firmalar\'dan firma ekleyin</span>'}
       <div class="mmtabs">${[['fis','ÖKC fişleri'],['z','Z raporları'],['yd','Yurt dışı faturaları']].map(([k,l])=>`<button class="btn small" data-okctur="${k}" aria-pressed="${st.tur===k}">${l} <span class="mono">${say(k)}</span></button>`).join('')}</div>
       <button class="btn small primary" id="okcEkle">${st.tur==='yd'?'＋ Fatura ekle (PDF / görüntü)':'＋ Görüntü ekle'}</button>
       <button class="btn small" id="okcWa" title="Ofisin WhatsApp Business numarasına mükelleflerin gönderdiği fiş fotoğraflarını al (gönderen numaraya göre firmaya düşer)">💬 WhatsApp'tan Al</button>
@@ -4634,7 +4638,7 @@ const CEK=(()=>{
     if(!st.fid||!fs.some(f=>f.id===st.fid)){st.fid=(fs[0]&&fs[0].id)||'';st.f0=null;}
     const f=firma();const mi=f&&f.mizanInfo;const mj=st.muavinIs;
     $('#cekBar').innerHTML=`<button class="btn small ghost" id="cekGeri">← Ofisinize Özel Çözümler</button>
-      ${fs.length?'':'<span class="chip aski">Önce üstten firma ekleyin</span>'}
+      ${fs.length?'':'<span class="chip aski">Önce Ayarlar › Firmalar\'dan firma ekleyin</span>'}
       <span class="note">Mizan: ${mi?esc(mi.source==='luca'?'Luca '+(mi.year||''):(mi.file||'Excel')):'<b style="color:var(--out)">yok</b>'}</span><button class="btn small" id="cekMizan">Mizanı Luca'dan Çek</button>
       <button class="btn small primary" id="cekDosya">＋ Çek / Senet Dosyası Ekle</button><input type="file" id="cekIn" accept=".xls,.xlsx,.csv" multiple hidden>
       ${st.hareket.some(h=>h.kaynak==='Logo')?`<label class="note">Logo işlem tarihi <input type="date" id="cekLogoT" value="${esc(st.logoTarih)}" style="width:auto"></label>`:''}
@@ -4698,7 +4702,7 @@ const CEK=(()=>{
   }
   // Muavin bu sayfadan indirilir: Fatura Kontrol'ün Luca otomasyonu (yalnız muavin adımı) arka planda çalışır
   function muavinLucaSor(){
-    const f=firma();if(!f||!f.lucaId){toast('Bu firmanın Luca karşılığı yok (Ekstre modülünde “Luca\'dan firma ekle”).');return;}
+    const f=firma();if(!f||!f.lucaId){toast('Bu firmanın Luca karşılığı yok (Ayarlar › Firmalar › “Luca\'dan firma ekle”).');return;}
     const d=new Date();const vars=st.logoTarih||(st.hareket.map(h=>h.tarih).filter(Boolean).sort().pop())||iso(new Date(d.getFullYear(),d.getMonth(),0));
     $('#cekModalT').textContent='Muavini Luca\'dan Çek';
     $('#cekModalB').innerHTML=`<p class="note" style="margin:0">${esc(f.name)} firmasının muavini Luca'dan seçilen yılın tamamı olarak indirilir (Ocak–Aralık). Luca girişi Fatura Kontrol'ün Chrome penceresinde yapılır; indirme bitince muavin bu sayfada kendiliğinden seçilir.</p>
@@ -5682,6 +5686,19 @@ const MDENET=(()=>{
 })();
 
 /* ---------- modüller ---------- */
+/* ---------- Üstte kalıcı modül sekmeleri (menü düzeni B): modül seçim ekranına dönmeden modül değiştirilir ----------
+   Lisans denetimi modül kartıyla aynı (Desk.licenseGate); "Yakında" modüller pasif kalır. */
+const MOD_SEKME=[['ekstre','Banka'],['fatura','Muhasebe'],['okc','Belgeden Fiş'],['denetim','Denetim'],['ozel','Ofisinize Özel'],['gecici','Geçici Vergi'],['personel','Personel']];
+function modSekmeCiz(){const el=$('#modSekme');if(!el)return;
+  const mods=Desk.modlar()||[];
+  const L=MOD_SEKME.map(([id,ad])=>{const m=mods.find(x=>x.id===id);
+    if(id==='ozel'&&(!m||m.type==='gizli'))return '';                       // ofise tanımlı değilse görünmez
+    const pasif=!m||Desk.modState(m)[0]==='soon';
+    return `<button class="modsek" role="tab" data-modsekme="${id}" aria-selected="${S.module===id}"${pasif?' disabled aria-disabled="true" title="Çok yakında"':''}>${esc(ad)}${pasif?' <small>(yakında)</small>':''}</button>`;});
+  if(window.__admOk)L.push(`<button class="modsek" role="tab" data-modsekme="yonetim" aria-selected="${S.module==='yonetim'}">Yönetim</button>`);
+  el.innerHTML=L.join('');}
+$('#modSekme').addEventListener('click',async e=>{const b=e.target.closest('[data-modsekme]');if(!b||b.disabled)return;const id=b.dataset.modsekme;
+  if(S.module===id)return;if(!(await Desk.licenseGate(id))){if(id==='yonetim')toast('Yönetim yalnız program sahibi hesabıyla açılır.');return;}enterModule(id);});
 function enterModule(id){
   S.module=id;document.body.classList.toggle('mod-fatura',id==='fatura');document.body.classList.toggle('mod-ekstre',id==='ekstre');
   const h=$('#h1Mod');
@@ -5689,12 +5706,12 @@ function enterModule(id){
   CEK.hide();MDENET.hide();   // özel çözüm ekranları modüle girişte kapalı başlar (seçim ekranı açılır)
   if(id!=='okc')OKC.hide();
   if(id!=='yonetim'&&typeof ADM!=='undefined')ADM.hide();
-  if(id==='yonetim'){HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Yönetim';ADM.show();window.scrollTo(0,0);return;}
+  if(id==='yonetim'){HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Yönetim';ADM.show();modSekmeCiz();window.scrollTo(0,0);return;}
   if(id==='okc'){HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Hızlı Fiş Girişi';OKC.show();}
   else if(id==='fatura'){HUB.hide();S.view='fatura';if(h)h.textContent='Muhasebe İşlemleri';FKUI.show();}
   else if(id==='denetim'||id==='ozel'){if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent=id==='ozel'?'Ofisinize Özel Çözümler':'Denetim ve Analiz';HUB.show(id);}
   else{HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Banka İşlemleri';renderModeTabs();renderToolbar();}
-  window.scrollTo(0,0);
+  modSekmeCiz();window.scrollTo(0,0);
 }
 /* ---------- Arka plan işleri rozeti (üst şerit): süren işler sayısı; üzerine gelince adları ---------- */
 const Isler=(()=>{const L=new Map();let n=0;
@@ -5768,11 +5785,12 @@ const KOMUT=(()=>{
       ...(window.__admOk?[{g:'Ekranlar',b:'Yönetim',d:'Üyeler, lisanslar, satışlar, kodlar (yalnız program sahibi)',f:()=>modul('yonetim'),k:'Alt+9'}]:[]),
       {g:'Ekranlar',b:'Modüller',d:'Modül seçim ekranı',f:()=>$('#modulesBtn').click()},
       ...(window.desktop&&window.desktop.luca&&window.desktop.luca.calis?[{g:'Ekranlar',b:"Luca'da Çalış",d:'Tam ekran Luca çalışma penceresi',f:()=>$('#lucaCalisBtn').click()}]:[]),
-      {g:'Veri',b:'Hesap Planı',d:'Firmanın hesap planı (Luca\'dan çek, Excel)',f:()=>MMUI.open('plan')},
-      {g:'Veri',b:'Muavin',d:'İndirilmiş muavinler, tarih aralığı, fiş detayı',f:()=>MMUI.open('muavin')},
       {g:'Veri',b:'Mizan',d:'Firmanın mizanı',f:()=>MMUI.open('mizan')},
-      {g:'Veri',b:'Yeni firma',d:'Luca\'dan ya da elle firma ekle',f:()=>$('#newFirmBtn').click()},
-      {g:'Luca',b:'Luca\'ya bağlan / pencereyi göster',d:'Luca giriş penceresi',f:()=>{const b=document.querySelector('[data-lucabag]');if(b)b.click();else window.__mwApi.luca.open();}},
+      {g:'Veri',b:'Muavin',d:'İndirilmiş muavinler, tarih aralığı, fiş detayı',f:()=>MMUI.open('muavin')},
+      {g:'Veri',b:'Hesap Planı',d:'Firmanın hesap planı (Luca\'dan çek, Excel)',f:()=>MMUI.open('plan')},
+      {g:'Veri',b:'Yeni firma',d:'Elle firma ekle (Ayarlar › Firmalar)',f:()=>yeniFirma()},
+      {g:'Veri',b:'Luca\'dan firma ekle',d:'Luca firma listesinden ekle (Ayarlar › Firmalar)',f:()=>Desk.openLuca('firms')},
+      {g:'Luca',b:'Luca\'ya bağlan / pencereyi göster',d:'Luca giriş penceresi',f:()=>{const b=$('#lucaTopBtn');if(b)b.click();else window.__mwApi.luca.open();}},
       {g:'Ayarlar',b:'Ayarlar',d:'Lisans, büro, Luca giriş, WhatsApp, yedek, firmalar',f:()=>openReg(),k:'Ctrl+S'},
       {g:'Ayarlar',b:'Yedek al',d:'Tüm verileri bir klasöre kopyala',f:async()=>{try{const r=await mwBusy.run('Yedek alınıyor…','',()=>window.__mwApi.yedek.al());if(r&&r.ok)toast('Yedek alındı: '+r.path);}catch(e){toast(cleanErr(e));}}},
       {g:'Ayarlar',b:'Hata günlüğünü aç',d:'Belgeler\\MuhaWin Günlük\\hatalar.log',f:()=>window.__mwApi.hata.ac()},
@@ -5955,7 +5973,6 @@ const FISG=(()=>{
       <div class="fg-alt"><button class="btn small" id="fgSatir" title="Alt+E">＋ Satır</button><button class="btn small ghost danger" id="fgTemizle" title="Alt+Y">Yeni Fiş</button><button class="btn small" id="fgSablon" title="Sık kullanılan fişleri (kira, maaş, SGK, amortisman…) şablon olarak saklayın; firmaya özeldir">▤ Şablonlar${(f&&(f.fkFisSablon||[]).length)?` <span class="mono">${(f.fkFisSablon||[]).length}</span>`:''}</button>
         <span class="note">${eksik.length?`<span style="color:var(--out)">${eksik.length} satırda hesap ya da tutar eksik / planda yok</span>`:satirlar.length?satirlar.length+' satır':''}</span><span style="flex:1"></span>
         <button class="btn small" id="fgXls" ${denk&&!eksik.length?'':'disabled'} title="Luca'nın Excel'den fiş aktarımı biçiminde dosya">Excel'e Aktar</button>
-        <button class="btn small luca-off lucabag" data-lucabag="1" title="Luca bağlantısı">Luca'ya bağlan</button>
         <button class="btn primary" id="fgKaydet" ${denk&&!eksik.length&&f?'':'disabled'} title="Alt+K">Fişi Luca'ya Kaydet</button></div>
       ${st.kayitlar.length?`<div class="fg-kayit"><b>Bu oturumda kaydedilen fişler</b>${st.kayitlar.slice().reverse().map(k=>`<div class="note">${esc(k.firma)} · ${esc(dmy(k.tarih))} · ${esc(k.ac||'')} · ${fmt(k.tutar)} TL · <b>Luca fiş ${esc(k.no||'')}</b></div>`).join('')}</div>`:''}
       <datalist id="fgAccList"></datalist>`;
