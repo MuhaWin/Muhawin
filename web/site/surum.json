@@ -1,8 +1,8 @@
 {
-  "surum": "2.9.12",
-  "dosya": "MuhaWin-Kurulum-2.9.12.exe",
+  "surum": "2.9.13",
+  "dosya": "MuhaWin-Kurulum-2.9.13.exe",
   "depo": "muhawin/muhawin-surumler",
-  "indir": "https://github.com/muhawin/muhawin-surumler/releases/download/v2.9.12/MuhaWin-Kurulum-2.9.12.exe",
+  "indir": "https://github.com/muhawin/muhawin-surumler/releases/download/v2.9.13/MuhaWin-Kurulum-2.9.13.exe",
   "moduller": [
     "Muhasebe İşlemleri",
     "Banka İşlemleri",
@@ -15,6 +15,39 @@
     "Personel"
   ],
   "notlar": [
+    {
+      "surum": "2.9.13",
+      "maddeler": [
+        {
+          "metin": "Menü düzeni: üst şeridin altında kalıcı modül sekmeleri (Banka · Muhasebe · Belgeden Fiş · Denetim · Ofisinize Özel · Geçici Vergi (yakında) · Personel (yakında)). Sekmeyle modül değiştirilir; modül seçim ekranı (\"▦ Modüller\") yerinde.",
+          "alt": []
+        },
+        {
+          "metin": "Luca'ya giriş tek düğmeden: üst şeritteki \"Luca'ya giriş\" / \"● Luca bağlı\". Diğer ekranlardaki \"Luca'ya bağlan\" düğmeleri kaldırıldı. Luca gerektiren bir iş bağlantı yokken başlarsa uyarı çıkar, üstteki düğme yanıp söner ve giriş penceresi açılır; bağlanınca iş kendiliğinden sürer.",
+          "alt": []
+        },
+        {
+          "metin": "\"Yeni firma\" ve \"Luca'dan firma ekle\" artık Ayarlar → Firmalar bölümünde (komut paletinde de var).",
+          "alt": []
+        },
+        {
+          "metin": "\"Mizan / Muavin\" düğmesinin adı \"Mizan / Muavin / Hesap Planı\"; sekme sırası Mizan · Muavin · Hesap Planı, ilk açılan Mizan.",
+          "alt": []
+        },
+        {
+          "metin": "Güncelleme sorusu: yeni sürüm çıkınca program açılışta \"Yeni sürüm var\" diye sorar: \"Şimdi kur\" indirir, kurar ve programı yeniden açar; \"Sonra\" o oturumda aynı sürüm için yeniden sormaz (bir sonraki açılışta yine sorar). \"Güncellemeleri Denetle\" düğmesi \"Sonra\" denmiş olsa da sorar. Güncelleme artık sorulmadan indirilmez. Soru, bu sürüm kurulduktan sonra yayınlanan ilk sürümde görülür.",
+          "alt": []
+        },
+        {
+          "metin": "Fatura görüntüleme güvenliği: faturaya gömülü şablon artık dosya/ağ erişimi olmadan ve script çalıştırmadan gösterilir.",
+          "alt": []
+        },
+        {
+          "metin": "Otomatik güncelleme muhawin/muhawin-surumler deposundan yapılır.",
+          "alt": []
+        }
+      ]
+    },
     {
       "surum": "2.9.12",
       "maddeler": [
@@ -227,15 +260,6 @@
         },
         {
           "metin": "Luca istek kaydı tüm Luca adreslerini, yüklenen dosya bilgisini ve uzun yanıtları kaydeder (şifre alanları gizlenir).",
-          "alt": []
-        }
-      ]
-    },
-    {
-      "surum": "2.9.5",
-      "maddeler": [
-        {
-          "metin": "Otomatik güncelleme GitHub'daki muhawin/muhawin-surumler deposundan yapılır. 2.9.5'i her bilgisayara BİR KEZ elle kurun; sonraki sürümler program açıkken kendiliğinden indirilir (Ayarlar → Hakkında → Güncellemeleri Denetle).",
           "alt": []
         }
       ]

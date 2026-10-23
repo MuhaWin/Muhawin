@@ -63,11 +63,11 @@ def calistir(klasor: Path, bas: date, bit: date, vkn: str | None = None, firma: 
         return None
     ft, uyarilar, vkn = kimlik_sec(zipler, vkn)
     muavin, bilgi = muavinleri_oku(muavinler)
-    from . import red_iptal
-    red, red_uyari = red_iptal.oku(red_iptal.dosyalari(klasor))
+    from . import muavin_programlari as MP, red_iptal
+    red, red_uyari = red_iptal.oku(red_iptal.dosyalari(klasor), MP.red_iptal_duzeni(MP.klasor_programi(klasor)))
     uyarilar = uyarilar + red_uyari
     rapor = esle(ft, muavin, tolerans, (bas, bit), red=red)
-    from .web.app import rapor_kaydet
+    from .rapor_kayit import rapor_kaydet
     uyarilar = list(on_uyarilar or []) + arsiv.paket_uyarilari(klasor) + uyarilar
     if any(Path(m).suffix == ".json" for m in muavinler):
         uyarilar.insert(0, "İşletme / serbest meslek defteri: kayıtlar Luca Gelir ve Gider Listesi'nden alındı "

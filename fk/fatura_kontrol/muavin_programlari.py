@@ -4,6 +4,8 @@ Tek firma (dosyadan) kontrolde kullanıcı muavin dökümünün hangi muhasebe p
 programın okuyucusuyla okunup ortak muavin satırlarına (MuavinSatiri) çevrilir, kontrol aynı kurallarla yapılır.
 Yeni program eklemek: aşağıdaki PROGRAMLAR sözlüğüne okuyucu fonksiyonuyla bir kayıt eklenir
 (okuyucu(yol) -> (list[MuavinSatiri], {"firma": ...})).
+  "denetim": True  → program Denetim ekranının (denetim.html) program seçiminde görünür
+  "red_iptal": düzen → red / iptal Excel listelerinin sütun düzeni (red_iptal.DUZENLER; yoksa varsayılan düzen)
 """
 from __future__ import annotations
 
@@ -39,6 +41,8 @@ PROGRAMLAR: dict[str, dict] = {
         "uzantilar": [".xlsx"],
         "ipucu": "Mikro → Muhasebe → Hesap hareket dökümü (muavin) · tüm hesaplar · dönem · Excel'e aktar (xlsx)",
         "okuyucu": lambda y: _mikro_oku(y),
+        "denetim": True,
+        "red_iptal": "mikro",
     },
     "luca_isletme_excel": {
         "ad": "Luca İşletme / Serbest Meslek Defteri",
@@ -58,9 +62,21 @@ VARSAYILAN = "luca"
 DOSYA = "muavin_program.json"          # dönem klasöründe: muavinin hangi programdan geldiği
 
 
-def liste() -> list[dict]:
+def liste(denetim: bool = False) -> list[dict]:
+    """Seçim listesi; denetim=True ise yalnız Denetim ekranında kullanılabilen programlar."""
     return [{"kod": k, "ad": v["ad"], "uzantilar": v["uzantilar"], "ipucu": v["ipucu"]} for k, v in PROGRAMLAR.items()
-            if not v.get("gizli")]
+            if not v.get("gizli") and (not denetim or v.get("denetim"))]
+
+
+def denetimde_mi(kod: str) -> bool:
+    return bool(PROGRAMLAR.get(kod, {}).get("denetim"))
+
+
+def red_iptal_duzeni(kod: str | None) -> str:
+    """Programın red / iptal listesi sütun düzeni (kayıtta yoksa red_iptal.VARSAYILAN_DUZEN)."""
+    from . import red_iptal
+    d = PROGRAMLAR.get(kod or "", {}).get("red_iptal")
+    return d if d in red_iptal.DUZENLER else red_iptal.VARSAYILAN_DUZEN
 
 
 def gecerli(kod: str | None) -> str:

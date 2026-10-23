@@ -127,15 +127,15 @@ def oiv_kontrol(r, faturalar, muavin) -> list[dict]:
 
 def denetle(klasor: Path, bas: date, bit: date, vkn: str | None = None, firma: str = "", rapor_id: str = "") -> dict | None:
     from .kontrol import kimlik_sec, muavin_dosyalari, muavinleri_oku
-    from .web.app import _json
+    from .rapor_kayit import _json
     zipler = arsiv.donem_faturalari(klasor) or sorted(klasor.glob("gib_*.zip"))
     muavinler = muavin_dosyalari(klasor)
     if not zipler or not muavinler:
         return None
     ft, uyarilar, vkn = kimlik_sec(zipler, vkn)
     muavin, bilgi = muavinleri_oku(muavinler)
-    from . import red_iptal
-    red, red_uyari = red_iptal.oku(red_iptal.dosyalari(klasor))
+    from . import muavin_programlari as MP, red_iptal
+    red, red_uyari = red_iptal.oku(red_iptal.dosyalari(klasor), MP.red_iptal_duzeni(MP.klasor_programi(klasor)))
     uyarilar = list(uyarilar) + red_uyari
     r = esle(ft, muavin, Decimal("0.05"), (bas, bit), kontrol_listesi=DENETIM_KONTROLLER, red=red)
     v = _json(r, ft, uyarilar, bilgi.get("firma") or firma or "", vkn)

@@ -1,0 +1,100 @@
+# MuhaWin – web sitesi (Cloudflare Pages)
+#
+# Ne zaman çalışır:
+#   - Site, Denetim ya da Fatura Kontrol kodu değişen her PR ve main push'unda → derleme + testler
+#   - main push'unda, YAYIN AÇIKSA → Cloudflare Pages'e yayın
+#   - Actions → "MuhaWin site" → Run workflow (yayinla işaretli) → elle yayın
+#
+# Yayın için bir kez (Settings → Secrets and variables → Actions):
+#   Sırlar:     CLOUDFLARE_API_TOKEN (Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers" şablonu),
+#               CLOUDFLARE_ACCOUNT_ID
+#   Değişkenler: SITE_YAYIN = 1  (otomatik yayını açar; ilk yayından önce kullanıcı ekler)
+#               CF_PAGES_PROJE   (isteğe bağlı; Cloudflare Pages proje adı, varsayılan "muhawin")
+# Sır ya da SITE_YAYIN yoksa yalnız derleme ve testler çalışır. Belgeler hiçbir adımda kullanılmaz; testler sahte veriyle.
+
+name: MuhaWin site
+
+on:
+  push:
+    branches: [main]
+    paths: ['web/**', 'fk/fatura_kontrol/**', 'tools/site_uret.js', 'OKUBENI.txt', 'package.json', 'mobil-yonetim/**', '.github/workflows/site.yml']
+  pull_request:
+    paths: ['web/**', 'fk/fatura_kontrol/**', 'tools/site_uret.js', 'OKUBENI.txt', 'package.json', '.github/workflows/site.yml']
+  workflow_dispatch:
+    inputs:
+      yayinla:
+        description: 'Testlerden sonra Cloudflare Pages''e yayınla'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  derle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pyodide, wheel'ler ve test araçları
+        run: |
+          (cd web/denetim && npm ci && pip download --no-deps -r wheels.txt -d wheels)
+          pip install pytest openpyxl lxml xlrd playwright==1.64.1
+          python -m playwright install --with-deps chromium
+      - name: Siteyi derle
+        run: node tools/site_uret.js --denetim
+      - name: Sürüm notu testleri
+        run: node --test test/site_uret.test.js
+      - name: Denetim köprüsü (Pyodide, sahte veri)
+        run: node --test web/denetim/kopru.test.mjs
+      - name: Uçtan uca (Chromium, sahte Supabase)
+        run: EKRAN="$RUNNER_TEMP" python web/denetim/site_e2e.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: web/site
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ekran
+          path: ${{ runner.temp }}/site-denetim.png
+          if-no-files-found: ignore
+
+  yayinla:
+    needs: derle
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.SITE_YAYIN == '1') ||
+      (github.event_name == 'workflow_dispatch' && inputs.yayinla)
+    runs-on: ubuntu-latest
+    environment: site
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+      - name: Sırlar tanımlı mı
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          HESAP: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$HESAP" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN ve CLOUDFLARE_ACCOUNT_ID sırları tanımlı değil (web/KURULUM.md)."
+            exit 1
+          fi
+      - name: Cloudflare Pages'e yayınla
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site --project-name=${{ vars.CF_PAGES_PROJE || 'muhawin' }} --branch=main --commit-dirty=true

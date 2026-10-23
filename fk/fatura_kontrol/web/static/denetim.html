@@ -59,7 +59,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
 </head>
 <body>
 <header class="ust"><span class="logo" aria-hidden="true"></span><h1 style="font-size:16px;margin:0">Muhasebe Denetimi</h1>
-  <span style="font-size:12.5px;opacity:.8">Mikro muavini ve e-faturalarla firma denetimi: KDV · matrah · cari · beyanname</span></header>
+  <span style="font-size:12.5px;opacity:.8"><span class="progAd">Mikro</span> muavini ve e-faturalarla firma denetimi: KDV · matrah · cari · beyanname</span></header>
 <main>
   <aside>
     <section class="kart">
@@ -70,11 +70,12 @@ table.dt .durum{white-space:normal;line-height:1.3}
     </section>
     <section class="kart" style="display:grid;gap:10px">
       <h3 style="margin:0">2. Belgeler</h3>
-      <label class="alan">Alış ve satış e-faturaları (Mikro'dan alınan XML'ler ya da ZIP)<input type="file" id="xml" multiple accept=".xml,.zip"></label>
+      <label class="alan">Muhasebe programı<select id="program"><option value="mikro">Mikro</option></select></label>
+      <label class="alan">Alış ve satış e-faturaları (muhasebe programından ya da GİB portalından alınan XML'ler ya da ZIP)<input type="file" id="xml" multiple accept=".xml,.zip"></label>
       <div id="lucaKutu" hidden><button type="button" class="btn" id="lucaAl" style="justify-content:center;width:100%">Faturaları Luca'dan Al (seçili ay)</button>
         <div class="ipucu" id="lucaNot" style="margin-top:4px"></div></div>
-      <label class="alan">Red / iptal fatura listeleri (Mikro Excel · xls / xlsx · birden çok, isteğe bağlı)<input type="file" id="red" multiple accept=".xls,.xlsx"></label>
-      <label class="alan">Firmanın Mikro muavini (Hesap hareket dökümü · tüm hesaplar · Excel)<input type="file" id="muavin" accept=".xlsx"></label>
+      <label class="alan"><span>Red / iptal fatura listeleri (<span class="progAd">Mikro</span> Excel · xls / xlsx · birden çok, isteğe bağlı)</span><input type="file" id="red" multiple accept=".xls,.xlsx"></label>
+      <label class="alan"><span>Firmanın <span class="progAd">Mikro</span> muavini</span><span class="ipucu" id="muavinIpucu">Mikro → Muhasebe → Hesap hareket dökümü (muavin) · tüm hesaplar · dönem · Excel'e aktar (xlsx)</span><input type="file" id="muavin" accept=".xlsx"></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="alan">Başlangıç<input type="date" id="bas"></label><label class="alan">Bitiş<input type="date" id="bit"></label></div>
       <button type="button" class="btn birincil" id="basla">Denetimi Başlat</button>
       <p class="hata" id="hata"></p>
@@ -96,7 +97,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
     </section>
     <section class="kart" id="gecmisKart" hidden><h3>Önceki denetimler</h3><div id="gecmis" class="nav"></div></section>
   </aside>
-  <section id="icerik"><div class="bos" id="bos">Soldan firmayı seçin, alış / satış XML'lerini ve Mikro muavinini yükleyip “Denetimi Başlat”a basın.</div></section>
+  <section id="icerik"><div class="bos" id="bos">Soldan firmayı seçin, alış / satış XML'lerini ve <span class="progAd">Mikro</span> muavinini yükleyip “Denetimi Başlat”a basın.</div></section>
 </main>
 <div id="fisPen" role="dialog" aria-modal="true" aria-label="Fiş"><div class="ic"><div class="bas"><b id="fisBaslik">Fiş</b><span style="flex:1"></span>
   <button class="btn" type="button" id="fisYazdir">🖨 Yazdır</button><button class="btn" type="button" id="fisPdf">PDF</button><button class="btn" type="button" id="fisKapat">Kapat</button></div>
@@ -115,6 +116,27 @@ function firmaCiz(sec) {
   $("#firma").innerHTML = '<option value="">Firma seçin…</option>' + mwListe.map(f => `<option value="${esc(f.mw)}"${f.mw === s ? " selected" : ""}>${esc(f.ad)}</option>`).join("");
 }
 const seciliFirma = () => mwListe.find(f => f.mw === firmaK()) || null;
+/* muhasebe programı: muavin_programlari.PROGRAMLAR'da "denetim" işaretli olanlar (yeni program = yeni kayıt) */
+let programlar = [{kod: "mikro", ad: "Mikro", uzantilar: [".xlsx"], ipucu: $("#muavinIpucu").textContent}];
+const seciliProgram = () => programlar.find(p => p.kod === $("#program").value) || programlar[0];
+const progAd = () => seciliProgram().ad;
+function programCiz() {
+  const p = seciliProgram();
+  document.querySelectorAll(".progAd").forEach(e => e.textContent = p.ad);
+  $("#muavinIpucu").textContent = p.ipucu || "";
+  $("#muavin").accept = (p.uzantilar || [".xlsx"]).join(",");
+}
+async function programlarYukle() {
+  try {
+    const j = await (await fetch("/api/muavin/programlar?denetim=1")).json();
+    if (Array.isArray(j.programlar) && j.programlar.length) programlar = j.programlar;
+  } catch (e) {}
+  const s = $("#program"), once = s.value;
+  s.innerHTML = programlar.map(p => `<option value="${esc(p.kod)}">${esc(p.ad)}</option>`).join("");
+  if (programlar.some(p => p.kod === once)) s.value = once;
+  s.disabled = programlar.length < 2;              // bugün yalnız Mikro: tek seçenek
+  programCiz();
+}
 /* e-belgeler Luca'dan (Tek firma kontroldeki gibi; toplu otomasyon, yalnız faturalar) */
 let lucaFat = null, lucaCalisiyor = false;
 // Luca'dan faturalar inerken "Denetimi Başlat" kapalı; indirme bitince açılır
@@ -239,7 +261,7 @@ $("#fisPdf").onclick = async () => {
 };
 function ciz() {
   document.querySelectorAll("#nav [data-g]").forEach(b => { b.setAttribute("aria-pressed", String(b.dataset.g === gor)); b.disabled = !veri && b.dataset.g !== "ozet"; });
-  if (!veri) { $("#icerik").innerHTML = `<div class="bos">Soldan firmayı seçin, alış / satış XML'lerini ve Mikro muavinini yükleyip “Denetimi Başlat”a basın.</div>`; ["#nKDV", "#nMatrah", "#nCari", "#nFaturasiz", "#nOzet", "#nMuhtasar", "#nOIV"].forEach(x => rozet(x, null)); return; }
+  if (!veri) { $("#icerik").innerHTML = `<div class="bos">Soldan firmayı seçin, alış / satış XML'lerini ve ${esc(progAd())} muavinini yükleyip “Denetimi Başlat”a basın.</div>`; ["#nKDV", "#nMatrah", "#nCari", "#nFaturasiz", "#nOzet", "#nMuhtasar", "#nOIV"].forEach(x => rozet(x, null)); return; }
   const o = veri.ozet || {}; const fs = (veri.faturasi_olmayanlar || []).filter(s => s.uygun == null).length;
   rozet("#nKDV", (o.KDV || {}).sorunlu || 0); rozet("#nMatrah", (o.Matrah || {}).sorunlu || 0); rozet("#nCari", (o.Cari || {}).sorunlu || 0); rozet("#nFaturasiz", fs);
   rozet("#nOzet", ((o.KDV || {}).sorunlu || 0) + ((o.Matrah || {}).sorunlu || 0) + ((o.Cari || {}).sorunlu || 0) + fs);
@@ -318,8 +340,8 @@ $("#basla").onclick = async () => {
   const x = [...$("#xml").files], m = $("#muavin").files[0];
   const luca = lucaKullan();
   if (!x.length && !luca) { $("#hata").textContent = "Alış / satış e-fatura XML'lerini (ya da ZIP) seçin ya da faturaları Luca'dan alın."; return; }
-  if (!m) { $("#hata").textContent = "Firmanın Mikro muavinini seçin."; return; }
-  const fd = new FormData(); x.forEach(y => fd.append("faturalar", y)); fd.append("muavinler", m); [...$("#red").files].forEach(y => fd.append("red_iptal", y)); fd.append("program", "mikro"); if (luca) fd.append("fatura_kaynak", "luca");
+  if (!m) { $("#hata").textContent = `Firmanın ${progAd()} muavinini seçin.`; return; }
+  const fd = new FormData(); x.forEach(y => fd.append("faturalar", y)); fd.append("muavinler", m); [...$("#red").files].forEach(y => fd.append("red_iptal", y)); fd.append("program", $("#program").value); if (luca) fd.append("fatura_kaynak", "luca");
   fd.append("bas", $("#bas").value); fd.append("bit", $("#bit").value);
   if (f) { fd.append("firma_ad", f.ad); if (f.id) fd.append("firma_id", f.id); }
   $("#yukle").classList.add("acik"); $("#basla").disabled = true;
@@ -355,7 +377,8 @@ async function lucaIndir(adim) {
 }
 $("#lucaAl").onclick = () => lucaIndir();
 $("#bas").addEventListener("change", lucaKontrol);
-ciz(); listeYukle(); lucaCiz();
+$("#program").onchange = () => { programCiz(); if (!veri) ciz(); };
+ciz(); listeYukle(); lucaCiz(); programlarYukle();
 if (MW) window.parent.postMessage({fk: true, tip: "denetimHazir"}, "*");
 </script>
 </body>

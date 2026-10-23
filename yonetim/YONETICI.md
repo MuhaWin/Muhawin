@@ -60,10 +60,11 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | 04 | Alan adı, barındırma, tanıtım sitesi, web modülleri analizi | `gorevler/gorev-04-web-sitesi.md` | **Birleştirildi** ([#16](https://github.com/MuhaWin/Muhawin/pull/16)), Web Asistanı. Site `web/site/`. Kullanıcı kararı: belgeler **tarayıcıda** işlenir; alan adı alınacak (`muhawin.com.tr` + Cloudflare) |
 | 05 | Fatura görüntüleme güvenliği | `gorevler/gorev-05-fatura-goruntu-guvenligi.md` | **Birleştirildi** ([#15](https://github.com/MuhaWin/Muhawin/pull/15)) |
 | 07 | Canlı `ofis_veri` tablosu depoya + yetki düzeltmesi | (rapor-07) | **Birleştirildi** ([#20](https://github.com/MuhaWin/Muhawin/pull/20)). Canlıya uygulama kullanıcıda (acil değil; tablo programda kullanılmıyor) |
-| 08 | Rapor kaydı ayrımı + Denetim'de program seçimi (W1 ön koşulu) | `gorevler/gorev-08-rapor-kayit-ayrimi.md` | Açık (06, 07'den sonra). Yazılımcı |
-| 09 | Web: Muhasebe Denetimi tarayıcıda + site girişi | `gorevler/gorev-09-web-mikro-denetim.md` | Açık. Web Asistanı. Kullanıcı kararı: alan adı `muhawin.com.tr` (öneri: `muhawin.tr` de alınıp yönlendirilir); siteye ilk geçecek modül **Muhasebe Denetimi** (sitedeki adı), Mikro dışındaki programlarla genişleyecek |
+| 08 | Rapor kaydı ayrımı + Muhasebe Denetimi'nde program seçimi | `gorevler/gorev-08-rapor-kayit-ayrimi.md` | **Birleştirildi** ([#26](https://github.com/MuhaWin/Muhawin/pull/26)), Yazılımcı |
+| 11 | Sahte örnek test dosyaları | `gorevler/gorev-11-sahte-ornek-veriler.md` | Açık. Yazılımcı |
+| 09 | Web: Muhasebe Denetimi tarayıcıda + site girişi | `gorevler/gorev-09-web-mikro-denetim.md` | **Birleştirildi** ([#23](https://github.com/MuhaWin/Muhawin/pull/23)), Web Asistanı. Ad düzeltmeleri [#25](https://github.com/MuhaWin/Muhawin/pull/25). Alan adı `muhawin.com.tr` **alındı** (Hostinger, 23.10.2026); Cloudflare kurulumu ve ilk yayın sürüyor |
 | 06 | WhatsApp sunucu güvenliği (rapor-02 G-C) | `gorevler/gorev-06-whatsapp-sunucu-guvenligi.md` | **Birleştirildi** ([#18](https://github.com/MuhaWin/Muhawin/pull/18)). WhatsApp canlıda kurulu değil; kurulumda rapor-06 adımları |
-| 10 | "Hızlı Fiş Girişi" → "Belgeden Fiş" | `gorevler/gorev-10-belgeden-fis-adi.md` | Açık. Menü Düzenleme |
+| 10 | "Hızlı Fiş Girişi" → "Belgeden Fiş"; "Mikro Denetim" → "Muhasebe Denetimi" | `gorevler/gorev-10-belgeden-fis-adi.md` | Açık. Menü Düzenleme |
 | G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | İş akışı `.github/workflows/surum.yml`. **G-01 tamam:** 2.9.13 deneme derlendi ([#21](https://github.com/MuhaWin/Muhawin/pull/21), run 40018199927), kullanıcıya bağlantı verildi; `v2.9.13` etiketi konmaz. İlk yayın 2.9.14+ |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
 
@@ -81,6 +82,8 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 
 6. **Güvenlik düzeltme sırası** (rapor-02): 05 (G-A) → 06 (G-C) → test örnek verileri → Görev 01 birleştikten sonra G-B (pdf.js `isEvalSupported:false`, `renderer/index.html`) ve G-J (CSP) → G-D, G-F, G-E, G-I, G-G. **Kullanıcı kararı (23.10.2026):** O7 → ofis başına en fazla **10 kullanıcı** (G-E lisans sıkılaştırma görevine eklenecek). **Bekleyen:** G-H (kod imzalama sertifikası; OV yaklaşık 215–300 USD/yıl, Azure Artifact Signing Türkiye'den kullanılamıyor). `supabase-kurulum.sql` depoda yok; temel tabloların RLS'i denetlenemedi, kullanıcıdan alınmalı.
 7. **Test örnek dosyaları** (23.10.2026): Kullanıcıda dosya yok. Yazılımcı, kodun beklediği sütun düzenine göre sahte örnek dosyalar üretecek (Görev 06'dan sonra).
+
+8. **Muhasebe Denetimi programdan kaldırılacak** (kullanıcı kararı, 23.10.2026): Modül web'de (Görev 09) yayına alınıp kullanıcı denedikten sonra masaüstündeki "Muhasebe Denetimi" (eski Mikro Denetim) kaldırılır, yerine siteye yönlendiren bir kart/bağlantı konur. Ayrı görev olarak açılacak (Menü Düzenleme: `renderer/index.html`; Yazılımcı: kullanılmayan `fk` denetim uçları — site derlemesi `fk/fatura_kontrol` paketini kullandığı için Python kodu silinmez).
 
 ## Önerilen eklentiler
 - **claude-security** (Anthropic): Görev 02 için.

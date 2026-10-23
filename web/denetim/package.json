@@ -1,0 +1,6 @@
+{
+  "name": "muhawin-site-denetim",
+  "private": true,
+  "description": "Sitedeki Denetim için tarayıcıda çalışan Python (Pyodide). Paketler siteye kopyalanır; CDN kullanılmaz.",
+  "dependencies": { "pyodide": "0.27.2" }
+}
