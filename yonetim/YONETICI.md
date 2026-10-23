@@ -57,8 +57,11 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | 01 | Menü düzeni (**B: üstte modül sekmeleri**, kullanıcı kararı) | `gorevler/gorev-01-menu-duzeni.md` | **Birleştirildi** ([#13](https://github.com/MuhaWin/Muhawin/pull/13)), Menü Düzenleme. Rapor: `raporlar/rapor-01.md`. 1. senaryonun sonu sahte örnek verilerle yeniden denenecek |
 | 02 | Güvenlik denetimi (yalnız okuma) | `gorevler/gorev-02-guvenlik-denetimi.md` | **Birleştirildi** ([#9](https://github.com/MuhaWin/Muhawin/pull/9)). Rapor: `raporlar/rapor-02.md` (Kritik 1, Yüksek 3, Orta 11, Düşük 16) |
 | 03 | Açılışta güncelleme sorusu ("Şimdi kur / Sonra") | `gorevler/gorev-03-guncelleme-sorusu.md` | **Birleştirildi** ([#6](https://github.com/MuhaWin/Muhawin/pull/6)). Rapor: `raporlar/rapor-03.md`. Kurulu programda deneme ilk yayından sonra |
-| 04 | Alan adı, barındırma, tanıtım sitesi, web modülleri analizi | `gorevler/gorev-04-web-sitesi.md` | Açık. Uygulayan: **Web Asistanı**. Program dosyalarına dokunmaz; diğerleriyle paralel |
-| 05 | Fatura görüntüleme güvenliği (rapor-02 G-A, K1) | `gorevler/gorev-05-fatura-goruntu-guvenligi.md` | Açık. Uygulayan: **Yazılımcı** |
+| 04 | Alan adı, barındırma, tanıtım sitesi, web modülleri analizi | `gorevler/gorev-04-web-sitesi.md` | **Birleştirildi** ([#16](https://github.com/MuhaWin/Muhawin/pull/16)), Web Asistanı. Site `web/site/`. Kullanıcı kararı: belgeler **tarayıcıda** işlenir; alan adı alınacak (`muhawin.com.tr` + Cloudflare) |
+| 05 | Fatura görüntüleme güvenliği | `gorevler/gorev-05-fatura-goruntu-guvenligi.md` | **Birleştirildi** ([#15](https://github.com/MuhaWin/Muhawin/pull/15)) |
+| 07 | Canlı `ofis_veri` tablosu depoya + yetki düzeltmesi | (Yazılımcı'ya mesajla; rapor-07) | Açık. Canlıya uygulama kullanıcıda |
+| 08 | Rapor kaydı ayrımı (W1 ön koşulu) | `gorevler/gorev-08-rapor-kayit-ayrimi.md` | Açık (06, 07'den sonra). Yazılımcı |
+| 09 | Web: Mikro Denetim tarayıcıda + site girişi | `gorevler/gorev-09-web-mikro-denetim.md` | Açık. Web Asistanı |
 | 06 | WhatsApp sunucu güvenliği (rapor-02 G-C) | `gorevler/gorev-06-whatsapp-sunucu-guvenligi.md` | Açık (05'ten sonra). Uygulayan: **Yazılımcı**. Canlı Supabase'e uygulama kullanıcıda |
 | G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | İş akışı `.github/workflows/surum.yml` birleştirildi ([#11](https://github.com/MuhaWin/Muhawin/pull/11)). G-01: 2.9.13 deneme (Görev 01 + 03 dahil); kullanıcı onayı bekliyor (testleri atla + varsayılan dal `main`) |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
