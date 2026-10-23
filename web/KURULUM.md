@@ -12,7 +12,7 @@ Bu yüzden sitede çalışan bir sunucu programı yoktur; site tamamen statiktir
 | `DOMAIN/denetim/` | Muhasebe Denetimi, tarayıcıda (Pyodide); giriş `DOMAIN/giris.html` | `web/denetim/` + `fk/fatura_kontrol` (derlemede) |
 
 ## Önerilen yol: Cloudflare Pages (ücretsiz)
-Ayrıntı ve gerekçe: `yonetim/belgeler/web-saglayici-onerisi.md`. Site GitHub Actions ile derlenip yayınlanır
+Kullanıcı için tek sayfalık sade adımlar: `web/CLOUDFLARE-ADIMLAR.md`. Ayrıntı ve gerekçe: `yonetim/belgeler/web-saglayici-onerisi.md`. Site GitHub Actions ile derlenip yayınlanır
 (`.github/workflows/site.yml`): Pyodide ve Python paketi derleme sırasında siteye eklenir, testler (sahte veriyle)
 geçmeden yayın yapılmaz.
 
