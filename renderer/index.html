@@ -1980,7 +1980,9 @@ const Desk=(()=>{
   function lucaLabel(){return luca.loggedIn?'Luca bağlı':'Luca\'ya bağlan';}
   function lucaClass(){return luca.loggedIn?'luca-on':'luca-off';}
   function markLucaBtn(){try{LucaBag.boya(luca);return;}catch(e){}document.querySelectorAll('[data-luca="connect"]').forEach(b=>{b.classList.toggle('luca-on',!!luca.loggedIn);b.classList.toggle('luca-off',!luca.loggedIn);});}
-  function lucaAyarla(d){if(d&&typeof d.loggedIn==='boolean'){luca=d;markLucaBtn();}}
+  // bağlantı açılınca, bağlantı bekleyen Luca penceresi (firma ekle / mizanları güncelle) kendiliğinden devam eder
+  function lucaAyarla(d){if(d&&typeof d.loggedIn==='boolean'){const once=luca.loggedIn;luca=d;markLucaBtn();
+    if(!once&&d.loggedIn&&!busy&&$('#lucaModal')&&!$('#lucaModal').hidden)render();}}
   async function refreshLuca(){
     try{luca=await api.luca.status();}catch(e){luca={loggedIn:false};}
     renderToolbar();markLucaBtn();
@@ -2093,7 +2095,8 @@ const Desk=(()=>{
   function closeLuca(){if(busy){toast('İşlem bitene kadar bekleyin.');return;}$('#lucaModal').hidden=true;document.documentElement.style.overflow='';}
   async function render(){
     await refreshLuca();
-    if(!luca.loggedIn){renderConnect();return;}
+    // Luca girişi tek yerden (üst şeritteki düğme): bu pencerede ayrı giriş düğmesi yok, üst şeritteki vurgulanır
+    if(!luca.loggedIn){renderConnect();if(!luca.wrongUye)LucaBag.uyar('Luca bağlı değil. Üst şeritteki "Luca\'ya giriş" düğmesiyle bağlanın.');return;}
     if(mode==='firms')return renderFirms();
     if(mode==='mizan')return renderMizan();
     renderConnect();
@@ -2102,13 +2105,8 @@ const Desk=(()=>{
     body().innerHTML=(luca.wrongUye?`<div class="banner" style="background:var(--warn-bg);color:var(--warn)">${esc(luca.error||'')}</div>`:'')+(luca.loggedIn?`
       <div class="banner" style="background:var(--cari-bg);color:var(--cari-fg)">Luca oturumu açık. Firma listesini ve mizanları çekebilirsiniz.</div>
       <div class="actions"><button class="btn primary" data-lgo="firms">Luca'dan firma ekle</button><button class="btn" data-lgo="mizan">Mizanları güncelle</button><button class="btn ghost" data-lgo="show">Luca penceresini göster</button><button class="btn ghost danger" data-lgo="logout">Luca oturumunu kapat</button></div>`:`
-      <ol style="margin:0;padding-left:18px;display:grid;gap:6px">
-        <li><b>Luca'yı aç</b> düğmesine basın; Luca giriş sayfası ayrı bir pencerede açılır.</li>
-        <li>Üye numarası, kullanıcı adı ve parolanızla giriş yapın. Parolanız bu programda saklanmaz.</li>
-        <li>Açılan ekranda <b>Mali Müşavir Paketi</b>'ni açın. Luca ana ekranı yeni pencerede açılınca bağlantı kurulmuş olur.</li>
-        <li>Bu pencereye dönün; durum kendiliğinden “bağlı” olur.</li>
-      </ol>
-      <div class="actions"><button class="btn primary" data-lgo="open">Luca'yı aç</button><button class="btn" data-lgo="check">Bağlantıyı kontrol et</button><span class="note">${luca.windows?'Luca penceresi açık, giriş bekleniyor…':'Luca penceresi kapalı.'}</span></div>`);
+      <div class="banner">Luca bağlı değil. Bağlanmak için üst şeritteki <b>Luca'ya giriş</b> düğmesini kullanın; bağlanınca bu pencere kendiliğinden devam eder.</div>
+      <div class="actions"><button class="btn" data-lgo="check">Bağlantıyı kontrol et</button><span class="note">${luca.windows?'Luca penceresi açık, giriş bekleniyor…':'Luca penceresi kapalı.'}</span></div>`);
   }
   async function loadLucaFirms(force){
     if(lucaFirms&&!force)return lucaFirms;
@@ -2234,8 +2232,7 @@ const Desk=(()=>{
     if(t.dataset.luca){openLuca(t.dataset.luca);return;}
     if(t.dataset.lclose){closeLuca();return;}
     const g=t.dataset.lgo;
-    if(g==='open'){await api.luca.open();toast('Luca penceresi açıldı. Giriş yapıp Mali Müşavir Paketi\'ni açın.');renderConnect();}
-    else if(g==='check'){await render();if(!luca.loggedIn)toast('Henüz Luca ana ekranı açılmadı.');}
+    if(g==='check'){await render();if(!luca.loggedIn)toast('Henüz Luca ana ekranı açılmadı.');}
     else if(g==='show'){await api.luca.open();}
     else if(g==='logout'){await api.luca.logout();lucaFirms=null;await refreshLuca();renderConnect();}
     else if(g==='firms'||g==='mizan'){openLuca(g);}
@@ -3041,6 +3038,8 @@ rebuildRows();renderDatalist();renderAll();
    açık Luca ekranını öne getirir. */
 // Luca doğrulama kodu programda: Luca penceresi arka planda kalır, kodu kullanıcı okuyup yazar; program Luca'ya yazıp Giriş'e basar
 function captchaKutu(d){let k=document.getElementById('lucaCap');
+  // üst düzeyde: Desk / LucaBag içindeki api ve cleanErr burada görünmez (Görev 18: düğmeler "api is not defined" veriyordu)
+  const api=window.desktop,cleanErr=e=>String(e&&e.message||e).replace(/^Error invoking remote method '[^']+': (Error: )?/,'');
   if(d.yok){if(k)k.remove();toast('Doğrulama kodu resmi alınamadı; Luca penceresinde girişi tamamlayın.');return;}
   if(!k){k=document.createElement('div');k.id='lucaCap';k.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:center;justify-content:center';
     k.innerHTML=`<div style="background:var(--bg,#fff);color:inherit;border-radius:12px;padding:20px;width:min(380px,92vw);box-shadow:0 10px 40px rgba(0,0,0,.3)">
@@ -3048,6 +3047,7 @@ function captchaKutu(d){let k=document.getElementById('lucaCap');
       <img id="lucaCapImg" alt="Doğrulama kodu" style="display:block;max-width:100%;min-height:40px;background:#fff;border:1px solid #ccc;border-radius:6px;margin:0 auto 10px">
       <input id="lucaCapKod" autocomplete="off" placeholder="Resimdeki kodu yazın" style="width:100%;box-sizing:border-box;padding:9px;font-size:16px">
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap">
+        <button class="btn" id="lucaCapVazgec" title="Kutuyu kapat (Luca girişi yapılmaz)">Vazgeç</button>
         <button class="btn" id="lucaCapGoster" title="Luca giriş penceresini ekrana getirir">Luca'yı göster</button>
         <button class="btn" id="lucaCapYenile">Yeni kod</button><button class="btn primary" id="lucaCapGir">Giriş</button></div></div>`;
     document.body.appendChild(k);
@@ -3055,6 +3055,8 @@ function captchaKutu(d){let k=document.getElementById('lucaCap');
       try{await api.luca.captchaGir(kod);k.remove();toast('Kod Luca\'ya girildi; bağlantı bekleniyor…');}catch(e){toast(cleanErr(e));}finally{b.disabled=false;}};
     k.querySelector('#lucaCapGir').onclick=gir;k.querySelector('#lucaCapKod').onkeydown=e=>{if(e.key==='Enter')gir();};
     k.querySelector('#lucaCapYenile').onclick=()=>{api.luca.captchaYenile().catch(()=>{});};
+    k.querySelector('#lucaCapVazgec').onclick=()=>k.remove();
+    k.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();k.remove();}});
     k.querySelector('#lucaCapGoster').onclick=()=>{api.luca.girisGoster().catch(()=>{});k.remove();};}
   k.querySelector('#lucaCapImg').src=d.resim||'';k.querySelector('#lucaCapHata').textContent=d.hata?('Luca: '+d.hata):'Kodu yazıp Giriş\'e basın; Luca ekrana gelmeden giriş yapılır.';
   const i=k.querySelector('#lucaCapKod');i.value='';setTimeout(()=>i.focus(),50);}
