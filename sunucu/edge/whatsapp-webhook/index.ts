@@ -1,15 +1,18 @@
 // MuhaWin · WhatsApp Business Cloud API webhook (Supabase Edge Function)
 // Kurulum: supabase functions deploy whatsapp-webhook --no-verify-jwt
-// Secrets:  WA_TOKEN (Meta kalıcı erişim belirteci), WA_VERIFY_TOKEN (Meta panelinde yazdığınız doğrulama metni)
+// Secrets:  WA_TOKEN (Meta kalıcı erişim belirteci), WA_VERIFY_TOKEN (Meta panelinde yazdığınız doğrulama metni),
+//           WA_APP_SECRET (Meta App → Settings → Basic → App Secret; POST imzası X-Hub-Signature-256 bununla doğrulanır)
 //           SUPABASE_URL ve SUPABASE_SERVICE_ROLE_KEY otomatik gelir.
 // Meta → WhatsApp → Configuration → Webhook: Callback URL = https://<proje>.supabase.co/functions/v1/whatsapp-webhook
 // Alan: messages. Mükellefin gönderdiği fotoğraf / belge indirilir, "wa-fisler" kovasına yazılır, wa_gelen'e eklenir,
 // mükellefe kısa "alındı" yanıtı gider (servis mesajı; numara başına ayda 1.000 ücretsiz).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { abonelikGecerli, imzaGecerli } from "./imza.ts";
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const TOKEN = Deno.env.get("WA_TOKEN") ?? "";
 const VERIFY = Deno.env.get("WA_VERIFY_TOKEN") ?? "";
+const APP_SECRET = Deno.env.get("WA_APP_SECRET") ?? "";
 const GRAPH = "https://graph.facebook.com/v21.0";
 
 async function medyaIndir(id: string): Promise<{ buf: Uint8Array; mime: string } | null> {
@@ -30,12 +33,15 @@ async function yanitla(phoneId: string, to: string, text: string) {
 Deno.serve(async (req) => {
   const url = new URL(req.url);
   if (req.method === "GET") {           // Meta webhook doğrulaması
-    if (url.searchParams.get("hub.mode") === "subscribe" && url.searchParams.get("hub.verify_token") === VERIFY)
+    if (abonelikGecerli(VERIFY, url.searchParams.get("hub.mode"), url.searchParams.get("hub.verify_token")))
       return new Response(url.searchParams.get("hub.challenge") ?? "", { status: 200 });
     return new Response("doğrulama başarısız", { status: 403 });
   }
   if (req.method !== "POST") return new Response("", { status: 405 });
-  let body: any; try { body = await req.json(); } catch { return new Response("", { status: 400 }); }
+  // gövde Meta'dan mı? İmza ham gövde üzerinden doğrulanır; secret yoksa ya da uyuşmazsa hiçbir iş yapılmaz
+  const ham = new Uint8Array(await req.arrayBuffer());
+  if (!(await imzaGecerli(APP_SECRET, ham, req.headers.get("x-hub-signature-256")))) return new Response("imza geçersiz", { status: 401 });
+  let body: any; try { body = JSON.parse(new TextDecoder().decode(ham)); } catch { return new Response("", { status: 400 }); }
   let alinan = 0;
   for (const entry of body.entry ?? []) for (const ch of entry.changes ?? []) {
     const v = ch.value ?? {}; const phoneId = v.metadata?.phone_number_id;
