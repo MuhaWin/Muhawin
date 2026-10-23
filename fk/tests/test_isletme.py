@@ -41,7 +41,7 @@ def test_mikro_muavin():
     assert len(s) == 4476          # 4475 hareket + 190 Devreden KDV'nin dönem başı satırı
     assert sum(1 for x in s if x.fis_no == "DEVREDEN" and x.ana_hesap == "190") == 1
     k = next(x for x in s if x.belge_no == "KS12026001130211" and x.ana_hesap == "191")
-    assert k.kdv_orani == Decimal("1") and k.borc == Decimal("2.18") and k.unvan == "ŞOK MARKETLER A.Ş."
+    assert k.kdv_orani == Decimal("1") and k.borc == Decimal("2.18") and k.unvan == "ÖRNEK MARKETLER A.Ş."
     satis = [x for x in s if x.ana_hesap == "391" and x.belge_no == "AAS2026000004604"]
     assert satis and satis[0].kdv_orani == Decimal("20")
     assert "mikro" in [p["kod"] for p in MP.liste()]

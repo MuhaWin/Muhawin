@@ -1,0 +1,80 @@
+# MuhaWin – telefon yönetim paneli eşitlemesi
+#
+# Kaynak: bu depodaki mobil-yonetim/ (tek kaynak). Yayın: MuhaWin/Muhawin-yonetim- deposu (GitHub Pages).
+# main'e mobil-yonetim/ değişikliği gelince test edilir ve içerik o depoya kopyalanıp commit edilir.
+# Elle: Actions → "MuhaWin yönetim paneli" → Run workflow.
+#
+# Bir kez (kullanıcı): Settings → Secrets and variables → Actions → New repository secret
+#   YONETIM_TOKEN = yalnız MuhaWin/Muhawin-yonetim- deposuna "Contents: Read and write" veren fine-grained token
+#   (github.com → Settings → Developer settings → Fine-grained tokens). Token sohbete ya da dosyaya yazılmaz.
+# Sır yoksa iş akışı test eder ve açık bir hata iletisiyle durur; Pages deposuna dokunmaz.
+
+name: MuhaWin yönetim paneli
+
+on:
+  push:
+    branches: [main]
+    paths: ['mobil-yonetim/**', 'test/mobil.js', 'test/sahte_sb.js', '.github/workflows/mobil-yonetim.yml']
+  pull_request:
+    paths: ['mobil-yonetim/**', 'test/mobil.js', 'test/sahte_sb.js', '.github/workflows/mobil-yonetim.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobil-yonetim
+  cancel-in-progress: false
+
+env:
+  HEDEF_DEPO: MuhaWin/Muhawin-yonetim-
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Playwright (Chromium)
+        run: |
+          npm i --no-save --no-package-lock playwright@1.48.2
+          npx playwright install --with-deps chromium
+      - name: Panel testi (sahte Supabase)
+        run: node test/mobil.js
+
+  esitle:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sır tanımlı mı
+        env:
+          TOKEN: ${{ secrets.YONETIM_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::YONETIM_TOKEN sırrı tanımlı değil. Panel $HEDEF_DEPO deposuna kopyalanmadı (yonetim/raporlar/rapor-13.md → kullanıcı adımları)."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          path: kaynak
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HEDEF_DEPO }}
+          token: ${{ secrets.YONETIM_TOKEN }}
+          path: hedef
+      - name: Kopyala ve commit et
+        working-directory: hedef
+        run: |
+          # Pages deposunda elle eklenebilecek CNAME / .nojekyll korunur; geri kalan her şey kaynakla aynı olur
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name CNAME ! -name .nojekyll -exec rm -rf {} +
+          cp -r ../kaynak/mobil-yonetim/. .
+          git add -A
+          if git diff --cached --quiet; then echo "Değişiklik yok; Pages deposu güncel."; exit 0; fi
+          git -c user.name="MuhaWin eşitleme" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Eşitleme: MuhaWin/Muhawin@${GITHUB_SHA::7} (mobil-yonetim/)"
+          git push
+          git log --stat -1
