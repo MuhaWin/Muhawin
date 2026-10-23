@@ -305,14 +305,14 @@ wb.save(${JSON.stringify(mzx)})`]);
     // Luca giriş düğmesi tek: üst şeritte (#lucaTopBtn). Sayfalarda / araç çubuğunda ayrı "Luca'ya bağlan" düğmesi yok
     await w.waitForFunction(() => document.querySelector('#lucaTopBtn').classList.contains('luca-on'), null, { timeout: 8000 }).catch(() => {});
     { const d = await w.evaluate(() => { const L = [...document.querySelectorAll('[data-lucabag],[data-luca="connect"]')]; return { n: L.length, ids: L.map(b => b.id), t: (document.querySelector('#lucaTopBtn') || {}).textContent, on: document.querySelector('#lucaTopBtn').classList.contains('luca-on') }; });
-      check(d.n === 1 && d.ids[0] === 'lucaTopBtn' && d.on && /● Luca bağlı/.test(d.t), 'Luca giriş düğmesi yalnız üst şeritte; bağlıyken "● Luca bağlı" (' + JSON.stringify(d) + ')'); }
+      check(d.n === 1 && d.ids[0] === 'lucaTopBtn' && d.on && /● Luca bağlı/i.test(d.t), 'Luca giriş düğmesi yalnız üst şeritte; bağlıyken "● Luca bağlı" (' + JSON.stringify(d) + ')'); }
     await app.evaluate(({ BrowserWindow }) => { global.__lucaBagli = false; for (const x of BrowserWindow.getAllWindows()) x.webContents.send('luca-event', 'durum', { loggedIn: false, windows: 0 }); });
     await w.waitForTimeout(300);
     { const off = await w.evaluate(() => [...document.querySelectorAll('[data-lucabag],[data-luca="connect"]')].every(b => b.classList.contains('luca-off')));
-      check(/^Luca'ya giriş$/.test((await w.textContent('#lucaTopBtn')).trim()), 'bağlı değilken üst şerit düğmesi "Luca\'ya giriş"');
+      check(/^Luca'ya giriş$/i.test((await w.textContent('#lucaTopBtn')).trim()), 'bağlı değilken üst şerit düğmesi "Luca\'ya giriş"');
       // Luca gerektiren işlem bağlantı yokken sessiz kalmaz: açık uyarı + üst şeritteki giriş düğmesi vurgulanır
       await app.evaluate(({ ipcMain }) => { global.__lucaAcildi = 0; const H = ipcMain._invokeHandlers; global.__lucaOpenAsil = H && H.get('luca-open'); ipcMain.removeHandler('luca-open'); ipcMain.handle('luca-open', () => { global.__lucaAcildi++; return {}; }); });
-      await w.evaluate(() => { document.querySelector('#toast').textContent = ''; window.__bk = LucaBag.bekle().then(() => 'ok', e => String(e)); });
+      await w.evaluate(() => { document.querySelector('#toast').textContent = ''; window.__bk = window.__lucaBag.bekle().then(() => 'ok', e => String(e)); });
       await w.waitForFunction(() => /Luca bağlı değil/.test(document.querySelector('#toast').textContent || ''), null, { timeout: 4000 }).catch(() => {});
       const u = await w.evaluate(() => ({ t: document.querySelector('#toast').textContent, v: document.querySelector('#lucaTopBtn').classList.contains('vurgu') }));
       check(/Luca bağlı değil/.test(u.t) && /üst şerit/i.test(u.t) && u.v && await app.evaluate(() => global.__lucaAcildi) === 1, 'Luca yokken Luca gerektiren işlem: uyarı gösterildi, üst şeritteki giriş düğmesi vurgulandı (' + u.t.slice(0, 80) + ')');

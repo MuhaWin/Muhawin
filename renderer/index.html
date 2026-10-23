@@ -3076,6 +3076,7 @@ const LucaBag=(()=>{
   setTimeout(yenile,300);
   return {yenile,bekle,boya,uyar,durum:()=>son};
 })();
+window.__lucaBag=LucaBag;
 
 /* ---------- veri eklenince mizan yoksa Luca'dan kendiliğinden çekilir (kullanıcının "Mizanı Luca'dan Çek"e basmasını beklemez) ---------- */
 const mizanOtoDenendi=new Set();
