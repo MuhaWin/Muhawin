@@ -31,7 +31,7 @@ Derleme yapılmadı. `renderer/index.html`'e dokunulmadı.
 |---|---|
 | `fk/tests/test_yerel_hijyen.py` (yeni) | **6/6** |
 | `node test/luca/kayit-sure.js` (yeni; CI'daki `test/luca/*` döngüsünde) | **5/5** |
-| Tüm `pytest`, `test/luca/*`, `test/mobil.js`, `xvfb-run -a node test/e2e.js` | SONUC_27 |
+| Tüm `pytest` · `test/luca/*` · `test/mobil.js` · `test/e2e.js` | 157 geçti (1 atlandı) · hepsi geçti · 45/45 · 286 geçti, 0 başarısız |
 
 Yeni testlerin kapsamı:
 - **D10:** Tanılama modunda dosyalar kalıyor; normal modda siliniyor. Hata veren bir firma işinden sonra da siliniyor.
