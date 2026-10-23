@@ -694,8 +694,10 @@ c.save()`]);
     const cf = await app.evaluate(() => global.__cfis);
     check(cf.length === fl.length && cf.every(x => Math.abs(x.fis.borc - x.fis.alacak) < 0.005 && x.fis.detaylar.length >= 2), 'Çek fişleri Luca\'ya gönderildi (' + cf.length + ')');
     check(await w.evaluate(() => window.__cek._st.hareket.filter(h => h.logged).length) > 0, 'kaydedilen çekler "MuhaWin ile kaydedilen" olarak işaretlendi');
-    await w.selectOption('#firmSel', 'savor'); await w.waitForTimeout(400);
-    await w.waitForFunction(() => window.__cek._firma() && window.__cek._firma().id === 'savor', null, { timeout: 10000 }).catch(() => {}); await w.evaluate(() => window.__cek._yenile());
+    // Luca kaydından sonraki arka plan yenilemesi (mizan / hesap planı, 2,5 sn sonra başlar) bitsin; firma değişimi beklenir (sessizce geçilmez)
+    await w.waitForFunction(() => !window.__mwMesgul(), null, { timeout: 60000 });
+    await w.selectOption('#firmSel', 'savor');
+    await w.waitForFunction(() => window.__cek._firma() && window.__cek._firma().id === 'savor', null, { timeout: 30000 }); await w.evaluate(() => window.__cek._yenile());
     await w.evaluate(() => { const st = window.__cek._st; st.hareket.length = 0; st.dosyalar.length = 0; st.logoTarih = '2026-09-30'; });
     await dosyaVer('logo_musteri.xlsx'); await dosyaVer('logo_kendi.xlsx');
     const lg = await w.evaluate(() => { const st = window.__cek._st; const say = {}; st.hareket.forEach(h => say[h.olay] = (say[h.olay] || 0) + 1);
@@ -1015,6 +1017,8 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     check(temiz === 0, 'tam silmede kurallar ve mizan silindi');
     await w.click('#fkkYenile'); await w.waitForTimeout(2500);
     check(!(await w.isHidden('#fkKayit')) && await w.isHidden('#fkkModal'), 'muavin yenileme arka planda başladı; kayıt ekranı açık kaldı (sayfa değişmedi)');
+    // muavin indirilirken ekranın ortasında bekleme penceresi açıktır (yavaş makinede / CI'da hâlâ sürer): kullanıcı gibi "Arka planda devam etsin"
+    if (await w.isVisible('#mwBusy')) { await w.click('#mwBusyIptal'); await w.waitForSelector('#mwBusy', { state: 'hidden', timeout: 10000 }); }
     await w.click('#fkkClose'); await w.waitForTimeout(300);
     const fr2 = await (await w.$('#fkFrame')).contentFrame();
     let du = null; for (let i = 0; i < 10 && !(du && du.tur); i++) { du = await fr2.evaluate(() => fetch('/api/toplu/durum').then(r => r.json())).catch(() => null); if (!(du && du.tur)) await new Promise(r => setTimeout(r, 500)); }
