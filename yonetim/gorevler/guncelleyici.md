@@ -1,7 +1,7 @@
-# Güncelleyici – Kalıcı Görev Kartı
+# Güncelleme – Kalıcı Görev Kartı
 
 **Rol:** Derleme ve sürüm yayınlama. Kalıcı işçidir; yönetici her derleme için bu kartın sonundaki "İş kayıtları" tablosuna yeni bir satır ekler.
-**Oturum adı:** Güncelleyici · **Depo:** `MuhaWin/Muhawin` (ayrıca yayın için `muhawin/muhawin-surumler`) · **Mesaj sınırı:** her iş için 20
+**Oturum adı:** Güncelleme · **Depo:** `MuhaWin/Muhawin` (ayrıca yayın için `muhawin/muhawin-surumler`) · **Mesaj sınırı:** her iş için 20
 
 ## Başlarken
 1. `yonetim/YONETICI.md` dosyasındaki "İşçi oturum kuralları" bölümünü uygula. Bu rolde derleme kullanıcının açık isteğiyle yapılır; yönetici bu tabloya iş yazdığında istek var sayılır.
