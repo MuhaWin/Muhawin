@@ -98,6 +98,20 @@ test('Luca ve sqlite olmadan çalışır (taklit yalnız fastapi / pydantic)', a
   assert.deepStrictEqual(JSON.parse(y), [false, false, true]);
 });
 
+test('belge sınırı (GirdiSiniri): uygulamanın kendi 400 iletisi döner', async () => {
+  const { createRequire } = await import('node:module');
+  const { zipYaz } = createRequire(import.meta.url)('../../tools/site_uret.js');
+  const bomba = zipYaz([{ ad: 'bomba.xml', veri: Buffer.alloc(11 * 1024 * 1024) }]);   // 11 MB sıfır ≈ 11 KB: oran sınırı
+  const form = {
+    faturalar: [{ ad: 'bomba.zip', veri: new Uint8Array(bomba) }],
+    muavinler: [{ ad: 'muavin.xlsx', veri: oku(path.join(ORNEK, 'muavin.xlsx')) }],
+    bas: ['2026-09-01'], bit: ['2026-09-30'], program: ['mikro'],
+  };
+  const y = await istek('POST', '/api/denetim', { form });
+  assert.strictEqual(y.durum, 400, y.govde);
+  assert.match(json(y).detail, /olağan dışı sıkıştırılmış/);
+});
+
 test('hatalar ve kapalı bölümler', async () => {
   const eksik = await istek('POST', '/api/denetim', { form: { bas: ['2026-09-01'] } });
   assert.strictEqual(eksik.durum, 422);

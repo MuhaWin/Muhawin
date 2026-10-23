@@ -23,6 +23,7 @@ from decimal import Decimal
 from pathlib import Path
 
 ROTALAR: list[tuple[str, re.Pattern, object]] = []
+ISLEYICILER: dict[type, object] = {}   # @app.exception_handler(Hata): uygulamanın kendi hata yanıtları
 # Tarayıcıda kapalı: Luca'ya bağlanan ve bilgisayara özgü bölümler
 KAPALI = re.compile(r"^/api/(toplu|kontrol/luca-faturalari|isletme-fis|ayarlar|bildirim|verileri-sil)(/|$)")
 
@@ -119,6 +120,12 @@ class FastAPI:
 
     def middleware(self, *a, **k):
         return lambda f: f
+
+    def exception_handler(self, hata):
+        def kaydet(fn):
+            ISLEYICILER[hata] = fn
+            return fn
+        return kaydet
 
     def on_event(self, *a, **k):
         return lambda f: f
@@ -261,8 +268,14 @@ async def cagir(yontem: str, yol: str, sorgu: dict, govde, form: dict):
             return _yanit(sonuc)
         except HTTPException as e:
             return _hata(e.status_code, str(e.detail))
-        except Exception as e:  # programdaki gibi kullanıcıya kısa ileti
-            import traceback
+        except Exception as e:
+            isleyici = next((ISLEYICILER[t] for t in type(e).__mro__ if t in ISLEYICILER), None)
+            if isleyici:                # ör. GirdiSiniri → 400 ve Türkçe ileti (app.py ile aynı)
+                yanit = isleyici(Request(sorgu or {}), e)
+                if inspect.isawaitable(yanit):
+                    yanit = await yanit
+                return _yanit(yanit)
+            import traceback   # programdaki gibi kullanıcıya kısa ileti
             traceback.print_exc()
             return _hata(500, f"Beklenmeyen hata: {e}")
     return _hata(404, "Bulunamadı")
