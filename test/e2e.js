@@ -1022,6 +1022,17 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
       check(t1.u5.join('|') === 'ALİ VELİ|HASAN HÜSEYİN ÖZTÜRK|AYŞE KAYA', 'etiketsiz açıklamalarda kişi adı bulunur (IBAN atlanır): ' + JSON.stringify(t1.u5));
       check(t1.o1.kod === '320.01.008' && t1.o1.yeni && t1.o2.kod === t1.o1.kod && t1.tm && t1.o3.kod === '320.01.001' && !t1.o3.yeni, 'taslak cari: sıradaki kod 320.01.008 (aynı karşı taraf aynı kod), planda olan ünvan kendi kodunu alır');
       check(t1.u1 === 'ABC İNŞAAT TİC. LTD. ŞTİ.' && t1.u2 === '' && t1.u3 === 'AHMET YILMAZ', 'banka açıklamasından karşı taraf ünvanı çıkarıldı (' + t1.u1 + ' / ' + t1.u3 + ')');
+      // Görev 22: IBAN / salt sayıya cari önerilmez; " - " ekli ünvan mevcut cariyle eşleşir, yeni cari açılmaz
+      const g22 = await w.evaluate(() => { const H = window.__hesap; const f = window.__app.Store.local().firms.kf1;
+        const m = new Map([['120', 'ALICILAR'], ['120.01', 'ALICILAR 1'], ['120.01.003', 'ABC TURİZM ANONİM ŞİRKETİ'], ['120.01.004', 'KAYA GIDA LTD ŞTİ']]);
+        const yok = ['TR33 0006 1005 1978 6457 8413 26', 'TR330006100519786457841326', '1234567890', '0012-3456-789 / 55', 'TR 4543 1234'].map(u => H.cariOner(f, m, '120', u, ''));
+        const ek = H.cariOner(f, m, '120', 'ABC TURİZM A.Ş. - XYZ OTEL', ''), ek2 = H.cariOner(f, m, '120', 'KAYA GIDA LTD. ŞTİ. - LARA ŞUBESİ', '');
+        const y1 = H.cariOner(f, m, '120', 'DEF YAPI LTD ŞTİ - ANTALYA ŞANTİYESİ', ''), y2 = H.cariOner(f, m, '120', 'DEF YAPI LTD ŞTİ - İZMİR ŞANTİYESİ', '');
+        const U = window.__app.unvanCikar;
+        return { yok, ek, ek2, y1, y2, u: U('FAST GELEN ABC TURİZM A.Ş. - XYZ OTEL REF 778899') }; });
+      check(g22.yok.every(x => x === null), 'IBAN (boşluklu / boşluksuz) ve salt sayı / kod dizilerine cari önerilmez: ' + JSON.stringify(g22.yok));
+      check(g22.ek && g22.ek.kod === '120.01.003' && !g22.ek.yeni && g22.ek2 && g22.ek2.kod === '120.01.004' && !g22.ek2.yeni, '" - " ekli ünvan (ABC TURİZM A.Ş. - XYZ OTEL) mevcut cariyle eşleşti, yeni cari açılmadı (' + JSON.stringify([g22.ek, g22.ek2]) + ')');
+      check(g22.y1 && g22.y1.yeni && g22.y2 && g22.y2.kod === g22.y1.kod && !/ŞANTİYE/.test(g22.y1.ad), 'planda olmayan ekli ünvanın şubeleri tek taslak cari (ek atılmış adla): ' + JSON.stringify([g22.y1, g22.y2]) + ' · banka açıklamasından: ' + g22.u);
       const p = w.evaluate(async () => { const H = window.__hesap; const f = window.__app.Store.local().firms.kf1; const r = await H.taslakHazirla(f, ['320.01.008', '770.01']); return { ok: r.ok, degis: [...r.degis], kalan: H.taslakMi(f.id, '320.01.008') }; });
       await w.waitForSelector('#askModal:not([hidden])', { timeout: 15000 }); const soru = await w.textContent('#askText'); await w.click('#askYes');
       const t2 = await p; const ek = await app.evaluate(() => global.__hp2);

@@ -6431,11 +6431,22 @@ const HESAP=(()=>{
     for(const [c,n,nt] of planIndeks(m).g[grup]||[]){const hit=ut.filter(t=>nt.has(t)).length;if(!hit)continue;
       const sc=hit/Math.max(ut.length,nt.size);if(sc>bs){bs=sc;best=[c,n];}}
     return bs>=0.6?best:null;}
+  // Cari adı olamayacak metinler: IBAN (TR + 24 hane, boşluklu / boşluksuz), salt sayı / kod dizileri, harfli sözcüğü olmayanlar
+  function cariAdOlur(unvan){
+    const s=String(unvan||'').toLocaleUpperCase('tr-TR').replace(/\bTR\s?\d{2}(?:\s?\d{4}){5}\s?\d{2}\b/g,' ').replace(/\bTR\d{24}\b/g,' ');
+    const harfli=s.split(/[\s,;:|\/*()]+/).filter(t=>/[A-ZÇĞİÖŞÜ]{2,}/.test(t)&&!/^TR\d+$/.test(t)&&!GENERIC.has(N(t)));
+    if(!harfli.length)return false;
+    const r=s.replace(/\s/g,'');return (r.match(/\d/g)||[]).length<=r.length/2;}
+  // "ABC TURİZM A.Ş. - XYZ OTEL": " - " sonrası ek (şube, otel, proje adı) atılmış taban ünvan
+  const unvanTaban=u=>{const p=String(u||'').split(/\s+-\s+/);return p.length>1&&tk(p[0]).length?p[0].trim():'';};
   /** {kod, ad, yeni}: planda varsa o hesap, yoksa taslak (aynı karşı taraf için hep aynı kod). */
   function cariOner(f,m,grup,unvan,vkn){
-    if(!f||!unvan)return null;const T=tMap(f.id);const a=(vkn?'V:'+vkn:'U:'+tk(unvan).join(' '))+'|'+grup;
+    if(!f||!unvan||!cariAdOlur(unvan))return null;
+    {const v=planCariBul(m,grup,unvan);if(v)return {kod:v[0],ad:v[1],yeni:false};}
+    // ekli ünvan: ek atılarak mevcut cariyle eşleşir; eşleşmezse yeni cari de taban ünvanla açılır (aynı firmanın şubeleri tek cari)
+    {const t=unvanTaban(unvan);if(t){unvan=t;const v=planCariBul(m,grup,t);if(v)return {kod:v[0],ad:v[1],yeni:false};}}
+    const T=tMap(f.id);const a=(vkn?'V:'+vkn:'U:'+tk(unvan).join(' '))+'|'+grup;
     for(const x of T.values())if(x.anahtar===a&&!m.has(x.kod))return {kod:x.kod,ad:x.ad,yeni:true};
-    const v=planCariBul(m,grup,unvan);if(v)return {kod:v[0],ad:v[1],yeni:false};
     const ek=new Map([...T.values()].map(x=>[x.kod,x.ad]));
     const yeni=cariKodu(m,grup,String(unvan).trim().slice(0,100),ek);
     for(const y of yeni){if(m.has(y.kod)||T.has(y.kod))continue;T.set(y.kod,{kod:y.kod,ad:String(y.ad).trim().slice(0,100),ust:!!y.ust,vkn:y.ust?'':(vkn||''),anahtar:y.ust?'':a,grup});}
@@ -6481,7 +6492,7 @@ const HESAP=(()=>{
     for(const k of kul)if(!T.has(k)&&!degis.has(k))degis.set(k,k);
     return {ok:!hata.length,degis,hata};}
   window.__mwMesgul=()=>bekleyen.size>0||(window.__mwArkaPlan||0)>0;   // test: kayıt sonrası mizan / plan yenilemesi bekliyor ya da sürüyor
-  return {ac,hesaplar,sonraki,cariKodu,vadeHesaplari,aktifFirma,yenile,sor,planYenile,kayitSonrasi,cariOner,taslakMi,taslakAd,planHazir,planUnut,taslakHazirla,_taslak:taslak};
+  return {ac,hesaplar,sonraki,cariKodu,vadeHesaplari,aktifFirma,yenile,sor,planYenile,kayitSonrasi,cariOner,taslakMi,taslakAd,planHazir,planUnut,taslakHazirla,_taslak:taslak,_cariAdOlur:cariAdOlur,_unvanTaban:unvanTaban};
 })();
 window.__hesap=HESAP;
 /* ---------- Başlık Biçimi: buton, sekme, tablo başlığı ve etiketlerde her kelime büyük harfle başlar (açıklamalar hariç) ---------- */
