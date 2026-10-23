@@ -15,6 +15,9 @@ Yalnız **görünen metin** değişir; modül kimliği (`okc`), lisans anahtarla
 - `OKUBENI.txt` 1. satırdaki modül listesi; 134. satırı "Belgeden Fiş (eski adları Hızlı Fiş Girişi, ÖKC Fiş Girişi)" yap
 - `web/site/` dokunulmaz (Web Asistanı'na ayrıca bildirildi)
 
+## Ek (kullanıcı kararı, 23.10.2026)
+Masaüstündeki **"Mikro Denetim"** kartı ve başlıkları da **"Muhasebe Denetimi"** olur (yalnız görünen metin; `ozel` / `mikro` kimlikleri ve lisans anahtarları aynı). Modülün programdan kaldırılması bu görevin konusu değildir.
+
 ## Kabul
 - `grep -rn "Hızlı Fiş Girişi"` yalnız OKUBENI'deki "eski adları" açıklamasında ve eski sürüm notlarında kalır.
 - `node test/mobil.js` 42/42; e2e tabandan kötü değil.
