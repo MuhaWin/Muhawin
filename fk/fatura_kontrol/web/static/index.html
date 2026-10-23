@@ -295,6 +295,21 @@ body.form-gizli #formGizle,body.gomulu #formGizle,body.gomulu #formAc{display:no
   </div>
 </dialog>
 
+<!-- Fiş: rapordaki fiş numarasına tıklayınca muavinden fişin tüm satırları (Görev 19) -->
+<dialog id="fisPen" aria-label="Fiş" style="width:min(1000px,94vw);max-height:88vh;padding:0;border:1px solid var(--line,#ddd);border-radius:12px;background:var(--panel);color:inherit">
+  <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line,#ddd);position:sticky;top:0;background:var(--panel)">
+    <b id="fisBaslik">Fiş</b><span style="flex:1"></span>
+    <button type="button" class="ikincil" id="fisYazdir">🖨 Yazdır / PDF</button>
+    <button type="button" class="ikincil" onclick="this.closest('dialog').close()">Kapat</button></div>
+  <div id="fisGovde" style="padding:12px 16px;overflow:auto"></div>
+</dialog>
+<style>
+.fisbtn{white-space:nowrap;border:1px solid var(--line,#ddd);background:var(--panel);color:var(--brand-2,#1f4aa8);border-radius:5px;padding:0 5px;font:inherit;font-size:11px;cursor:pointer;margin:1px 2px 0 0}
+.fisbtn:hover{background:var(--accent,#e7eefb)}
+#fisPen table{width:100%;border-collapse:collapse;font-size:12.5px}#fisPen th,#fisPen td{border-bottom:1px solid var(--line,#ddd);padding:5px 8px;text-align:left;vertical-align:top}
+#fisPen td.n,#fisPen th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}#fisPen tfoot td{font-weight:700}
+</style>
+
 <script>
 const dosyalar = {faturalar: [], muavinler: [], red: []};
 const kabul = {faturalar: ".zip,.xml", muavinler: ".xlsx", red: ".xls,.xlsx"};
@@ -305,6 +320,14 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const tl = new Intl.NumberFormat("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const para = v => v == null ? "" : tl.format(v);
 const tarih = s => s ? s.split("-").reverse().join(".") : "";
+// "10 (05.09.2026), 11 (06.09.2026)" → tıklanınca fişi açan düğmeler; metin filtre/sıralama için aynı kalır
+function fisDugmeleri(fisler) {
+  return String(fisler || "").split(/,\s*(?=[^,]*\(\d{2}\.\d{2}\.\d{4}\))/).filter(Boolean).map(x => {
+    const m = x.trim().match(/^(.*?)\s*\((\d{2}\.\d{2}\.\d{4})\)$/);
+    return m ? `<button type="button" class="fisbtn" data-fis="${esc(m[1])}" data-tarih="${esc(m[2])}" title="Fişi aç">🧾 ${esc(m[1])} (${esc(m[2])})</button>` : esc(x);
+  }).join(" ");
+}
+const fisNoBtn = r => r.fis_no ? `<button type="button" class="fisbtn" data-fis="${esc(r.fis_no)}" data-tarih="${esc(tarih(r.fis_tarihi))}" title="Fişi aç">🧾 ${esc(r.fis_no)}</button>` : "";
 // Aramada büyük/küçük harf ve Türkçe karakter farkını yok say (MULTINET = multinet = Multınet, ŞİRKETİ = sirketi)
 const sade = s => String(s ?? "").toLocaleLowerCase("tr").replace(/ı/g, "i").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
@@ -616,12 +639,12 @@ const KOLON = {
     ["Belge no", "belge_no", "mono"], ["Tarih", r => tarih(r.tarih), "dar"], ["Karşı taraf / VKN", KT, "genis ikinci"],
     ["Fatura tipi / döviz", r => esc(r.fatura_tipi) + (r.doviz ? `<small class="yazi">${esc(r.doviz)}</small>` : ""), "tip ikinci"],
     ["Fatura KDV", "fatura_tutari", "para"], ["Muavin", "muavin_tutari", "para"], ["Fark", "fark", "para"],
-    ["Hesap / fiş", r => esc(r.hesaplar) + (r.fisler ? `<small class="yazi">${esc(r.fisler)}</small>` : ""), "ikinci hesap"],
+    ["Hesap / fiş", r => esc(r.hesaplar) + (r.fisler ? `<small class="yazi">${fisDugmeleri(r.fisler)}</small>` : ""), "ikinci hesap"],
     ["Açıklama", "aciklama", "aciklama"], ["", uygunBtn, "dar karar"]],
-  faturasiz: [["", r => uygunBtn(r, true), "dar karar"], ["Hesap", "hesap", "mono"], ["Hesap adı", "hesap_adi"], ["Fiş tarihi", r => tarih(r.fis_tarihi), "dar"], ["Fiş no", "fis_no", "dar"],
+  faturasiz: [["", r => uygunBtn(r, true), "dar karar"], ["Hesap", "hesap", "mono"], ["Hesap adı", "hesap_adi"], ["Fiş tarihi", r => tarih(r.fis_tarihi), "dar"], ["Fiş no", fisNoBtn, "dar"],
     ["Belge tarihi", r => tarih(r.belge_tarihi), "dar"], ["Belge no", "belge_no", "mono"], ["Ünvan", "unvan"], ["Tutar", "tutar", "para"],
     ["Kullanıcı kararı", r => r.uygun != null ? `<span class="durum d-ok">Uygun</span> <small class="yazi">${esc(r.uygun)}</small>` : "", "aciklama"]],
-  disi: [["Hesap", "hesap", "mono"], ["Hesap adı", "hesap_adi"], ["Fiş tarihi", r => tarih(r.fis_tarihi), "dar"], ["Fiş no", "fis_no", "dar"],
+  disi: [["Hesap", "hesap", "mono"], ["Hesap adı", "hesap_adi"], ["Fiş tarihi", r => tarih(r.fis_tarihi), "dar"], ["Fiş no", fisNoBtn, "dar"],
     ["Tutar", "tutar", "para"], ["Açıklama", "aciklama", "aciklama"]],
   tevkifat: [["Yön", "yon", "dar"], ["Tarih", r => tarih(r.tarih), "dar"], ["Belge no", "belge_no", "mono"],
     ["Karşı taraf / VKN", KT, "genis ikinci"], ["Matrah", "matrah", "para"], ["KDV", "kdv", "para"],
@@ -631,7 +654,7 @@ const KOLON = {
     ["Red / iptal", "ne", "dar"], ["Yön", "yon", "dar"], ["Belge no", "belge_no", "mono"], ["Tarih", r => tarih(r.tarih), "dar"], ["Karşı taraf / VKN", KT, "genis ikinci"],
     ["Matrah", "matrah", "para"], ["KDV", "kdv", "para"], ["Yekün", "yekun", "para"], ["Döviz", "doviz", "dar"],
     ["e-Fatura dosyalarında", r => r.faturada ? "var" : "yok", "dar"],
-    ["Hesap / fiş", r => esc(r.hesaplar) + (r.fisler ? `<small class="yazi">${esc(r.fisler)}</small>` : ""), "ikinci hesap"],
+    ["Hesap / fiş", r => esc(r.hesaplar) + (r.fisler ? `<small class="yazi">${fisDugmeleri(r.fisler)}</small>` : ""), "ikinci hesap"],
     ["Liste durumu", r => esc(r.durum) + (r.dosya ? `<small class="yazi">${esc(r.dosya)}</small>` : ""), "aciklama ikinci"]],
   faturalar: [["Yön", "yon", "dar"], ["Belge no", "belge_no", "mono"], ["Tarih", r => tarih(r.tarih), "dar"], ["Senaryo", "senaryo", "dar"], ["Fatura tipi / istisna", "fatura_tipi", "tip"],
     ["Karşı taraf / VKN", KT, "genis ikinci"], ["Matrah", "matrah", "para"], ["KDV", "kdv", "para"],
@@ -790,6 +813,32 @@ function faturaBtn(r) {
   return `<a class="fatura-btn" title="Faturayı PDF olarak aç" target="_blank" data-pdfid="${esc(veri.id)}" data-pdfbelge="${esc(r.belge_no)}"
     href="/api/fatura/goruntu?id=${encodeURIComponent(veri.id)}&belge=${encodeURIComponent(r.belge_no)}">📄</a>`;
 }
+// Fiş penceresi: muavinden (yalnız okuma: /api/denetim/fis), yazdır / PDF (/api/denetim/fis/yazdir)
+let acikFis = null;
+const fisAdres = (yol, f, ek) => `${yol}?id=${encodeURIComponent(veri.id || "")}&fis=${encodeURIComponent(f.fis)}&tarih=${encodeURIComponent(f.tarih)}${ek || ""}`;
+async function fisAc(fis, ftarih) {
+  if (!veri || !veri.id) return;
+  acikFis = {fis, tarih: ftarih};
+  $("#fisBaslik").textContent = `Fiş ${fis} · ${ftarih}`;
+  $("#fisGovde").innerHTML = '<p class="ipucu" style="padding:20px;text-align:center">Fiş muavinden hazırlanıyor…</p>';
+  if (!$("#fisPen").open) $("#fisPen").showModal();
+  try {
+    const r = await fetch(fisAdres("/api/denetim/fis", acikFis)); const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || "Fiş bulunamadı");
+    const tb = (b, a) => `<td class="n">${b ? para(b) : ""}</td><td class="n">${a ? para(a) : ""}</td>`;
+    $("#fisBaslik").textContent = `Fiş ${j.fis_no} · ${tarih(j.tarih)}${j.tip ? " · " + j.tip : ""}`;
+    $("#fisGovde").innerHTML = `<table class="tg-yok"><thead><tr><th>Tarih</th><th>Hesap</th><th>Hesap adı</th><th>Açıklama</th><th>Belge no</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead>
+      <tbody>${j.satirlar.map(x => `<tr><td>${esc(tarih(x.tarih))}</td><td class="mono">${esc(x.hesap)}</td><td>${esc(x.hesap_adi)}</td><td>${esc(x.aciklama)}</td><td class="mono">${esc(x.belge_no)}</td>${tb(x.borc, x.alacak)}</tr>`).join("")}</tbody>
+      <tfoot><tr><td colspan="5">Toplam${j.dengeli ? "" : " — fiş dengesiz"}</td>${tb(j.borc, j.alacak)}</tr></tfoot></table>`;
+  } catch (e) { $("#fisGovde").innerHTML = `<p class="hata" style="padding:20px">${esc(e.message)}</p>`; }
+}
+document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-fis]"); if (b) { e.preventDefault(); e.stopPropagation(); fisAc(b.dataset.fis, b.dataset.tarih); } });
+$("#fisYazdir").onclick = async () => {
+  if (!acikFis) return;
+  if (!MW) { window.open(fisAdres("/api/denetim/fis/yazdir", acikFis), "_blank"); return; }
+  const html = await (await fetch(fisAdres("/api/denetim/fis/yazdir", acikFis, "&oto=0"))).text();
+  window.parent.postMessage({fk: true, tip: "htmlPdf", ad: `Fis_${acikFis.fis}`, html: html.replace(/<div class=yok[\s\S]*?<\/div>/, "")}, "*");
+};
 // MuhaWin içinde: fatura PDF'e dönüştürülüp ayrı pencerede açılır
 document.addEventListener("click", e => {
   const a = e.target.closest && e.target.closest("a[data-pdfbelge]");

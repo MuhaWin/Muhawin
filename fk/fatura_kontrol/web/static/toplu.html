@@ -605,9 +605,22 @@ function calismaGoster(c) {
   const say = {};
   c.sonuclar.forEach(r => say[r.durum] = (say[r.durum] || 0) + 1);
   const renk = {"Sorun var": "var(--bad)", "Hata": "var(--bad-strong)", "Eksik indirme": "var(--warn)", "Temiz": "var(--ok)", "Belge/muavin yok": "var(--info)"};
-  $("#kutular").innerHTML = Object.keys(DURUM_SIRA).filter(k => say[k]).map(k =>
+  // "Tümü": durum ve sütun filtreleri kalkar, bu ayın bütün sonuçları listelenir (Görev 19)
+  const kolonFiltre = (() => { const d = window.__tablo && window.__tablo.durum.get("sonucTablo"); return !!(d && Object.values(d.f || {}).some(v => v && v.trim())); })();
+  $("#kutular").innerHTML = (c.sonuclar.length ? `<button type="button" class="kutu tumu ${!durumFiltre && !kolonFiltre ? "secili" : ""}" id="tumuBtn" title="Filtreleri kaldırıp bütün sonuçları gösterir"><div class="sayi">${c.sonuclar.length}</div><div class="ad">Tümü</div></button>` : "") +
+    Object.keys(DURUM_SIRA).filter(k => say[k]).map(k =>
     `<button type="button" class="kutu ${durumFiltre === k ? "secili" : ""}" data-k="${esc(k)}"><div class="sayi" style="color:${renk[k] || "inherit"}">${say[k]}</div><div class="ad">${esc(k)}</div></button>`).join("");
-  $("#kutular").querySelectorAll(".kutu").forEach(b => b.onclick = () => { durumFiltre = durumFiltre === b.dataset.k ? null : b.dataset.k; calismaGoster(calisma); });
+  $("#kutular").querySelectorAll(".kutu[data-k]").forEach(b => b.onclick = () => { durumFiltre = durumFiltre === b.dataset.k ? null : b.dataset.k; calismaGoster(calisma); });
+  if (!window.__tumuDinle) { window.__tumuDinle = true;   // sütun filtresi yazıldıkça "Tümü" seçili görünümü güncellenir
+    document.addEventListener("input", e => { if (!e.target.closest || !e.target.closest("#sonucTablo tr.tg-filtre")) return;
+      const b = $("#tumuBtn"); if (b) b.classList.toggle("secili", !durumFiltre && ![...document.querySelectorAll("#sonucTablo tr.tg-filtre input")].some(i => i.value.trim())); }); }
+  const tumu = $("#tumuBtn");
+  if (tumu) tumu.onclick = () => {
+    durumFiltre = null;
+    const d = window.__tablo && window.__tablo.durum.get("sonucTablo"); if (d) d.f = {};
+    const fr = $("#sonucTablo thead tr.tg-filtre"); if (fr) fr.remove();   // filtre satırı boş olarak yeniden kurulur
+    calismaGoster(calisma);
+  };
 
   if (durumFiltre) satirlar = satirlar.filter(r => r.durum === durumFiltre);
   satirlar.sort((a, b) => ((DURUM_SIRA[a.durum] ?? -1) - (DURUM_SIRA[b.durum] ?? -1)) || a.ad.localeCompare(b.ad, "tr"));
