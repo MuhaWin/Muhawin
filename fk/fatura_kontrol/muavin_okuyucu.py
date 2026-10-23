@@ -64,13 +64,57 @@ class MuavinSatiri:
         return self.alacak - self.borc
 
 
+# Başlık / etiket karşılaştırması: Türkçe büyük-küçük harf ve aksan farkı gözetilmez ("Tarih" = "TARİH" = "TARIH")
+_KATLA = str.maketrans("çğıöşüâîû", "cgiosuaiu")
+
+
+def _kat(v) -> str:
+    s = str(v or "").replace("İ", "i").replace("I", "ı").lower().replace("i̇", "i").translate(_KATLA)
+    return re.sub(r"\s+", " ", s).strip(" .:")
+
+
+# Luca sürümlerine göre başlık adları değişebiliyor; her alan için kabul edilen adlar (katlanmış)
+KOLONLAR = {
+    "tarih": ("tarih", "fis tarihi", "fis tarih", "yevmiye tarihi", "islem tarihi"),
+    "tip": ("tip", "fis tipi", "fis turu", "tur"),
+    "fis_no": ("fis no", "fis numarasi", "fis no su", "yevmiye no", "yevmiye numarasi", "fis"),
+    "aciklama": ("aciklama", "aciklamasi"),
+    "borc": ("borc", "borc tutari", "borc tutar"),
+    "alacak": ("alacak", "alacak tutari", "alacak tutar"),
+}
+# Hareket olmayan satırlar (devir, nakli yekün, ara / genel toplam): fiş numarası boşsa ve metin bunlardan biriyle başlıyorsa
+_OZET_RE = re.compile(r"^(devreden|devir|onceki donem|nakli yekun|nakl[iı] yekun|ara toplam|toplam|genel toplam|donem toplami|hesap toplami)")
+# Hesap başlığı: "191.10.20 %20 İndirilecek KDV", "Hesap Kodu: 191.10.20 - ...", ya da kod ve ad ayrı hücrelerde
+_KOD_RE = re.compile(r"^\d{3}(?:[.\-][0-9A-Za-z]+)*$")
+_HESAP_ONEK_RE = re.compile(r"^hesap(\s*kodu)?\s*:?\s*", re.I)
+
+
 def _dec(v) -> Decimal:
+    """Tutar: sayı ya da metin ("1.234,56", "1,234.56", "1234.56", "(1.234,56)", "1.234,56-", "1.234,56 TL")."""
     if v is None or v == "":
         return Decimal("0")
+    if isinstance(v, bool):
+        raise ValueError(f"Tutar okunamadı: {v!r}")
     if isinstance(v, (int, float)):
         return Decimal(str(v))
-    s = str(v).strip().replace(".", "").replace(",", ".")
-    return Decimal(s) if s else Decimal("0")
+    s = re.sub(r"\s+|TL|TRY|₺", "", str(v).strip(), flags=re.I)
+    if s in ("", "-"):
+        return Decimal("0")
+    eksi = s.startswith("(") and s.endswith(")") or s.endswith("-")
+    s = s.strip("()").rstrip("-")
+    if s.startswith("-"):
+        eksi, s = not eksi, s[1:]
+    if "," in s and "." in s:                       # son ayraç ondalık ayracıdır
+        s = s.replace(".", "").replace(",", ".") if s.rfind(",") > s.rfind(".") else s.replace(",", "")
+    elif "," in s:
+        s = s.replace(",", ".") if s.count(",") == 1 else s.replace(",", "")
+    elif s.count(".") > 1 or re.fullmatch(r"\d{1,3}\.\d{3}", s):   # "1.234.567" ya da "1.234": binlik ayracı
+        s = s.replace(".", "")
+    try:
+        d = Decimal(s)
+    except Exception:
+        raise ValueError(f"Tutar okunamadı: {v!r}") from None
+    return -d if eksi else d
 
 
 def _tarih(v) -> date | None:
@@ -79,14 +123,24 @@ def _tarih(v) -> date | None:
     if isinstance(v, date):
         return v
     if isinstance(v, str):
-        try:
-            return datetime.strptime(v.strip(), "%d/%m/%Y").date()
-        except ValueError:
+        t = v.strip().split(" ")[0] if v.strip() else ""
+        for bc in ("%d/%m/%Y", "%d.%m.%Y", "%d-%m-%Y", "%Y-%m-%d", "%Y.%m.%d", "%d/%m/%y", "%d.%m.%y"):
             try:
-                return datetime.strptime(v.strip(), "%d.%m.%Y").date()
+                return datetime.strptime(t, bc).date()
             except ValueError:
-                return None
+                continue
     return None
+
+
+def _hucre_tarih(v) -> date | None:
+    """Hareket satırının tarih hücresi: ayrıca tarih biçimi verilmemiş Excel seri sayısı (ör. 46295)."""
+    if isinstance(v, (int, float)) and not isinstance(v, bool) and 20000 <= v <= 80000:
+        from openpyxl.utils.datetime import from_excel
+        try:
+            return from_excel(v).date()
+        except (ValueError, OverflowError):
+            return None
+    return _tarih(v)
 
 
 def aciklama_ayristir(acik: str) -> tuple[date | None, str | None, str]:
@@ -96,37 +150,78 @@ def aciklama_ayristir(acik: str) -> tuple[date | None, str | None, str]:
     return _tarih(m.group(1)), re.sub(r"\s+", "", m.group(2)).upper(), m.group(3).strip()
 
 
+def _baslik(r) -> dict[str, int] | None:
+    """Sütun başlığı satırı mı? (tarih, borç ve alacak sütunları bulunmalı)"""
+    k = {}
+    for i, h in enumerate(r):
+        a = _kat(h)
+        for alan, adlar in KOLONLAR.items():
+            if a in adlar and alan not in k:
+                k[alan] = i
+    return k if {"tarih", "borc", "alacak"} <= k.keys() else None
+
+
+def _hesap(r) -> tuple[str, str] | None:
+    """Hesap başlığı satırı: ilk dolu hücre "kod ad" ya da yalnız kod (ad sonraki dolu hücrede)."""
+    dolu = [(i, str(x).strip()) for i, x in enumerate(r) if x is not None and str(x).strip()]
+    if not dolu or not isinstance(r[dolu[0][0]], str):
+        return None
+    ilk = _HESAP_ONEK_RE.sub("", dolu[0][1]) if _kat(dolu[0][1]).startswith("hesap") else dolu[0][1]
+    if m := HESAP_RE.match(ilk):
+        return m.group(1), m.group(2).strip(" -:")
+    if _KOD_RE.match(ilk) and len(dolu) > 1 and not _sayi_mi(dolu[1][1]):
+        return ilk.replace("-", "."), dolu[1][1].strip(" -:")
+    return None
+
+
+def _sayi_mi(s: str) -> bool:
+    return bool(re.fullmatch(r"[\d.,\s()-]+", s))
+
+
 def muavin_oku(yol: Path) -> tuple[list[MuavinSatiri], dict]:
     wb = openpyxl.load_workbook(yol, data_only=True)  # Luca dosyalarında boyut bilgisi eksik; read_only kullanılamaz
-    ws = wb.worksheets[0]
     satirlar: list[MuavinSatiri] = []
     bilgi: dict = {"dosya": yol.name}
     hesap_kodu = hesap_adi = None
     kolon: dict[str, int] = {}
 
-    for no, r in enumerate(ws.iter_rows(values_only=True), start=1):
-        ilk = r[0] if r else None
-        if no == 2 and isinstance(ilk, str):
-            bilgi["firma"] = ilk.strip()
-        if isinstance(ilk, str) and ilk.strip().startswith("Dönem"):
-            bilgi["donem"] = r[1]
-        if isinstance(ilk, str) and (m := HESAP_RE.match(ilk.strip())):
-            hesap_kodu, hesap_adi = m.group(1), m.group(2).strip()
-            continue
-        if isinstance(ilk, str) and ilk.strip().upper() == "TARİH":
-            kolon = {str(h).strip().upper(): i for i, h in enumerate(r) if h}
-            continue
-        fis_t = _tarih(ilk)
-        if fis_t is None or not kolon or hesap_kodu is None:
-            continue
-        acik = str(r[kolon["AÇIKLAMA"]] or "")
-        b_t, b_no, unvan = aciklama_ayristir(acik)
-        satirlar.append(MuavinSatiri(
-            dosya=yol.name, satir=no, hesap_kodu=hesap_kodu, hesap_adi=hesap_adi,
-            fis_tarihi=fis_t, fis_tipi=str(r[kolon.get("TİP", 1)] or ""),
-            fis_no=str(r[kolon.get("FİŞ NO", 2)] or ""), aciklama=acik,
-            borc=_dec(r[kolon["BORÇ"]]), alacak=_dec(r[kolon["ALACAK"]]),
-            belge_tarihi=b_t, belge_no=b_no, unvan=unvan,
-        ))
+    # Luca büyük muavinleri birden çok sayfaya bölebilir: tüm sayfalar sırayla okunur (hesap ve sütun bilgisi sayfadan sayfaya geçer)
+    for sn, ws in enumerate(wb.worksheets):
+        for no, r in enumerate(ws.iter_rows(values_only=True), start=1):
+            if not r:
+                continue
+            ilk = r[0]
+            if sn == 0 and no == 2 and isinstance(ilk, str):
+                bilgi["firma"] = ilk.strip()
+            if isinstance(ilk, str) and _kat(ilk).startswith("donem") and "donem" not in bilgi:
+                bilgi["donem"] = r[1] if len(r) > 1 else None
+            if (k := _baslik(r)) is not None:
+                kolon = k
+                continue
+            fis_t = _hucre_tarih(r[kolon["tarih"]]) if kolon and kolon["tarih"] < len(r) else None
+            if fis_t is None:
+                h = _hesap(r)
+                if h is not None and not (h[0] == hesap_kodu and "toplam" in _kat(h[1])):   # "191.10.20 Toplamı" satırı değil
+                    hesap_kodu, hesap_adi = h
+                continue
+            if hesap_kodu is None:
+                continue
+            al = lambda alan: r[kolon[alan]] if alan in kolon and kolon[alan] < len(r) else None
+            acik = str(al("aciklama") or "").strip()
+            fis_no = str(al("fis_no") or "").strip()
+            fis_no = re.sub(r"\.0+$", "", fis_no)          # sayı olarak gelen fiş no (12.0)
+            tip = str(al("tip") or "").strip()
+            if not fis_no and any(_OZET_RE.match(_kat(x)) for x in (acik, tip)):
+                continue
+            try:
+                borc, alacak = _dec(al("borc")), _dec(al("alacak"))
+            except ValueError as e:
+                raise ValueError(f"{yol.name} {ws.title} satır {no}: {e}") from None
+            b_t, b_no, unvan = aciklama_ayristir(acik)
+            satirlar.append(MuavinSatiri(
+                dosya=yol.name, satir=no if sn == 0 else (sn + 1) * 1_000_000 + no, hesap_kodu=hesap_kodu, hesap_adi=hesap_adi,
+                fis_tarihi=fis_t, fis_tipi=tip, fis_no=fis_no, aciklama=acik,
+                borc=borc, alacak=alacak, belge_tarihi=b_t, belge_no=b_no, unvan=unvan,
+            ))
     wb.close()
     return satirlar, bilgi
