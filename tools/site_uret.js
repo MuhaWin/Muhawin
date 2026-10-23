@@ -98,7 +98,8 @@ function sayfaUyarla(html) {
   const once = html;
   html = html.replace(/(href|src)="\/(simge\.ico|tema\.js|tema\.css|imlec\.css)"/g, '$1="$2"')
     .replace(/<script src="\/captcha\.js"[^>]*><\/script>\s*/g, '')
-    .replace(/location\.href = (?=[`"']\/api\/)/g, 'MW_KOPRU.git = ');
+    .replace(/location\.href = (?=[`"']\/api\/)/g, 'MW_KOPRU.git = ')
+    .replace(/(<title>|<h1[^>]*>)Mikro Denetim(?=<\/)/g, '$1Muhasebe Denetimi');   // sitedeki adı (kullanıcı kararı)
   const i = html.search(/<script>\s*\n/);
   if (i < 0 || html === once) throw new Error('Denetim sayfası beklenen biçimde değil (fk/.../static değişmiş olabilir).');
   return html.slice(0, i) + '<script src="/ortak/ayar.js"></script>\n<script src="/ortak/oturum.js"></script>\n<script src="kopru.js"></script>\n' + html.slice(i);

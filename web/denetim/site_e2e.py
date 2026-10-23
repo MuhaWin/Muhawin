@@ -135,13 +135,14 @@ def main():
         pg.fill("#parola", PAROLA); pg.click("#gir")
         pg.wait_for_url("**/denetim/")
         kontrol(pg.inner_text("#mwEposta") == LISANSLI, "girişten sonra denetim, e-posta üst çubukta")
+        kontrol(pg.title().startswith("Muhasebe Denetimi") and "Muhasebe Denetimi" in pg.inner_text("header h1"), "sayfa adı Muhasebe Denetimi")
         kontrol(pg.evaluate("sessionStorage.getItem('mw-oturum')").count("yenile-") == 1 and
                 pg.evaluate("Object.keys(localStorage).some(k => /oturum|token/i.test(k))") is False,
                 "yenileme belirteci sessionStorage'da; localStorage'da oturum yok")
 
         print("Denetim")
         bekle(pg, "window.MW_KOPRU && document.querySelector('#mwFirmaEkle')", 60000)
-        bekle(pg, "!document.body.innerText.includes('Denetim motoru')", 120000)
+        bekle(pg, "window.MW_KOPRU && window.MW_KOPRU.hazir", 120000)
         pg.fill("#mwYeniFirma", "ÖRNEK TİCARET A.Ş."); pg.click("#mwFirmaEkle")
         bekle(pg, "[...document.querySelectorAll('#firma option')].some(o => o.textContent === 'ÖRNEK TİCARET A.Ş.')")
         pg.select_option("#firma", "ÖRNEK TİCARET A.Ş.")
@@ -176,14 +177,14 @@ def main():
             pg.click("[data-ac^='/beyanname']")
         beyan = pp.value
         beyan.wait_for_url("**/denetim/beyanname.html?id=*")
-        bekle(beyan, "!document.body.innerText.includes('Denetim motoru')", 120000)
+        bekle(beyan, "window.MW_KOPRU && window.MW_KOPRU.hazir", 120000)
         beyan.wait_for_timeout(1500)
         kontrol("KDV" in beyan.inner_text("body"), "KDV beyannamesi sayfası açılır")
         beyan.close()
 
         print("Kalıcılık")
         pg.reload()
-        bekle(pg, "!document.body.innerText.includes('Denetim motoru')", 120000)
+        bekle(pg, "window.MW_KOPRU && window.MW_KOPRU.hazir", 120000)
         bekle(pg, "!document.querySelector('#gecmisKart').hidden", 30000)
         kontrol("ÖRNEK TİCARET" in pg.inner_text("#gecmis"), "sayfa yenilenince önceki denetim bu tarayıcıda duruyor")
 
@@ -192,7 +193,7 @@ def main():
         kontrol(pg.evaluate("sessionStorage.getItem('mw-oturum')") is None, "çıkışta oturum silinir")
         pg.fill("#eposta", LISANSSIZ); pg.fill("#parola", PAROLA); pg.click("#gir")
         pg.wait_for_url("**/denetim/")
-        pg.wait_for_selector("text=Denetime erişim yok")
+        pg.wait_for_selector("text=Muhasebe Denetimi'ne erişim yok")
         kontrol("ofisinize tanımlı değil" in pg.inner_text("body"), "ofisine Denetim tanımlı olmayan hesap giremez")
 
         print("Gizlilik")

@@ -54,3 +54,10 @@ test('denetim sayfası siteye uyarlanır: köprü önce yüklenir, Luca captcha 
   assert.ok(!/location\.href = [`"']\/api/.test(b) && b.includes('MW_KOPRU.git = `/api/'));
   assert.throws(() => sayfaUyarla('<html><body>bozuk</body></html>'), /beklenen biçimde değil/);
 });
+
+test('sitede modül adı Muhasebe Denetimi', () => {
+  const { sayfaUyarla } = require('../tools/site_uret');
+  const html = '<title>Mikro Denetim</title><link rel="stylesheet" href="/tema.css"><h1 style="x">Mikro Denetim</h1><script>\nx()</script>';
+  const d = sayfaUyarla(html);
+  assert.ok(d.includes('<title>Muhasebe Denetimi</title>') && d.includes('<h1 style="x">Muhasebe Denetimi</h1>'));
+});

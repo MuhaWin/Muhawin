@@ -9,7 +9,7 @@ Bu yüzden sitede çalışan bir sunucu programı yoktur; site tamamen statiktir
 | `DOMAIN` (`www.DOMAIN` → yönlendirme) | Tanıtım sitesi, indirme, sürüm notları | `web/site/` |
 | `indir.DOMAIN` | En son kurulum dosyasını (GitHub sürümü) hemen indirtir | `web/site/indir.html` |
 | `yonetim.DOMAIN` | Telefon yönetim paneli (yalnız bilgi@smmmantalya.com) | `mobil-yonetim/` |
-| `DOMAIN/denetim/` | Denetim, tarayıcıda (Pyodide); giriş `DOMAIN/giris.html` | `web/denetim/` + `fk/fatura_kontrol` (derlemede) |
+| `DOMAIN/denetim/` | Muhasebe Denetimi, tarayıcıda (Pyodide); giriş `DOMAIN/giris.html` | `web/denetim/` + `fk/fatura_kontrol` (derlemede) |
 
 ## Önerilen yol: Cloudflare Pages (ücretsiz)
 Ayrıntı ve gerekçe: `yonetim/belgeler/web-saglayici-onerisi.md`. Site GitHub Actions ile derlenip yayınlanır
@@ -36,7 +36,7 @@ geçmeden yayın yapılmaz.
 - `indir.muhawin.com.tr`: aynı Pages projesine özel alan adı olarak eklenir; **Rules → Redirect Rules** ile
   `indir.muhawin.com.tr/*` → `https://muhawin.com.tr/indir.html`.
 - `yonetim.muhawin.com.tr`: ikinci bir Pages projesi (`mobil-yonetim` klasörü) ya da GitHub Pages için CNAME.
-- Denetim ana adresin altında çalışır: `https://muhawin.com.tr/denetim/` (giriş: `/giris.html`).
+- Muhasebe Denetimi ana adresin altında çalışır: `https://muhawin.com.tr/denetim/` (giriş: `/giris.html`).
 
 ## Yeni sürüm çıktığında
 1. Sürüm her zamanki gibi GitHub'a yüklenir (OKUBENI.txt → *YENİ SÜRÜM YAYINLAMA*). Sitedeki indirme düğmesi en

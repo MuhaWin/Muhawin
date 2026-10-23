@@ -1,4 +1,4 @@
-/* MuhaWin sitesi · Denetim: sayfa ile tarayıcıdaki Python (calisan.js) arasındaki köprü.
+/* MuhaWin sitesi · Muhasebe Denetimi: sayfa ile tarayıcıdaki Python (calisan.js) arasındaki köprü.
    Sayfa (fk/fatura_kontrol/web/static/denetim.html'in kopyası) /api/... adreslerine istek atar; burada yakalanıp
    Worker'a verilir. Hiçbir belge ağa çıkmaz. HTML yanıtlar (fiş, fatura, çıktı raporu) ayrı pencerede, kum
    havuzlu (sandbox) bir çerçevede açılır: faturayla gelen şablon bu sitenin oturumuna erişemez. */
@@ -12,9 +12,9 @@
 
   calisan.onmessage = e => {
     const m = e.data;
-    if (m.tip === 'hazir') { hazirCoz(); durumYaz(''); return; }
+    if (m.tip === 'hazir') { hazirCoz(); window.MW_KOPRU.hazir = true; durumYaz(''); return; }
     if (m.tip === 'ilerleme') { durumYaz(m.metin); return; }
-    if (m.tip === 'hata') { hazirRed(new Error(m.metin)); durumYaz('Denetim motoru açılamadı: ' + m.metin, true); return; }
+    if (m.tip === 'hata') { hazirRed(new Error(m.metin)); durumYaz('Muhasebe Denetimi açılamadı: ' + m.metin, true); return; }
     const b = bekleyen.get(m.no); if (!b) return;
     bekleyen.delete(m.no); b(m.yanit);
   };
@@ -31,7 +31,7 @@
     serit.textContent = metin;
     serit.style.background = hata ? '#fde7e7' : '#16325C'; serit.style.color = hata ? '#a3262c' : '#fff';
   }
-  document.addEventListener('DOMContentLoaded', () => { if (!serit) durumYaz('Denetim motoru hazırlanıyor…'); });
+  document.addEventListener('DOMContentLoaded', () => { if (!serit) durumYaz('Muhasebe Denetimi hazırlanıyor…'); });
 
   const apiMi = u => u.origin === location.origin && u.pathname.startsWith('/api/');
 
@@ -121,7 +121,7 @@
   }, true);
 
   // location.href = "/api/…" yerine (derleme sırasında sayfada bu ada çevrilir)
-  window.MW_KOPRU = { set git(adres) { ac(adres, null); } };
+  window.MW_KOPRU = { hazir: false, set git(adres) { ac(adres, null); } };
 
   // ---- firma listesi: programda MuhaWin verir; burada önceki denetimlerden ve elle eklenen adlardan kurulur
   const FIRMA_ANAHTAR = 'mw-denetim-firmalar';
@@ -156,7 +156,7 @@
   function kapat(metin) {
     const k = document.createElement('div');
     k.style.cssText = 'position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(15,23,38,.6);font:15px system-ui,Segoe UI,Arial';
-    k.innerHTML = '<div style="background:#fff;color:#172033;max-width:440px;margin:16px;padding:24px;border-radius:12px"><b style="font-size:17px">Denetime erişim yok</b><p></p><p><a href="/">Ana sayfa</a> · <a href="#" id="mwCikis2">Başka hesapla giriş</a></p></div>';
+    k.innerHTML = '<div style="background:#fff;color:#172033;max-width:440px;margin:16px;padding:24px;border-radius:12px"><b style="font-size:17px">Muhasebe Denetimi&#39;ne erişim yok</b><p></p><p><a href="/">Ana sayfa</a> · <a href="#" id="mwCikis2">Başka hesapla giriş</a></p></div>';
     k.querySelector('p').textContent = metin;
     document.body.appendChild(k);
     k.querySelector('#mwCikis2').onclick = async e => { e.preventDefault(); await Oturum.cikis(); location.href = '/giris.html?geri=' + encodeURIComponent(location.pathname); };

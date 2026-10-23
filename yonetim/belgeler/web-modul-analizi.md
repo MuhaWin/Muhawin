@@ -15,7 +15,7 @@ Kısaltmalar. **R**: renderer (`renderer/index.html`, tarayıcı JS). **P**: Pyt
 
 | Modül | Bugün nerede | Tarayıcıda çalışır mı | Engeller | Gerekli sunucu işi | Büyüklük |
 |---|---|---|---|---|---|
-| **Mikro Denetim** (Ofisinize Özel) | P (`denetim.py`, `kontrol.py`, `/api/denetim*`) + R sayfası (`static/denetim.html`) | **Evet, denendi (Pyodide)** | `kontrol.py` → `web/app.py` bağımlılığı. Kalıcı veri için tarayıcı deposu (IndexedDB) ya da kullanıcının seçtiği klasör (File System Access API). Fatura görüntüsü (`goruntu.py`, lxml) yerine tarayıcının kendi XSLT'si kullanılır | Yok (yalnız giriş + lisans, Supabase) | **M** |
+| **Denetim** (bugün "Mikro Denetim", Ofisinize Özel; başka programlarla genişletilecek) | P (`denetim.py`, `kontrol.py`, `/api/denetim*`) + R sayfası (`static/denetim.html`) | **Evet, denendi (Pyodide)** | `kontrol.py` → `web/app.py` bağımlılığı. Kalıcı veri için tarayıcı deposu (IndexedDB) ya da kullanıcının seçtiği klasör (File System Access API). Fatura görüntüsü (`goruntu.py`, lxml) yerine tarayıcının kendi XSLT'si kullanılır | Yok (yalnız giriş + lisans, Supabase) | **M** |
 | KDV 1 / KDV 2 beyannamesi, çıktı raporu (Mikro Denetim içinde) | P (`beyanname.py`, `cikti.py`) | Evet (aynı Pyodide paketi) | W1 ile birlikte gelir | Yok | W1'e dahil |
 | Fatura – Muavin Kontrol, **dosyadan** (Muhasebe İşlemleri › tek firma) | P | Evet (aynı kod) | Luca'dan fatura/muavin indirme ve Luca'ya kayıt tarayıcıda olmaz; yalnız dosya yükleme | Yok | M (W1'den sonra S) |
 | Fatura – Muavin Kontrol, Luca'dan indirme / toplu kontrol / Luca'ya kayıt | P + L (Playwright) | **Hayır** | Luca otomasyonu, captcha, yerel Chrome | — | — |
@@ -36,7 +36,12 @@ Kısaltmalar. **R**: renderer (`renderer/index.html`, tarayıcı JS). **P**: Pyt
 
 ## 3. Önerilen ilk modüller ve görev kartı taslakları
 
-### W1 – Mikro Denetim tarayıcıda (önerilen ilk iş)
+### W1 – Denetim tarayıcıda (önerilen ilk iş)
+- **Kullanıcı kararı (23.10.2026):** İlk geçecek modül Denetim. Denetim yalnız Mikro'ya bağlı kalmayacak; **başka muhasebe programlarının evraklarıyla genişletilecek.** Bu yüzden web sürümü baştan "program seçmeli" kurulur:
+  - **Faturalar program bağımsız:** e-Fatura / e-Arşiv XML'i (UBL-TR) hangi programdan alınırsa alınsın aynıdır; okuyucu ortak (`fatura_okuyucu.py`).
+  - **Değişen yalnız muavin ve red/iptal listesi:** Muavin okuyucuları `muavin_programlari.py` → `PROGRAMLAR` sözlüğünde kayıtlı (bugün `luca`, `mikro`, işletme defterleri). Yeni bir program (ör. Logo, Netsis, Zirve, ETA) için bir okuyucu fonksiyonu ve bir kayıt eklemek yeter; denetim kuralları değişmez. Red/iptal okuyucusu (`red_iptal.py`) bugün Mikro'nun Excel sütunlarına göre; diğer programlar için aynı kayıt düzeni kurulmalı.
+  - **Sayfada program seçimi:** `denetim.html` bugün `program=mikro` sabit gönderiyor ve başlık/etiketlerde "Mikro" yazıyor. Web sürümünde program listesi `/api/muavin/programlar`'dan (`programlar()`) gelir; etiketler seçilen programın `ad` / `ipucu` alanlarından yazılır. Masaüstündeki "Mikro Denetim" kartı da aynı sayfayı kullandığı için bu değişiklik programa da yarar (adı "Denetim" olur).
+  - **Her yeni program ayrı küçük bir iştir (S):** okuyucu + o programın **sahte** örnek dışa aktarım dosyasıyla test. Kullanıcıdan her program için sütun düzenini gösteren örnek (gerçek veri çıkarılmış) bir dosya ya da ekran görüntüsü istenir.
 - **Neden:** Kullanıcı doğrudan istedi ("Mikro Denetim gibi Luca'sız bölümleri siteden kullanacağım"). Kod hazır ve tarayıcıda çalıştığı kanıtlandı.
 - **Ön koşul (Yazılımcı, `fk/`):** `rapor_kaydet` ve `_json`'u `web/app.py`'den yeni `fatura_kontrol/rapor_kayit.py` modülüne taşımak. `kontrol.py` artık `web.app`'i içe aktarmaz; geçmiş kaydı (sqlite) isteğe bağlı olur. Masaüstü davranışı değişmez; pytest aynı sonucu verir. Dokunulacak dosyalar: `fk/fatura_kontrol/kontrol.py`, `fk/fatura_kontrol/web/app.py`, yeni `fk/fatura_kontrol/rapor_kayit.py`. (S)
 - **Web Asistanı:**
