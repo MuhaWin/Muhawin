@@ -569,5 +569,6 @@ grant execute on function public.admin_users(), public.admin_user_detail(uuid), 
   public.admin_code_batches(), public.admin_settings(), public.admin_settings_set(jsonb), public.app_duyuru(), public.admin_log_list(int),
   public.admin_offices(), public.admin_office_set_ozel(uuid, text[]), public.admin_pin_check(text), public.admin_pin_set(text, text) to authenticated;
 revoke all on function public._module_status(uuid, text), public._office_json(uuid) from public, anon, authenticated;
+revoke all on function public._is_admin() from public, anon;
 
 notify pgrst, 'reload schema';
