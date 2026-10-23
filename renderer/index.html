@@ -302,6 +302,11 @@ const N=s=>String(s??'').toLocaleUpperCase('tr-TR').replace(/İ/g,'I').replace(/
 // Kural ifadesi: "A | B" → A ya da B; "KİRA + OCAK" → ikisi de geçmeli (sırası/yeri önemsiz). 3 harf ve kısası tam kelime.
 const kuralParcalari=k=>String(k||'').split('|').map(a=>a.split('+').map(N).filter(Boolean)).filter(x=>x.length);
 const parcaTutar=(parts,d)=>parts.every(a=>a.length<=3?d.includes(' '+a+' '):d.includes(a));
+// Kural şartları (Görev 21): k = 1. şart, ek = 2., 3. … şartlar; hepsi birlikte tutmalı (VE). Her şartın içinde | = ya da, + = hepsi.
+// Eski kurallarda ek yok: tek şart, bugünkü gibi. eylem: '' / 'kaydet' = karşı hesaba kaydet · 'atla' = hiç kaydetme (fişe alma)
+const kuralSartlari=r=>[r.k,...(Array.isArray(r.ek)?r.ek:[])].map(x=>String(x||'').trim()).filter(x=>kuralParcalari(x).length);
+const kuralMetni=r=>kuralSartlari(r).join('  VE  ');
+const kuralAtla=r=>r&&r.eylem==='atla';
 const kuralTutar=(k,metinN)=>{const d=' '+metinN+' ';return kuralParcalari(k).some(p=>parcaTutar(p,d));};
 const fmt=n=>(+n).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const pad=n=>String(n).padStart(2,'0');
@@ -679,9 +684,10 @@ function unvanCikar(desc){
   return '';
 }
 function buildMatcher(firm,rules,miz){
-  const rs=(rules||[]).map(r=>({...r,alts:kuralParcalari(r.k)})).filter(r=>r.alts.length&&r.acc);
+  const rs=(rules||[]).map(r=>({...r,alts:kuralParcalari(r.k),sart:kuralSartlari(r).map(kuralParcalari)})).filter(r=>r.alts.length&&(r.acc||kuralAtla(r)));
   const uz=p=>p.reduce((t,x)=>t+x.length,0);
-  rs.sort((a,b)=>Math.max(...b.alts.map(uz))-Math.max(...a.alts.map(uz)));
+  // çok şartlı kural daha özeldir, önce denenir; şart sayısı eşitse en uzun kelimeli önce (eski sıra)
+  rs.sort((a,b)=>(b.sart.length-a.sart.length)||(Math.max(...b.alts.map(uz))-Math.max(...a.alts.map(uz))));
   const cari=[];
   if(miz)for(const [code,name] of miz.accounts){
     if(!miz.leaf.has(code)||!name)continue;
@@ -692,7 +698,9 @@ function buildMatcher(firm,rules,miz){
   }
   return row=>{
     const d=' '+N(row.desc)+' ';const dir=row.amt>=0?'in':'out';
-    for(const r of rs){if(r.dir!=='all'&&r.dir!==dir)continue;if(r.alts.some(p=>parcaTutar(p,d)))return {acc:r.acc,src:'kural',why:r.k,ld:r.ld||''};}
+    for(const r of rs){if(r.dir!=='all'&&r.dir!==dir)continue;if(!r.sart.every(alts=>alts.some(p=>parcaTutar(p,d))))continue;
+      if(kuralAtla(r))return {acc:dir==='in'?(firm.askiIn||''):(firm.askiOut||''),src:'atla',why:kuralMetni(r),ld:''};
+      return {acc:r.acc,src:'kural',why:kuralMetni(r),ld:r.ld||''};}
     let best=null;
     for(const c of cari){if(c.key.every(k=>d.includes(' '+k+' '))){const pref=dir==='in'?c.code[0]==='1':c.code[0]==='3';const sc=(pref?100:0)+c.key.join('').length;if(!best||sc>best.sc)best={...c,sc};}}
     if(best)return {acc:best.code,src:'cari',why:best.name};
@@ -1163,6 +1171,10 @@ async function clearAllStatements(){
   document.querySelectorAll('.frow [data-cf]').forEach(el=>el.value='');
   rebuildRows();renderAll();toast('Tüm hareketler silindi.');
 }
+const kurallimi=r=>r.src==='kural'||r.src==='atla';                 // "hiç kaydetme" kuralına uyanlar da kurallı
+function eslesmeUygula(r,m){r.acc=m.acc;r.src=m.src;r.why=m.why;r.ld=m.ld||'';
+  if(m.src==='atla'){if(!r.kSkipIptal&&!r.skip){r.skip=true;r.kSkip=true;}}
+  else if(r.kSkip){r.skip=false;r.kSkip=false;r.kSkipIptal=false;}}
 function rebuildRows(){
   const prev=new Map(S.rows.map(r=>[r.id,r]));S.rows=[];
   for(const f of S.files){f.rows.forEach((r,i)=>{const id=f.id+':'+i;const p=prev.get(id);if(p&&p.amtRaw===r.amt){S.rows.push(p);return;}const kp=isCard()&&r.amt>0&&KK_PAY.test(N(r.desc))&&!KK_REF.test(N(r.desc));S.rows.push({...r,id,fileId:f.id,amtRaw:r.amt,manual:false,skip:kp,kpay:kp});});}
@@ -1171,7 +1183,7 @@ function rebuildRows(){
 function reassign(){
   const match=buildMatcher(S.firm,S.rules,S.miz);
   const H=window.__hesap;const f=S.firm;const plan=(H&&f&&f.lucaId&&!isExample())?H.planHazir(f,()=>{if(S.firm&&S.firm.id===f.id){reassign();renderAll();}}):null;
-  for(const r of S.rows){if(r.manual)continue;const m=match(r);r.acc=m.acc;r.src=m.src;r.why=m.why;r.ld=m.ld||'';
+  for(const r of S.rows){if(r.manual)continue;const m=match(r);eslesmeUygula(r,m);
     // mizanda bulunamayan karşı taraf: ünvanı açıklamadan çıkar → hesap planında ara → yoksa firmanın düzenine göre sıradaki kodla taslak cari
     if(m.src==='aski'&&plan){const ad=unvanCikar(r.desc);if(ad){const o=H.cariOner(f,plan,r.amt>=0?'120':'320',ad,'');
       if(o&&o.kod){r.acc=o.kod;r.src=o.yeni?'yeni':'cari';r.why=o.yeni?ad:(o.ad||ad);}}}}
@@ -1266,9 +1278,9 @@ function renderSide(){
   const f=S.firm;
   const rules=S.rules.slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   const q=N(S.ruleQ||'');
-  const shown=q?rules.filter(r=>N(r.k+' '+r.acc+' '+(r.ld||'')+' '+(accName(r.acc)||'')).includes(q)):rules;
+  const shown=q?rules.filter(r=>N(kuralMetni(r)+' '+r.acc+' '+(r.ld||'')+' '+(accName(r.acc)||'')).includes(q)):rules;
   const miz=f.mizanInfo;
-  const dr=S.draftRule||{k:'',dir:'all',acc:'',ld:''};
+  const dr=S.draftRule||{k:'',ek:[],dir:'all',acc:'',ld:'',eylem:''};const drEk=Array.isArray(dr.ek)?dr.ek:[];const drAtla=dr.eylem==='atla';
   $('#firmBody').innerHTML=`
       <div class="actions" style="justify-content:space-between"><span class="note">Bu ayarlar seçili firmaya kaydedilir.</span>${isExample()?'':`<button class="btn small ghost danger" id="delFirm">${S.confirmDel?'Silmeyi onayla':'Firmayı sil'}</button>`}</div>
       ${isExample()?`<div class="banner">Örnek veriyle açıldı. Kendi firmanız için <b>Ayarlar › Firmalar</b> bölümünden (Luca'dan firma ekle ya da Yeni firma) başlayın; mizan ve kurallar firmaya kaydedilir.</div>`:''}
@@ -1297,15 +1309,18 @@ function renderSide(){
   $('#rulesBody').innerHTML=S.rulesTab==='list'?`
       ${S.rules.length?'':'<div class="actions"><button class="btn small" id="stdRules">Standart kural setini ekle</button><span class="note">'+(isCard()?'Akaryakıt, telefon, kart faiz/masrafı, SGK, vergi':'Banka masrafı, SGK, vergi, maaş, faiz, POS')+'</span></div>'}
       ${S.rules.length>6?`<input type="text" id="ruleQ" placeholder="Kurallarda ara" value="${esc(S.ruleQ||'')}" aria-label="Kurallarda ara">`:''}
-      ${shown.length?`<div class="rules">${shown.map(r=>{const nm=accName(r.acc);return `<div class="rule"><div class="k">${esc(r.k)}</div><span class="rulebtns"><button class="btn small ghost" data-edrule="${esc(r.id)}" aria-label="Kuralı düzenle" title="Düzenle">✎ Düzenle</button><button class="btn small ghost" data-delrule="${esc(r.id)}" aria-label="Kuralı sil" title="Sil">×</button></span><div class="a"><span class="mono">${esc(r.acc)}</span> ${nm?esc(nm):nm===null?'<span class="chip warn">mizanda yok</span>':''} · ${DIRS[r.dir]||DIRS.all}${r.ld?'<br>Luca: '+esc(r.ld):''}</div></div>`;}).join('')}</div>`:`<p class="note" style="margin:0">${S.rules.length?'Aramaya uyan kural yok.':'Henüz kural yok. “Kural ekle” sekmesinden ya da tablodaki “Kural yap” düğmesiyle ekleyin.'}</p>`}
+      ${shown.length?`<div class="rules">${shown.map(r=>{const nm=accName(r.acc);const sr=kuralSartlari(r);return `<div class="rule"><div class="k">${sr.length>1?sr.map((x,i)=>`${i?'<span class="ve">VE</span> ':''}${esc(x)}`).join(' '):esc(r.k)}</div><span class="rulebtns"><button class="btn small ghost" data-edrule="${esc(r.id)}" aria-label="Kuralı düzenle" title="Düzenle">✎ Düzenle</button><button class="btn small ghost" data-delrule="${esc(r.id)}" aria-label="Kuralı sil" title="Sil">×</button></span><div class="a">${kuralAtla(r)?'<span class="chip atla">hiç kaydetme</span> fişe alınmaz':`<span class="mono">${esc(r.acc)}</span> ${nm?esc(nm):nm===null?'<span class="chip warn">mizanda yok</span>':''}`} · ${DIRS[r.dir]||DIRS.all}${r.ld&&!kuralAtla(r)?'<br>Luca: '+esc(r.ld):''}</div></div>`;}).join('')}</div>`:`<p class="note" style="margin:0">${S.rules.length?'Aramaya uyan kural yok.':'Henüz kural yok. “Kural ekle” sekmesinden ya da tablodaki “Kural yap” düğmesiyle ekleyin.'}</p>`}
 `:`
       <form class="ruleform" id="ruleForm">
-        <div><label class="lbl" for="rK">Açıklamada geçen kelime / kod <span class="note">(| = ya da · + = hepsi geçmeli)</span></label><input type="text" id="rK" value="${esc(dr.k)}" placeholder="örn. SGK | SOSYAL GÜVENLİK · KİRA + OCAK" autocomplete="off"></div>
+        <div><label class="lbl" for="rK">1. şart · açıklamada geçen kelime / kod <span class="note">(| = ya da · + = hepsi geçmeli)</span></label><input type="text" id="rK" value="${esc(dr.k)}" placeholder="örn. SGK | SOSYAL GÜVENLİK · KİRA + OCAK" autocomplete="off"></div>
+        ${drEk.map((x,i)=>`<div class="rsart"><label class="lbl" for="rEk${i}">${i+2}. şart <span class="note">(bu da tutmalı · VE)</span></label><div class="rsart-s"><input type="text" id="rEk${i}" data-rek="${i}" value="${esc(x)}" placeholder="örn. OCAK | ŞUBAT" autocomplete="off"><button class="btn small ghost" type="button" data-rekdel="${i}" aria-label="${i+2}. şartı kaldır" title="Şartı kaldır">×</button></div></div>`).join('')}
+        ${drEk.length<4?`<div><button class="btn small" type="button" id="rEkle" title="Tüm şartlar birlikte tutarsa kural uygulanır (VE)">+ Şart ekle</button></div>`:''}
         <div class="row2" style="grid-template-columns:1fr">
           <div><label class="lbl" for="rDir">Yön (borç / alacak)</label><select id="rDir">${dirOpts(dr.dir)}</select></div>
-          <div><label class="lbl" for="rAcc">Karşı hesap</label><input type="text" class="mono" list="accList" id="rAcc" value="${esc(dr.acc)}" placeholder="320.01.004"></div>
+          <div><label class="lbl" for="rEylem">Şartlar tutarsa</label><select id="rEylem"><option value=""${drAtla?'':' selected'}>Kaydet · karşı hesaba</option><option value="atla"${drAtla?' selected':''}>Hiç kaydetme · fişe alma</option></select></div>
+          <div class="rkaydet"${drAtla?' hidden':''}><label class="lbl" for="rAcc">Karşı hesap</label><input type="text" class="mono" list="accList" id="rAcc" value="${esc(dr.acc)}" placeholder="320.01.004"></div>
         </div>
-        <div><label class="lbl" for="rLd">Luca'ya yazılacak açıklama</label><input type="text" id="rLd" value="${esc(dr.ld||'')}" placeholder="{BANKA} - SGK ÖDEMESİ · boşsa ekstre açıklaması"></div>
+        <div class="rkaydet"${drAtla?' hidden':''}><label class="lbl" for="rLd">Luca'ya yazılacak açıklama</label><input type="text" id="rLd" value="${esc(dr.ld||'')}" placeholder="{BANKA} - SGK ÖDEMESİ · boşsa ekstre açıklaması"></div>
         <div class="actions"><button class="btn primary" type="submit">${dr.editId?'Kuralı güncelle':'Kuralı ekle'}</button>${dr.editId?'<button class="btn" type="button" id="ruleEditVaz">Vazgeç</button>':''}<span class="note">Birden çok kelime için | ile ayırın. Büyük/küçük harf ve Türkçe karakter fark etmez. Karşı hesap 335 ise açıklama “{BANKA} - MAAŞ ÖDEMESİ” olarak dolar.</span></div>
       </form>
       <p class="note" style="margin:0">Tablodaki bir satırda “Kural yap” ile de, satırın hemen altından kural ekleyebilirsiniz.</p>`;
@@ -1383,6 +1398,7 @@ function srcChip(r){
   if(r.kpay&&r.skip)return `<span class="chip kpay" title="Kart borcu ödemesi">kart ödemesi</span>`;
   const b=(c,t,ti)=>`<button type="button" class="chip ${c} chipbtn" data-tur="${esc(r.id)}" title="${esc(ti||'')}${ti?' · ':''}Tıklayın: bu hareketin türünü siz söyleyin (virman / cari / askı)">${t}</button>`;
   if(r.src==='kural')return b('kural','kural',r.why);
+  if(r.src==='atla')return b('atla','kaydetme',`Kural: ${r.why} → hiç kaydetme (fişe alınmaz)`);
   if(r.src==='cari')return b('cari','cari',r.why);
   if(r.src==='yeni')return b('yeni','yeni cari',`Mizanda yok; ${r.why} için firmanın hesap planı düzenine göre önerildi — Luca'ya aktarırken önce hesap planına açılır`);
   if(r.src==='elle')return b('elle','elle','');
@@ -1468,12 +1484,12 @@ function renderTable(){
   const L=ML();
   $('#stats').innerHTML=[['Hareket',act.length],[L.In+' · '+L.inS,fmt(tin),'pos'],[L.Out+' · '+L.outS,fmt(Math.abs(tout)),'neg'],['Kural / cari',cnt('kural')+cnt('cari')],['Askıda',cnt('aski')],isCard()?['Kart ödemesi',rows.filter(r=>r.kpay).length]:['Virman',rows.filter(r=>r.src==='virman').length/2],isCard()?null:['Yönü belirsiz',uns]].filter(Boolean).map(([k,v,c])=>`<div class="stat"><div class="k">${k}</div><div class="v ${c||''}">${v}</div></div>`).join('');
   const bosMu=r=>!r.acc||r.src==='aski';   // karşı hesap boş (askıda ya da hiç yok)
-  const tabs=[['all','Tümü',rows.length],['bos','Boş',rows.filter(bosMu).length],['dolu','Dolu',rows.filter(r=>!bosMu(r)).length],['aski','Askıda',rows.filter(r=>r.src==='aski').length],['kural','Kurallı',rows.filter(r=>r.src==='kural').length],['kuralsiz','Kuralsız',rows.filter(r=>r.src!=='kural').length],['cari','Cari',rows.filter(r=>r.src==='cari').length],['elle','Elle',rows.filter(r=>r.src==='elle').length],...(isCard()?[['kpay','Kart ödemesi',rows.filter(r=>r.kpay).length]]:[['virman','Virman',rows.filter(r=>r.src==='virman').length/2],['unsure','Yönü belirsiz',rows.filter(r=>r.unsure).length]])];
+  const tabs=[['all','Tümü',rows.length],['bos','Boş',rows.filter(bosMu).length],['dolu','Dolu',rows.filter(r=>!bosMu(r)).length],['aski','Askıda',rows.filter(r=>r.src==='aski').length],['kural','Kurallı',rows.filter(kurallimi).length],['kuralsiz','Kuralsız',rows.filter(r=>!kurallimi(r)).length],['cari','Cari',rows.filter(r=>r.src==='cari').length],['elle','Elle',rows.filter(r=>r.src==='elle').length],...(isCard()?[['kpay','Kart ödemesi',rows.filter(r=>r.kpay).length]]:[['virman','Virman',rows.filter(r=>r.src==='virman').length/2],['unsure','Yönü belirsiz',rows.filter(r=>r.unsure).length]])];
   if(isCard()&&(S.filter==='virman'||S.filter==='unsure'))S.filter='all';
   $('#tabs').innerHTML=tabs.map(([k,l,n])=>`<button class="tab" data-tab="${k}" aria-pressed="${S.filter===k}">${l} <span class="mono">${n}</span></button>`).join('')+(rows.length?`<button class="btn small primary" id="kuralUygula" title="Kayıtlı kuralları şimdi tüm satırlara yeniden uygular">⟳ Kuralları Uygula</button>`:'');
   if(S.bankFilter&&!S.files.some(f=>f.id===S.bankFilter))S.bankFilter='';
   if(S.files.length>1)$('#tabs').insertAdjacentHTML('beforeend',`<select id="bankFilter" aria-label="Banka filtresi" style="width:auto;margin-left:auto;padding:3px 8px;font-size:12px"><option value="">${isCard()?'Tüm kartlar':'Tüm bankalar'}</option>${S.files.map(f=>`<option value="${esc(f.id)}"${S.bankFilter===f.id?' selected':''}>${esc(fileBankName(f)||f.name)} · ${f.rows.length}</option>`).join('')}</select>`);
-  let vis=rows.filter(r=>(S.filter==='all'||((S.filter==='bos'||S.filter==='dolu')&&S.efTut&&S.efTut.has(r.id))||(S.filter==='bos'?bosMu(r):S.filter==='dolu'?!bosMu(r):S.filter==='unsure'?r.unsure:S.filter==='kpay'?r.kpay:S.filter==='kuralsiz'?r.src!=='kural':r.src===S.filter))&&(!S.bankFilter||r.fileId===S.bankFilter)&&colFilterOk(r));
+  let vis=rows.filter(r=>(S.filter==='all'||((S.filter==='bos'||S.filter==='dolu')&&S.efTut&&S.efTut.has(r.id))||(S.filter==='bos'?bosMu(r):S.filter==='dolu'?!bosMu(r):S.filter==='unsure'?r.unsure:S.filter==='kpay'?r.kpay:S.filter==='kuralsiz'?!kurallimi(r):S.filter==='kural'?kurallimi(r):r.src===S.filter))&&(!S.bankFilter||r.fileId===S.bankFilter)&&colFilterOk(r));
   {// ay düğmeleri: ekstrelerde hangi aylar varsa (tıklayınca yalnız o ay; Ctrl ile birden çok)
     const aylar=new Map();for(const r of rows){if(!r.date)continue;const k=isoOf(r.date).slice(0,7);aylar.set(k,(aylar.get(k)||0)+1);}
     S.ayF=(S.ayF||[]).filter(k=>aylar.has(k));const ab=$('#ayBar');
@@ -1741,7 +1757,9 @@ side.addEventListener('click',async e=>{
   else if(t.id==='addBank'){S.firm.banks=[...(S.firm.banks||[]),{label:'',code:''}];if(isExample())renderSide();else saveFirmSoon();}
   else if(t.dataset.delbank!=null){S.firm.banks.splice(+t.dataset.delbank,1);if(!isCard())S.files.forEach(f=>{if(f.bankIdx>=S.firm.banks.length)f.bankIdx=S.firm.banks.length?0:-1;});saveFirmSoon();}
   else if(t.id==='ruleEditVaz'){S.draftRule=null;S.rulesTab='list';renderSide();}
-  else if(t.dataset.edrule){const r=S.rules.find(x=>x.id===t.dataset.edrule);if(!r)return;S.draftRule={k:r.k,dir:r.dir||'all',acc:r.acc,ld:r.ld||'',editId:r.id};S.rulesTab='add';renderSide();setTimeout(()=>{const i=$('#rK');if(i)i.focus();},30);}
+  else if(t.id==='rEkle'||t.dataset.rekdel!=null){const d=kuralTaslak();if(t.id==='rEkle')d.ek.push('');else d.ek.splice(+t.dataset.rekdel,1);S.draftRule=d;renderSide();
+    setTimeout(()=>{const i=t.id==='rEkle'?$('#rEk'+(d.ek.length-1)):$('#rK');if(i)i.focus();},30);}
+  else if(t.dataset.edrule){const r=S.rules.find(x=>x.id===t.dataset.edrule);if(!r)return;S.draftRule={k:r.k,ek:Array.isArray(r.ek)?r.ek.slice():[],dir:r.dir||'all',acc:r.acc||'',ld:r.ld||'',eylem:r.eylem||'',editId:r.id};S.rulesTab='add';renderSide();setTimeout(()=>{const i=$('#rK');if(i)i.focus();},30);}
   else if(t.dataset.delrule){const id=t.dataset.delrule;if(isExample()){S.allRules=S.allRules.filter(r=>r.id!==id);S.rules=modeRules();reassign();renderAll();}else Store.delRule(S.firmId,id).catch(er=>toast('Silinemedi: '+er.message));}
   else if(t.id==='stdRules'){
     const leafs=S.miz?[...S.miz.leaf]:[];
@@ -1758,26 +1776,33 @@ side.addEventListener('input',e=>{const t=e.target;
   if(t.id==='rAcc'&&/^335/.test(t.value.trim())){const l=$('#rLd');if(l&&(!l.value.trim()||l.dataset.oto==='1')){l.value='{BANKA} - MAAŞ ÖDEMESİ';l.dataset.oto='1';}}
   else if(t.id==='rAcc'){const l=$('#rLd');if(l&&l.dataset.oto==='1'){l.value='';l.dataset.oto='';}}
   else if(t.id==='rLd')t.dataset.oto='';});
+// kural formundaki güncel değerler (yeniden çizimde kaybolmasın)
+function kuralTaslak(){const v=id=>{const x=$('#'+id);return x?x.value:'';};
+  return {k:v('rK'),ek:[...document.querySelectorAll('#ruleForm [data-rek]')].map(x=>x.value),dir:v('rDir')||'all',acc:v('rAcc'),ld:v('rLd'),eylem:v('rEylem'),editId:S.draftRule&&S.draftRule.editId};}
+side.addEventListener('change',e=>{if(e.target.id!=='rEylem')return;const atla=e.target.value==='atla';document.querySelectorAll('#ruleForm .rkaydet').forEach(x=>x.hidden=atla);});
 side.addEventListener('submit',async e=>{
   if(e.target.id!=='ruleForm')return;e.preventDefault();
-  const k=$('#rK').value.trim(),dir=$('#rDir').value,acc=$('#rAcc').value.trim(),ld=$('#rLd').value.trim();
+  const k=$('#rK').value.trim(),dir=$('#rDir').value,ld=$('#rLd').value.trim(),eylem=$('#rEylem').value==='atla'?'atla':'';
+  const acc=eylem?'':$('#rAcc').value.trim();
+  const ek=[...document.querySelectorAll('#ruleForm [data-rek]')].map(x=>x.value.trim()).filter(x=>N(x));
   if(!N(k)){toast('Açıklamada aranacak kelimeyi yazın.');$('#rK').focus();return;}
-  if(!acc){toast('Karşı hesap kodunu yazın.');$('#rAcc').focus();return;}
+  if(!acc&&!eylem){toast('Karşı hesap kodunu yazın.');$('#rAcc').focus();return;}
   const duz=S.draftRule&&S.draftRule.editId;S.draftRule=null;
-  if(duz){const eski=S.rules.find(r=>r.id===duz)||{};const yeni={...eski,id:duz,k,dir,acc,ld:ld||'',updatedAt:new Date().toISOString()};
+  if(duz){const eski=S.rules.find(r=>r.id===duz)||{};const yeni={...eski,id:duz,k,ek,eylem,dir,acc,ld:eylem?'':(ld||''),updatedAt:new Date().toISOString()};
     if(isExample()){S.allRules=S.allRules.map(r=>r.id===duz?yeni:r);S.rules=modeRules();reassign();renderAll();}
     else{try{await Store.addRule(S.firmId,yeni);}catch(er){toast('Kural kaydedilemedi: '+er.message);return;}}
     S.rulesTab='list';renderSide();toast('Kural güncellendi.');return;}
-  if(await saveRule(k,dir,acc,ld)){const i=$('#rK');if(i)i.focus({preventScroll:true});}
+  if(await saveRule(k,dir,acc,ld,{ek,eylem})){const i=$('#rK');if(i)i.focus({preventScroll:true});}
 });
-async function saveRule(k,dir,acc,ld){
-  const r={id:uid(),k,dir,acc,ld:ld||'',createdAt:new Date().toISOString(),...(isCard()?{kind:'card'}:{})};
+async function saveRule(k,dir,acc,ld,o){
+  const ek=(o&&o.ek)||[],eylem=(o&&o.eylem)||'';
+  const r={id:uid(),k,dir,acc,ld:eylem?'':(ld||''),...(ek.length?{ek}:{}),...(eylem?{eylem}:{}),createdAt:new Date().toISOString(),...(isCard()?{kind:'card'}:{})};
   S.rows.forEach(x=>{if(x.manual&&x.src==='elle'&&x.acc===acc)x.manual=false;});
   S.exportParts=null;
   if(isExample()){S.allRules.push(r);S.rules=modeRules();reassign();keepScroll(()=>{renderSide();renderTable();renderOut();});}
   else{try{await Store.addRule(S.firmId,r);}catch(er){toast('Kural kaydedilemedi: '+er.message);return false;}}
-  const hit=S.rows.filter(x=>x.src==='kural'&&x.why===k).length;
-  toast(`Kural eklendi · ${hit} hareket eşleşti.`);
+  const hit=S.rows.filter(x=>kurallimi(x)&&x.why===kuralMetni(r)).length;
+  toast(`Kural eklendi · ${hit} hareket eşleşti${eylem?' (fişe alınmayacak)':''}.`);
   return true;
 }
 
@@ -1785,13 +1810,13 @@ const tbody=$('#tbody');
 tbody.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.acc){const r=S.rows.find(x=>x.id===t.dataset.acc);r.acc=t.value.trim();r.manual=true;r.src='elle';r.why='';S.exportParts=null;keepScroll(()=>{renderTable();renderOut();});}
-  else if(t.dataset.inc){const r=S.rows.find(x=>x.id===t.dataset.inc);r.skip=!t.checked;r.vSkipped=false;
+  else if(t.dataset.inc){const r=S.rows.find(x=>x.id===t.dataset.inc);r.skip=!t.checked;r.vSkipped=false;if(r.kSkip){r.kSkip=false;r.kSkipIptal=t.checked;}
     if(r.src==='virman'&&r.vPair){const pr=S.rows.find(x=>x.id===r.vPair);if(pr){if(t.checked){pr.skip=true;pr.vSkipped=true;r.vChosen=true;pr.vChosen=false;toast('Virmanın karşı kaydı fişten çıkarıldı.');}}}S.exportParts=null;keepScroll(()=>{renderTable();renderOut();});}
 });
 tbody.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t)return;
   if(t.dataset.tur){const r=S.rows.find(x=>x.id===t.dataset.tur);if(r)turSoyle(r);return;}
-  if(t.dataset.flip){const r=S.rows.find(x=>x.id===t.dataset.flip);r.amt=-r.amt;r.unsure=false;if(r.kpay&&r.amt<0){r.kpay=false;r.skip=false;}if(!r.manual){const m=buildMatcher(S.firm,S.rules,S.miz)(r);r.acc=m.acc;r.src=m.src;r.why=m.why;r.ld=m.ld||'';}else if(r.src==='aski'){r.acc=r.amt>0?S.firm.askiIn:S.firm.askiOut;}S.exportParts=null;keepScroll(()=>{renderTable();renderOut();});}
+  if(t.dataset.flip){const r=S.rows.find(x=>x.id===t.dataset.flip);r.amt=-r.amt;r.unsure=false;if(r.kpay&&r.amt<0){r.kpay=false;r.skip=false;}if(!r.manual){eslesmeUygula(r,buildMatcher(S.firm,S.rules,S.miz)(r));}else if(r.src==='aski'){r.acc=r.amt>0?S.firm.askiIn:S.firm.askiOut;}S.exportParts=null;keepScroll(()=>{renderTable();renderOut();});}
   else if(t.dataset.mkrule){
     const r=S.rows.find(x=>x.id===t.dataset.mkrule);
     const sel=(pendingSel&&pendingSel.rowId===r.id&&Date.now()-pendingSel.at<60000)?pendingSel.text:'';pendingSel=null;
@@ -1804,7 +1829,7 @@ tbody.addEventListener('click',e=>{
   else if(t.dataset.popclose){S.pop=null;keepScroll(renderTable);}
   else if(t.dataset.aski){
     const r=S.rows.find(x=>x.id===t.dataset.aski);
-    if(r.manual&&r.src==='aski'){r.manual=false;const m=buildMatcher(S.firm,S.rules,S.miz)(r);r.acc=m.acc;r.src=m.src;r.why=m.why;r.ld=m.ld||'';}
+    if(r.manual&&r.src==='aski'){r.manual=false;eslesmeUygula(r,buildMatcher(S.firm,S.rules,S.miz)(r));}
     else{const acc=r.amt>0?S.firm.askiIn:S.firm.askiOut;if(!acc){toast('Önce firma ayarlarında askı hesaplarını girin.');return;}r.acc=acc;r.src='aski';r.why='';r.ld='';r.manual=true;}
     S.exportParts=null;keepScroll(()=>{renderTable();renderOut();});
   }
