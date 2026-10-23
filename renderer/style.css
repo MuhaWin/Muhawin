@@ -242,13 +242,9 @@ input.needbank{border-color:var(--warn);background:var(--warn-bg)}
 
 /* ================= görsel katman (temalar + düzen) ================= */
 :root[data-skin="defter"]{--bg:#eef2f0; --surface:#ffffff; --surface-2:#f5f8f6; --ink:#14201c; --muted:#56645f; --line:#d6dedb; --accent:#0d5c4f; --accent-soft:#dcece8; --on-accent:#ffffff; --in:#17703a; --out:#b02a20; --warn:#8a5a00; --warn-bg:#fff2cf; --rule-bg:#e3ebfb; --rule-fg:#1f4aa8; --cari-bg:#dcf2e3; --cari-fg:#13652b; --aski-bg:#fdecc8; --aski-fg:#7a4f00; --man-bg:#ece6f7; --man-fg:#5b3a9b; --vir-bg:#d8f0f3; --vir-fg:#0e5f6b; color-scheme:light}
-:root[data-skin="gece"]{--bg:#0f1513; --surface:#161e1b; --surface-2:#1b2521; --ink:#e3ebe8; --muted:#97a6a0; --line:#2b3833; --accent:#4fbfa8; --accent-soft:#183a33; --on-accent:#08201b; --in:#5fd08a; --out:#ff8a7d; --warn:#f2c35b; --warn-bg:#3a2e10; --rule-bg:#1d2b47; --rule-fg:#9dbcff; --cari-bg:#173524; --cari-fg:#86e0a6; --aski-bg:#3b2d0d; --aski-fg:#f5cd75; --man-bg:#2c2340; --man-fg:#c7b2f2; --vir-bg:#123a40; --vir-fg:#8fdbe6; color-scheme:dark}
 :root[data-skin="muhawin"]{--bg:#eef2f7; --surface:#ffffff; --surface-2:#f4f7fb; --ink:#111c2e; --muted:#56637a; --line:#d8dfe9; --accent:#16325C; --accent-soft:#dff4f1; --on-accent:#ffffff; --in:#0f7f5f; --out:#b4262b; --warn:#8a5a00; --warn-bg:#fff2cf; --rule-bg:#e3ebfb; --rule-fg:#1f4aa8; --cari-bg:#d9f3ee; --cari-fg:#0b6b5c; --aski-bg:#fdecc8; --aski-fg:#7a4f00; --man-bg:#ece6f7; --man-fg:#5b3a9b; --vir-bg:#d8f0f3; --vir-fg:#0e5f6b; color-scheme:light}
-:root[data-skin="lacivert"]{--bg:#eef1f7; --surface:#ffffff; --surface-2:#f5f7fc; --ink:#131a2c; --muted:#59627a; --line:#d7dde9; --accent:#1f3f8f; --accent-soft:#e1e8fb; --on-accent:#ffffff; --in:#16723c; --out:#b4262b; --warn:#8a5a00; --warn-bg:#fff2cf; --rule-bg:#e3ebfb; --rule-fg:#1f4aa8; --cari-bg:#dcf2e3; --cari-fg:#13652b; --aski-bg:#fdecc8; --aski-fg:#7a4f00; --man-bg:#ece6f7; --man-fg:#5b3a9b; --vir-bg:#d8f0f3; --vir-fg:#0e5f6b; color-scheme:light}
-:root[data-skin="bordo"]{--bg:#f5f0ed; --surface:#fffdfc; --surface-2:#faf5f2; --ink:#2a1918; --muted:#6c5b58; --line:#e5d9d4; --accent:#8b1d2c; --accent-soft:#f6e2e4; --on-accent:#ffffff; --in:#2f6b2a; --out:#b3261e; --warn:#875500; --warn-bg:#fdf0d2; --rule-bg:#e3ebfb; --rule-fg:#1f4aa8; --cari-bg:#dcf2e3; --cari-fg:#13652b; --aski-bg:#fdecc8; --aski-fg:#7a4f00; --man-bg:#ece6f7; --man-fg:#5b3a9b; --vir-bg:#d8f0f3; --vir-fg:#0e5f6b; color-scheme:light}
 :root[data-skin="kirmizi"]{--bg:#f6dde0; --surface:#ffffff; --surface-2:#fcecee; --ink:#2b1114; --muted:#7a4249; --line:#ebc2c8; --accent:#c8102e; --accent-soft:#fbd3d9; --on-accent:#ffffff; --in:#2f6b2a; --out:#8f0b20; --warn:#875500; --warn-bg:#fdf0d2; --rule-bg:#e3ebfb; --rule-fg:#1f4aa8; --cari-bg:#dcf2e3; --cari-fg:#13652b; --aski-bg:#fdecc8; --aski-fg:#7a4f00; --man-bg:#ece6f7; --man-fg:#5b3a9b; --vir-bg:#d8f0f3; --vir-fg:#0e5f6b; color-scheme:light}
 :root[data-skin="kum"]{--bg:#f6f2ea; --surface:#fffdf8; --surface-2:#faf6ee; --ink:#2b2418; --muted:#6d6352; --line:#e6dccb; --accent:#9a5b13; --accent-soft:#f6e7d2; --on-accent:#ffffff; --in:#2f6b2a; --out:#b3261e; --warn:#875500; --warn-bg:#fdf0d2; --rule-bg:#e3ebfb; --rule-fg:#1f4aa8; --cari-bg:#dcf2e3; --cari-fg:#13652b; --aski-bg:#fdecc8; --aski-fg:#7a4f00; --man-bg:#ece6f7; --man-fg:#5b3a9b; --vir-bg:#d8f0f3; --vir-fg:#0e5f6b; color-scheme:light}
-:root[data-skin="zumrut"]{--bg:#eaf4f2; --surface:#ffffff; --surface-2:#f2f9f7; --ink:#0f2421; --muted:#4f6662; --line:#cfe3df; --accent:#0f766e; --accent-soft:#d5f0eb; --on-accent:#ffffff; --in:#2f6b2a; --out:#b3261e; --warn:#875500; --warn-bg:#fdf0d2; --rule-bg:#e3ebfb; --rule-fg:#1f4aa8; --cari-bg:#dcf2e3; --cari-fg:#13652b; --aski-bg:#fdecc8; --aski-fg:#7a4f00; --man-bg:#ece6f7; --man-fg:#5b3a9b; --vir-bg:#d8f0f3; --vir-fg:#0e5f6b; color-scheme:light}
 :root[data-skin="grafit"]{--bg:#111317; --surface:#191c22; --surface-2:#1f232a; --ink:#e6e8ec; --muted:#9ba2ae; --line:#2d323b; --accent:#7aa7ff; --accent-soft:#1b2944; --on-accent:#0a1428; --in:#6bd08f; --out:#ff8c84; --warn:#f0c463; --warn-bg:#382c10; --rule-bg:#1d2b47; --rule-fg:#9dbcff; --cari-bg:#173524; --cari-fg:#86e0a6; --aski-bg:#3b2d0d; --aski-fg:#f5cd75; --man-bg:#2c2340; --man-fg:#c7b2f2; --vir-bg:#123a40; --vir-fg:#8fdbe6; color-scheme:dark}
 :root[data-skin="kontrast"]{--bg:#ffffff; --surface:#ffffff; --surface-2:#f0f0f0; --ink:#000000; --muted:#2e2e2e; --line:#6b6b6b; --accent:#0039b3; --accent-soft:#e3eaff; --on-accent:#ffffff; --in:#005a14; --out:#a30000; --warn:#6b4100; --warn-bg:#ffe9b0; --rule-bg:#dce6ff; --rule-fg:#00268a; --cari-bg:#d6f5df; --cari-fg:#004d14; --aski-bg:#ffe6a8; --aski-fg:#5c3800; --man-bg:#eadfff; --man-fg:#3c1d80; --vir-bg:#cdeff4; --vir-fg:#004651; color-scheme:light}
 :root{--r:12px;--rs:8px;--shadow:0 1px 2px rgb(15 23 20/.05),0 6px 18px rgb(15 23 20/.06);--shadow-lg:0 24px 60px rgb(10 15 13/.28);
@@ -380,12 +376,14 @@ td.amt.empty-amt{font-weight:400}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* Üstte kalıcı modül sekmeleri (menü düzeni B) */
+/* kaydırma çubuğu olan ve olmayan ekranlar arasında genişlik değişmesin (üst şerit / sekmeler kaymasın) */
+html{scrollbar-gutter:stable}
+/* başlıktaki modül adı uzunluğu değişince üst şerit satır değiştirmesin: başlık bloğu en uzun ada göre sabit genişlikte */
+header.top>div:first-child{min-width:390px}header.top .h1mod{white-space:nowrap}
 .modsekme{display:flex;flex-wrap:wrap;gap:2px;margin:0 0 12px;padding:3px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)}
 .modsek{appearance:none;border:0;background:none;font:inherit;font-weight:600;font-size:14px;color:var(--muted);padding:7px 14px;border-radius:7px;cursor:pointer;white-space:nowrap}
 .modsek:hover:not(:disabled){color:var(--ink);background:var(--surface)}
-.modsek[aria-selected=true]{color:#fff;background:var(--accent)}
-.modsek:disabled{cursor:default;opacity:.55}
-.modsek small{font-weight:400;font-size:11px}
+.modsek[aria-selected=true],.modsek[aria-selected=true]:hover{color:var(--on-accent,#fff);background:var(--accent)}
 body.fk-view .modsekme{position:relative;z-index:6}
 /* Luca bağlı değilken Luca gerektiren işlem: üst şeritteki giriş düğmesi vurgulanır */
 #lucaTopBtn.vurgu{animation:lucaVurgu 1s ease-in-out 0s 6;box-shadow:0 0 0 3px #f59e0b}
@@ -435,8 +433,8 @@ body.fk-view #toolbar [data-open],body.fk-view #toolbar .sum,body.fk-view #toolb
 img.logoyatay{content:url(gorsel/logo_yatay_acik.svg);height:44px;width:auto;display:block}
 img.authlogo{content:url(gorsel/logo_yatay_acik.svg);height:36px;width:auto;display:none;margin-bottom:18px}
 img.bimg{content:url(gorsel/bekleme_simgesi_acik.gif)}
-:root[data-skin="gece"] img.logoyatay,:root[data-skin="grafit"] img.logoyatay{content:url(gorsel/logo_yatay_koyu.svg)}
-:root[data-skin="gece"] img.bimg,:root[data-skin="grafit"] img.bimg{content:url(gorsel/bekleme_simgesi_koyu.gif)}
+:root[data-skin="grafit"] img.logoyatay{content:url(gorsel/logo_yatay_koyu.svg)}
+:root[data-skin="grafit"] img.bimg{content:url(gorsel/bekleme_simgesi_koyu.gif)}
 @media (prefers-color-scheme: dark){:root:not([data-skin]) img.logoyatay{content:url(gorsel/logo_yatay_koyu.svg)}:root:not([data-skin]) img.bimg{content:url(gorsel/bekleme_simgesi_koyu.gif)}}
 .modhead h1.logoh1::before{display:none!important}
 h1::before{background:url(gorsel/simge_lacivert.svg) center/contain no-repeat!important}
@@ -463,13 +461,13 @@ h1::before{background:url(gorsel/simge_lacivert.svg) center/contain no-repeat!im
 #authGate .authgelistiren{position:fixed;right:24px;bottom:48px;font-size:12px;color:var(--muted);z-index:5}
 #authGate .authupd{position:fixed;right:24px;bottom:18px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:10px;z-index:5}
 @media (max-width:900px){#authGate{grid-template-columns:1fr}#authGate .authpanel{display:none}img.authlogo{display:block}}
-:root[data-skin="gece"] #authGate #authBox h2,:root[data-skin="grafit"] #authGate #authBox h2{color:var(--ink)}
+:root[data-skin="grafit"] #authGate #authBox h2{color:var(--ink)}
 /* yükleme penceresi ("Mizan hazırlanıyor…") */
 .mwbusy{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:color-mix(in srgb,var(--ink) 28%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
 .mwbusy .bbox{width:min(400px,calc(100% - 32px));background:var(--surface);border-radius:18px;box-shadow:0 18px 50px rgba(16,24,40,.22);padding:26px 28px;display:grid;justify-items:center;gap:8px;text-align:center}
 .mwbusy .bimg{width:64px;height:64px;margin-bottom:6px}
 .mwbusy b{font-size:17px;color:var(--mw-lacivert)}
-:root[data-skin="gece"] .mwbusy b,:root[data-skin="grafit"] .mwbusy b{color:var(--ink)}
+:root[data-skin="grafit"] .mwbusy b{color:var(--ink)}
 .mwbusy span{font-size:13px;color:var(--muted)}
 .mwbusy .bbar{width:100%;height:5px;border-radius:5px;background:var(--surface-2);overflow:hidden;margin-top:12px}
 .mwbusy .bbar i{display:block;width:45%;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--mw-turkuaz),var(--mw-acik-turkuaz));animation:mwkay 1.2s ease-in-out infinite}
@@ -548,7 +546,7 @@ h1::before{background:url(gorsel/simge_lacivert.svg) center/contain no-repeat!im
 /* taslak (programın önerdiği, Luca'da henüz açılmamış) hesap */
 input.taslak{color:#6b2fb3!important;border-color:#a56be0!important;background:color-mix(in srgb,#a56be0 10%,var(--surface))!important;font-weight:600}
 .chip.yeni{background:#efe4fb;color:#6b2fb3;border:1px solid #d6bdf3}
-:root[data-theme=dark] .chip.yeni,:root[data-skin=gece] .chip.yeni,:root[data-skin=grafit] .chip.yeni{background:#3a2552;color:#d9c2f5;border-color:#5b3d80}
+:root[data-theme=dark] .chip.yeni,:root[data-skin=grafit] .chip.yeni{background:#3a2552;color:#d9c2f5;border-color:#5b3d80}
 
 /* banka: ay düğmeleri ve tarih aralığı filtresi */
 .aybar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 8px}.aybar .btn[aria-pressed=true]{background:var(--accent,#16325C);color:#fff;border-color:transparent}

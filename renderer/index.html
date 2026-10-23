@@ -285,17 +285,15 @@ th.kz-gizli,td.kz-gizli{display:none}
 const SKINS=[
   ['muhawin','MuhaWin','Lacivert · turkuaz (varsayılan)',['#eef2f7','#ffffff','#16325C','#12B5A0']],
   ['defter','Defter','Açık · yeşil vurgu',['#eef2f0','#ffffff','#0d5c4f']],
-  ['lacivert','Lacivert','Açık · mavi vurgu',['#eef1f7','#ffffff','#1f3f8f']],
-  ['bordo','Bordo','Açık · sıcak tonlar',['#f5f0ed','#fffdfc','#8b1d2c']],
   ['kirmizi','Kırmızı','Açık · canlı kırmızı ağırlıklı',['#f6dde0','#ffffff','#c8102e','#8f0b20']],
   ['kum','Kum','Açık · krem, bakır vurgu',['#f6f2ea','#fffdf8','#9a5b13']],
-  ['zumrut','Zümrüt','Açık · deniz yeşili vurgu',['#eaf4f2','#ffffff','#0f766e']],
-  ['gece','Gece','Koyu · yeşil vurgu',['#0f1513','#161e1b','#4fbfa8']],
   ['grafit','Grafit','Koyu · mavi vurgu',['#111317','#191c22','#7aa7ff']],
   ['kontrast','Yüksek kontrast','Okunabilirlik için güçlü renkler',['#ffffff','#f0f0f0','#0039b3']]
 ];
 function applySkin(id){if(id)document.documentElement.setAttribute('data-skin',id);else document.documentElement.removeAttribute('data-skin');}
 let curSkin='muhawin';try{const v=localStorage.getItem('ekstre-luca-skin');if(v!==null)curSkin=v;}catch(e){}
+// birbirine yakın temalar kaldırıldı (Görev 17): eski seçim en yakın kalan temaya düşer
+{const ESKI={lacivert:'muhawin',zumrut:'defter',bordo:'kirmizi',gece:'grafit'};if(ESKI[curSkin]){curSkin=ESKI[curSkin];try{localStorage.setItem('ekstre-luca-skin',curSkin);}catch(e){}}}
 if(!SKINS.some(s=>s[0]===curSkin))curSkin='muhawin';applySkin(curSkin);   // 'Sistem' teması 2.9.6'da kaldırıldı
 /* ---------- yardımcılar ---------- */
 const $=(s,r=document)=>r.querySelector(s);
@@ -2932,7 +2930,7 @@ const FKUI=(()=>{
   const post=m=>{const w=frameWin();if(w)w.postMessage({muhawin:true,...m},'*');};
   const clean=e=>String(e&&e.message||e).replace(/^Error invoking remote method '[^']+': (Error: )?/,'');
   function fkTheme(){
-    const map={muhawin:'muhawin',defter:'orman',lacivert:'lacivert',bordo:'bordo',gece:'gece',grafit:'gece',kontrast:'lacivert',kum:'bordo',kirmizi:'kirmizi',zumrut:'orman'};
+    const map={muhawin:'muhawin',defter:'orman',grafit:'gece',kontrast:'lacivert',kum:'bordo',kirmizi:'kirmizi'};
     if(curSkin)return map[curSkin]||'muhawin';
     return window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'gece':'muhawin';
   }
@@ -5696,6 +5694,20 @@ const MDENET=(()=>{
 })();
 
 /* ---------- modüller ---------- */
+/* ---------- Tam ekran paneller (Mizan / Muavin / Hesap Planı, Faturaları Luca'ya kaydet) üst şeridi örtmez ----------
+   Panel açılınca sayfa başa alınır ve panel modül sekme satırının hemen altından başlar; kapanınca kaydırma yeri geri gelir.
+   Böylece üst şerit ve modül sekmeleri her ekranda aynı yerde görünür. */
+const UstPanel=(()=>{const P=['#mmPanel','#fkKayit'];
+  const alt=()=>{const t=$('#modSekme');if(!t||!t.getClientRects().length||!$('#modGate').hidden)return 0;return Math.max(0,Math.round(t.getBoundingClientRect().bottom+6));};
+  function yerlestir(el){el.style.top=alt()+'px';}
+  const gozle=el=>{let acik=!el.hidden,y=0;
+    new MutationObserver(()=>{if(el.hidden===!acik)return;acik=!el.hidden;
+      if(acik){y=window.scrollY;window.scrollTo(0,0);yerlestir(el);}else{el.style.top='';if(y)window.scrollTo(0,y);}}).observe(el,{attributes:true,attributeFilter:['hidden']});};
+  P.forEach(s=>{const el=$(s);if(el)gozle(el);});
+  window.addEventListener('resize',()=>P.forEach(s=>{const el=$(s);if(el&&!el.hidden)yerlestir(el);}));
+  // modül sekmesiyle başka modüle geçerken açık panel kapanır (yarım iş varsa kendi Kapat düğmesi kuralına uyar)
+  function kapatHepsi(){if(!$('#mmPanel').hidden)$('#mmClose').click();if(!$('#fkKayit').hidden)$('#fkkClose').click();return $('#mmPanel').hidden&&$('#fkKayit').hidden;}
+  return {kapatHepsi};})();
 /* ---------- Üstte kalıcı modül sekmeleri (menü düzeni B): modül seçim ekranına dönmeden modül değiştirilir ----------
    Lisans denetimi modül kartıyla aynı (Desk.licenseGate); "Yakında" modüller pasif kalır. */
 const MOD_SEKME=[['ekstre','Banka'],['fatura','Muhasebe'],['okc','Belgeden Fiş'],['denetim','Denetim'],['ozel','Ofisinize Özel'],['gecici','Geçici Vergi'],['personel','Personel']];
@@ -5703,12 +5715,12 @@ function modSekmeCiz(){const el=$('#modSekme');if(!el)return;
   const mods=Desk.modlar()||[];
   const L=MOD_SEKME.map(([id,ad])=>{const m=mods.find(x=>x.id===id);
     if(id==='ozel'&&(!m||m.type==='gizli'))return '';                       // ofise tanımlı değilse görünmez
-    const pasif=!m||Desk.modState(m)[0]==='soon';
-    return `<button class="modsek" role="tab" data-modsekme="${id}" aria-selected="${S.module===id}"${pasif?' disabled aria-disabled="true" title="Çok yakında"':''}>${esc(ad)}${pasif?' <small>(yakında)</small>':''}</button>`;});
+    if(!m||Desk.modState(m)[0]==='soon')return '';                           // "Yakında" modüller yalnız modül seçim ekranında
+    return `<button class="modsek" role="tab" data-modsekme="${id}" aria-selected="${S.module===id}">${esc(ad)}</button>`;});
   if(window.__admOk)L.push(`<button class="modsek" role="tab" data-modsekme="yonetim" aria-selected="${S.module==='yonetim'}">Yönetim</button>`);
   el.innerHTML=L.join('');}
 $('#modSekme').addEventListener('click',async e=>{const b=e.target.closest('[data-modsekme]');if(!b||b.disabled)return;const id=b.dataset.modsekme;
-  if(S.module===id)return;if(!(await Desk.licenseGate(id))){if(id==='yonetim')toast('Yönetim yalnız program sahibi hesabıyla açılır.');return;}enterModule(id);});
+  if(S.module===id)return;if(!UstPanel.kapatHepsi()){toast('Önce süren işlemin bitmesini bekleyin.');return;}if(!(await Desk.licenseGate(id))){if(id==='yonetim')toast('Yönetim yalnız program sahibi hesabıyla açılır.');return;}enterModule(id);});
 function enterModule(id){
   S.module=id;document.body.classList.toggle('mod-fatura',id==='fatura');document.body.classList.toggle('mod-ekstre',id==='ekstre');
   const h=$('#h1Mod');
@@ -5852,6 +5864,7 @@ const YARDIM=(()=>{
    Muhasebe İşlemleri alt sayfası → Toplu Kontrol; Çek / Senet → Ofisinize Özel Çözümler; modül → Modüller ekranı. */
 const ESC_ACIK='#mwAra:not([hidden]),.modal:not([hidden]),#mmPanel:not([hidden]),#fkKayit:not([hidden]),#hsDrop:not([hidden]),#kzMenu,.mmmenu:not([hidden]),.thememenu:not([hidden]),#mwBusy:not([hidden]),#authGate:not([hidden]),#licGate:not([hidden]),#modGate:not([hidden]),#popForm,dialog[open]';
 const ESC_KAPAT={admModal:'[data-admx]',okcModal:'[data-okx]',cekModal:'[data-cx]',bmutModal:'[data-bmutx]',ozetModal:'[data-ozetx]'};
+const yaziKutusu=t=>!!t&&(t.isContentEditable||t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&!/^(checkbox|radio|button|submit|reset|file|range|color|image)$/i.test(t.type||'')));
 function geri(){
   if(document.querySelector(ESC_ACIK))return false;
   if(!$('#cekPanel').hidden){CEK.hide();HUB.show('ozel');return true;}
@@ -5866,6 +5879,8 @@ window.addEventListener('keydown',e=>{if(e.key!=='Escape'||e.defaultPrevented)re
     const b=m.querySelector(sec);if(b){e.preventDefault();b.click();}return;}}
   if(document.querySelector(ESC_ACIK))return;           // pencere / menü kendi Esc'iyle kapanır
   const t=e.target;if(t&&t.tagName==='SELECT')return;     // açık açılır listeyi kapatıyor olabilir
+  // metin kutusunda yazarken Esc ekrandan çıkarmaz: önce yalnız kutudan çıkılır, ikinci Esc geri götürür
+  if(yaziKutusu(t)){e.preventDefault();t.blur();return;}
   setTimeout(()=>{if(!document.querySelector(ESC_ACIK))geri();},0);},true);
 $('#modulesBtn').addEventListener('click',async()=>{const id=await Desk.moduleGate();enterModule(id);});
 $('#homeLogo').addEventListener('click',()=>$('#modulesBtn').click());

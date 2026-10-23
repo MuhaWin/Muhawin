@@ -20,6 +20,9 @@
   // MuhaWin içinde Esc = geri (açık pencere / iletişim kutusu yoksa MuhaWin bir önceki ekrana döner)
   if (window.parent !== window) document.addEventListener("keydown", e => {
     if (e.key !== "Escape" || e.defaultPrevented || document.querySelector("dialog[open]")) return;
+    // metin kutusunda yazarken Esc önce yalnız kutudan çıkarır; ikinci Esc geri götürür
+    const t = e.target;
+    if (t && (t.isContentEditable || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && !/^(checkbox|radio|button|submit|reset|file|range|color|image)$/i.test(t.type || "")))) { t.blur(); return; }
     const acik = [...document.querySelectorAll(".modal,.pencere,.kaplama,[role=dialog]")].some(x => x.offsetParent !== null);
     if (!acik) window.parent.postMessage({fk: true, tip: "esc"}, "*");
   });
