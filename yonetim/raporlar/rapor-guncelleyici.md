@@ -1,5 +1,19 @@
 # Rapor – Güncelleme
 
+## İş G-01: 2.9.13 deneme derlemesi · 23.10.2026
+**Taban:** `main` b1f7ae0 (Görev 01, 03, 05 dahil) · **Dal:** `claude/practical-ride-pa4cbl` (ortam dalı; `surum-*` dalına push yetkisi yok)
+**Commit'ler:** `6cb3f08` Sürüm 2.9.13 (package.json, package-lock kök sürümü, OKUBENI) · `9007d6a` iş akışında `PYTHONUTF8=1`
+**Kullanıcı kararı:** testler atlandı (düşen testler yalnız depoda olmayan örnek dosyalardan; ayrıntı aşağıdaki ilk işte).
+**Çalıştırma:** https://github.com/MuhaWin/Muhawin/actions/runs/40018199927 → teslim `deneme`, yayın yok.
+**Artifacts:** `MuhaWin-2.9.13` (161 020 042 bayt zip; exe + blockmap + latest.yml), 22.11.2026'ya kadar indirilebilir:
+https://github.com/MuhaWin/Muhawin/actions/runs/40018199927/artifacts/12529272796
+**Denetimler (iş akışında geçti):** üç dosya var; `latest.yml` sürümü 2.9.13; `latest.yml` sha512 = exe sha512; `app-update.yml` → `muhawin/muhawin-surumler`.
+Exe bayt boyutu ve sha512 (ilk 12) çalıştırmanın özet sayfasında. Bu oturumun ağ politikası Actions dosya deposunu (`*.blob.core.windows.net`) engellediği için değerler buradan okunamadı.
+**Sorunlar:**
+- İlk çalıştırma (40017526118) `tools/python_win.py` sonundaki "Hazır" yazısında düştü: Windows konsolu cp1252, `UnicodeEncodeError`. İş akışına `PYTHONUTF8=1` eklendi; kaynak değişmedi.
+- 40018065636, Görev 05 main'e girince iptal edildi.
+- Exe imzasız (G-H ertelendi); SmartScreen uyarısı beklenir.
+
 ## İş: Derleme ve yayın iş akışı (GitHub Actions) · 23.10.2026
 **İstek:** Kullanıcı (23.10.2026): "GitHub Actions iş akışı hazırla; exe'yi kendisi derlesin ve release'e yüklesin."
 **Taban:** `main` aa07fa7 · **Dal:** `claude/practical-ride-pa4cbl` (oturumun atanmış dalı)

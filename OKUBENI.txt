@@ -1,4 +1,4 @@
-MuhaWin 2.9.12  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Hızlı Fiş Girişi · Ofisinize Özel Çözümler · (yakında: Denetim ve Analiz · Geçici Vergi · Personel)
+MuhaWin 2.9.13  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Hızlı Fiş Girişi · Ofisinize Özel Çözümler · (yakında: Denetim ve Analiz · Geçici Vergi · Personel)
 =========================================================================================================================================================
 
 ÖNCE SUNUCU (bir kez)
@@ -15,7 +15,7 @@ MuhaWin 2.9.12  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Hız
    temel lisans işlemleri çalışır, ekranda uyarı görünür.
 
 KURULUM
-1. MuhaWin-2.9.12-BIRLESTIR.bat → MuhaWin-Kurulum-2.9.12.exe oluşur → çalıştırın. Python gerekmez.
+1. MuhaWin-2.9.13-BIRLESTIR.bat → MuhaWin-Kurulum-2.9.13.exe oluşur → çalıştırın. Python gerekmez.
 2. İlk açılışta önceki "Ekstre Luca" verileri MuhaWin'e kopyalanır (eski klasör silinmez).
 
 KULLANIM
@@ -33,6 +33,21 @@ KULLANIM
     penceresi açılır, girişten sonra liste kendiliğinden gelir. Seçimleriniz ve notlarınız korunur.
 - Fatura Kontrol verilerini silmek / klasörünü açmak: Ekstre modülü → Veri ve yedek.
 - Sorun olursa günlük: %APPDATA%\MuhaWin\hesaplar\<hesap>\fatura_kontrol\muhawin-modul.log
+
+2.9.13 YENİLİKLER
+- Menü düzeni: üst şeridin altında kalıcı modül sekmeleri (Banka · Muhasebe · Belgeden Fiş · Denetim · Ofisinize Özel ·
+  Geçici Vergi (yakında) · Personel (yakında)). Sekmeyle modül değiştirilir; modül seçim ekranı ("▦ Modüller") yerinde.
+- Luca'ya giriş tek düğmeden: üst şeritteki "Luca'ya giriş" / "● Luca bağlı". Diğer ekranlardaki "Luca'ya bağlan"
+  düğmeleri kaldırıldı. Luca gerektiren bir iş bağlantı yokken başlarsa uyarı çıkar, üstteki düğme yanıp söner ve giriş
+  penceresi açılır; bağlanınca iş kendiliğinden sürer.
+- "Yeni firma" ve "Luca'dan firma ekle" artık Ayarlar → Firmalar bölümünde (komut paletinde de var).
+- "Mizan / Muavin" düğmesinin adı "Mizan / Muavin / Hesap Planı"; sekme sırası Mizan · Muavin · Hesap Planı, ilk açılan Mizan.
+- Güncelleme sorusu: yeni sürüm çıkınca program açılışta "Yeni sürüm var" diye sorar: "Şimdi kur" indirir, kurar ve
+  programı yeniden açar; "Sonra" o oturumda aynı sürüm için yeniden sormaz (bir sonraki açılışta yine sorar).
+  "Güncellemeleri Denetle" düğmesi "Sonra" denmiş olsa da sorar. Güncelleme artık sorulmadan indirilmez.
+  Soru, bu sürüm kurulduktan sonra yayınlanan ilk sürümde görülür.
+- Fatura görüntüleme güvenliği: faturaya gömülü şablon artık dosya/ağ erişimi olmadan ve script çalıştırmadan gösterilir.
+- Otomatik güncelleme muhawin/muhawin-surumler deposundan yapılır.
 
 2.9.12 YENİLİKLER
 - Toplu kontrol → Sonuçlar (ve filtre satırı olan diğer listeler): liste aşağı kaydırılınca sütun başlıkları ve filtre satırı üstte kalır.
