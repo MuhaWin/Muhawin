@@ -1512,7 +1512,7 @@ function renderTable(){
       <td><div class="accin"><span class="dc">${r.amt>0?'Alacak':'Borç'}</span><input type="text" list="accList" data-acc="${esc(r.id)}" data-hsad="${esc(String(r.desc||'').slice(0,60))}" value="${esc(r.acc)}" aria-label="Karşı hesap"${taslakMi(r.acc)?' class="taslak"':''}><span class="accname">${taslakMi(r.acc)?`<span class="chip yeni" title="Yeni hesap: Luca'ya aktarırken önce hesap planına açılır">yeni</span> ${esc(taslakAd(r.acc))}`:nm?esc(nm):nm===null&&r.acc?'<span class="chip warn">mizanda yok</span>':''}</span></div></td>
       <td>${srcChip(r)}</td>
       <td><div class="rowbtns">${r.src==='virman'?`<button class="btn small" data-novir="${esc(r.id)}" title="Bu eşleşmeyi kaldır; iki kayıt ayrı ayrı değerlendirilsin">Virman değil</button>`:`<button class="btn small${r.manual&&r.src==='aski'?' aski-on':''}" data-aski="${esc(r.id)}" title="${r.manual&&r.src==='aski'?'Askıdan çıkar, kurallara göre eşleştir':'Bu satırı askı hesabına at'}">${r.manual&&r.src==='aski'?'Askıda ✓':'Askı'}</button>`}<button class="btn small${S.pop&&S.pop.rowId===r.id?' primary':''}" data-mkrule="${esc(r.id)}" aria-expanded="${!!(S.pop&&S.pop.rowId===r.id)}">Kural yap</button></div></td></tr>${S.pop&&S.pop.rowId===r.id?popHtml(r):''}`;
-  }).join('')||`<tr><td colspan="9" class="empty">Bu filtrede hareket yok.</td></tr>`;
+  }).join('')||`<tr><td colspan="9" class="empty bosliste">Bu filtrede hareket yok. Başka bir süzgeç seçin.</td></tr>`;
 }
 
 function revealPop(){
@@ -3414,7 +3414,7 @@ const MMUI=(()=>{
     const satirHtml=r=>`<tr data-kod="${esc(r.kod||'')}"${st.tab==='mizan'||st.tab==='plan'?' data-mzhesap="1" title="Tıklayın: bu hesabın muavini"':''} class="${(st.tab==='mizan'||st.tab==='plan')&&st.level!=='leaf'?'lv'+Math.min(r._lv||3,3):''}${st.tab==='mizan'&&tersMi(r)?' ters':''}"${st.tab==='mizan'&&tersMi(r)?' title="Ters bakiye: bu hesap normalde '+(normalYon(r.kod)==='B'?'borç':'alacak')+' bakiyesi verir"':''}>${cols.map(([k,,num])=>`<td class="${num?'n':''}">${cell(k,r[k],num,r)}</td>`).join('')}</tr>`;
     $('#mmTable').innerHTML=`<thead><tr>${cols.map(([k,l,num])=>`<th class="${num?'n':''}"><button data-mmsort="${k}" title="Sırala">${esc(l)}${arrow(k)}</button></th>`).join('')}</tr>
       <tr class="flt">${cols.map(([k,l,num])=>`<th><input data-mmf="${k}" value="${esc(st.f[k]||'')}" placeholder="${num?'>1000 · <500 · 1..9':'filtre'}" aria-label="${esc(l)} filtresi"></th>`).join('')}</tr></thead>
-      <tbody>${rows.slice(0,PARCA).map(satirHtml).join('')||`<tr><td colspan="${cols.length}" class="note" style="padding:24px;text-align:center">${st.note&&!st.rows.length?st.note:'Kayıt yok'}</td></tr>`}</tbody>
+      <tbody>${rows.slice(0,PARCA).map(satirHtml).join('')||`<tr><td colspan="${cols.length}" class="bosliste">${st.note&&!st.rows.length?st.note:'Bu görünümde kayıt yok. Süzgeçleri temizleyin ya da Luca\'dan çekin.'}</td></tr>`}</tbody>
       ${rows.length?`<tfoot><tr>${cols.map(([k,,num],i)=>`<td class="${num?'n':''}">${i===0?`Toplam · ${rows.length} satır`:k==='bakiye'?(()=>{const v=Math.round(((tot.borc||0)-(tot.alacak||0))*100)/100;return `<b>${n2(Math.abs(v))} ${v>0.004?'B':v<-0.004?'A':''}</b>`;})():num?(k==='adet'?tot[k]:k==='alt'?'':n2(tot[k])):''}</td>`).join('')}</tr></tfoot>`:''}`;
     const tn=st.tab==='mizan'?rows.filter(tersMi).length:0;
     const info=$('#mmInfo');if(info)info.innerHTML=(st.rows.length?st.note:'')+(tn?` · <span style="color:#c62828;font-weight:600">${tn} ters bakiyeli hesap</span>`:'')+(rows.length>PARCA?` · ilk ${PARCA} satır gösteriliyor, kaydırdıkça devamı gelir (toplamlar tümü için)`:'');
@@ -4179,7 +4179,7 @@ const OKC=(()=>{
             <tfoot><tr><td colspan="3">${b.logged?'':`<button class="btn small" data-okcekle="${esc(b.id)}" title="Fişe başka bir hesap satırı ekleyin; ödeme / kasa satırı kendiliğinden dengelenir">＋ Satır ekle</button> <span class="note">Tutarı değiştirmek için kutuya yazın; 0 yazarsanız satır fişten çıkar.</span>`}</td>
               <td class="n mono"><b>${fmt(r2(s.L.reduce((t,x)=>t+x.b,0)))}</b></td><td class="n mono"><b>${fmt(r2(s.L.reduce((t,x)=>t+x.c,0)))}</b></td></tr></tfoot></table>
             ${[...s.err.map(e=>`<div class="note" style="color:var(--out)">✕ ${esc(e)}</div>`),...u.map(e=>`<div class="note" style="color:var(--warn)">! ${esc(e)}</div>`)].join('')}</td></tr>`:''}`;}).join('')||
-        `<tr><td colspan="14" class="note" style="padding:28px;text-align:center">${tum.some(b=>b.tur===st.tur)?'Bu filtrede belge yok.':yd?`Henüz yurt dışı faturası yok. “Fatura ekle” ile Meta, Google vb. faturalarının PDF'lerini ya da fotoğraflarını seçin (birden çok seçilebilir). Program ödenen net tutardan brüte gider, %15 stopajı 360'a, %20 KDV'yi sorumlu sıfatıyla 191 / 360'a yazar; siz kontrol edip Luca'ya kaydedersiniz.`:`Henüz ${z?'Z raporu':'ÖKC fişi'} yok. “Görüntü ekle” ile fotoğraf ya da taranmış görüntüleri seçin; program okuyup alanları doldurur, siz kontrol edip Luca'ya kaydedersiniz.`}</td></tr>`}</tbody>`;
+        `<tr><td colspan="14" class="bosliste">${tum.some(b=>b.tur===st.tur)?'Bu filtrede belge yok.':yd?`Henüz yurt dışı faturası yok. “Fatura ekle” ile Meta, Google vb. faturalarının PDF'lerini ya da fotoğraflarını seçin (birden çok seçilebilir). Program ödenen net tutardan brüte gider, %15 stopajı 360'a, %20 KDV'yi sorumlu sıfatıyla 191 / 360'a yazar; siz kontrol edip Luca'ya kaydedersiniz.`:`Henüz ${z?'Z raporu':'ÖKC fişi'} yok. “Görüntü ekle” ile fotoğraf ya da taranmış görüntüleri seçin; program okuyup alanları doldurur, siz kontrol edip Luca'ya kaydedersiniz.`}</td></tr>`}</tbody>`;
   }
   async function guncelle(b){await dataOp('okcSet',{fid:st.fid,belgeler:[b]});}
   async function show(){f0=null;$('#okcPanel').hidden=false;LucaBag.yenile();st.belgeTuru=((firma()||{}).okcAyar||{}).belgeTuru||'';await hesaplariYukle();ciz();}
@@ -4710,7 +4710,7 @@ const CEK=(()=>{
   function cizGovde(){
     const vis=gorunen();const n=Math.min(vis.length,st.limit);
     const tb=$('#cekTable tbody');if(!tb){cizBaslik();return cizGovde();}
-    tb.innerHTML=vis.slice(0,n).map(satirHtml).join('')||`<tr><td colspan="${KOL.length+1}" class="note" style="padding:28px;text-align:center">${st.hareket.length?'Bu filtrede kayıt yok.':'Logo (Müşteri Çek ve Senetleri / Kendi Çek-Senetlerimiz) ya da Mikro (çek giriş / çıkış bordro dökümü) Excel dosyalarını ekleyin. Birden fazla dosya eklenebilir.'}</td></tr>`;
+    tb.innerHTML=vis.slice(0,n).map(satirHtml).join('')||`<tr><td colspan="${KOL.length+1}" class="bosliste">${st.hareket.length?'Bu filtrede kayıt yok.':'Logo (Müşteri Çek ve Senetleri / Kendi Çek-Senetlerimiz) ya da Mikro (çek giriş / çıkış bordro dökümü) Excel dosyalarını ekleyin. Birden fazla dosya eklenebilir.'}</td></tr>`;
     if(vis.length>n)tb.insertAdjacentHTML('beforeend',`<tr><td colspan="${KOL.length+1}" style="text-align:center;padding:12px"><button class="btn small" id="cekDaha">${vis.length-n} Satır Daha Göster</button> <span class="note">(toplam ${vis.length})</span></td></tr>`);
     const tf=$('#cekTable tfoot');if(tf)tf.remove();
     if(vis.length)$('#cekTable').insertAdjacentHTML('beforeend',`<tfoot><tr><td></td><td colspan="5" style="text-align:right">${Object.values(st.f).some(v=>v&&v.trim())?'Filtrelenen Toplam':'Toplam'} <small>(${vis.length})</small></td><td class="n">${fmt(r2(vis.reduce((t,h)=>t+h.tutar,0)))}</td><td colspan="4"></td></tr></tfoot>`);
@@ -5355,7 +5355,7 @@ const FKAYIT=(()=>{
             <td class="n mono"><b>${fmt(r2(s.L.reduce((t,x)=>t+x.b,0)))}</b></td><td class="n mono"><b>${fmt(r2(s.L.reduce((t,x)=>t+x.c,0)))}</b></td></tr></tfoot></table>
             ${farkKutu(r,i)}
             ${[...s.err.map(e=>`<div class="note" style="color:var(--out)">✕ ${esc(e)}</div>`),...s.warn.map(e=>`<div class="note" style="color:var(--warn)">! ${esc(e)}</div>`)].join('')}</td></tr>`:''}`;}).join('')||
-        `<tr><td colspan="13" class="note" style="padding:28px;text-align:center">${st.filter==='kayitsiz'?'Kayıtsız fatura yok. Tüm faturalar muavinde kayıtlı görünüyor.':'Fatura yok.'}</td></tr>`}</tbody>`;
+        `<tr><td colspan="13" class="bosliste">${st.filter==='kayitsiz'?'Kayıtsız fatura yok. Tüm faturalar muavinde kayıtlı görünüyor.':'Bu filtrede fatura yok. Başka bir süzgeç seçin.'}</td></tr>`}</tbody>`;
     const ok=sec.length&&!bad.length;
     $('#fkkGo').disabled=!ok||st.busy;$('#fkkGo').textContent=`Luca'ya kaydet (${ok?fisSayisi():sec.length} fiş)`;
     $('#fkkGrup').value=st.grup||'ayri';
@@ -5720,6 +5720,8 @@ const MDENET=(()=>{
 
 /* ---------- modüller ---------- */
 // sağdaki kaydırma çubuğu payı (scrollbar-gutter): sabit paneller sayfa içeriğiyle aynı sağ kenarda biter
+// Ö7 (Görev 25): örnek firma seçiliyken "Üstten firma seçin" yerine ne yapılacağı söylenir
+function firmaYokUyari(){return (typeof isExample==='function'&&isExample())?'Örnek firmada kullanılamaz — Ayarlar › Firmalar\'dan firma ekleyin':'Üstten firma seçin';}
 function sagPay(){return Math.max(0,Math.round(window.innerWidth-document.body.getBoundingClientRect().right));}
 /* ---------- Tam ekran paneller (Mizan / Muavin / Hesap Planı, Faturaları Luca'ya kaydet) üst şeridi örtmez ----------
    Panel açılınca sayfa başa alınır ve panel modül sekme satırının hemen altından başlar; kapanınca kaydırma yeri geri gelir.
@@ -5974,7 +5976,7 @@ const FISG=(()=>{
         <div style="width:170px"><label class="lbl" for="fgTarih">Fiş tarihi</label><input type="date" id="fgTarih" value="${esc(st.ust.tarih||bugun())}"></div>
         <div style="width:150px"><label class="lbl" for="fgTip">Fiş tipi</label><select id="fgTip">${TIPLER.map(([k,ad])=>`<option value="${k}"${st.ust.tip===k?' selected':''}>${ad}</option>`).join('')}</select></div>
         <div style="flex:1;min-width:260px"><label class="lbl" for="fgAc">Fiş açıklaması</label><input type="text" id="fgAc" value="${esc(st.ust.ac)}" placeholder="örn. Ekim ayı kira tahakkuku"></div>
-        <div class="fg-ustbtn">${f?'':'<span class="chip aski">Üstten firma seçin</span>'}${f&&!hesap.size?'<span class="chip aski" title="Mizanı ya da hesap planını Luca\'dan çekin">hesap listesi boş</span>':''}<button class="btn small" id="fgKisa" aria-expanded="${st.kisa}" title="Klavye kısayolları">⌨ Kısa Yollar</button><button class="btn small" id="fgAyarBtn" aria-expanded="${st.ayarAcik}" title="KDV, kapat ve kasa hesapları">⚙ Fiş Ayarları</button><button class="btn small" id="fgMini" aria-pressed="${st.mini}" title="Mini hesap planı (Alt+3)">☷ Hesap Planı</button></div>
+        <div class="fg-ustbtn">${f?'':`<span class="chip aski">${esc(firmaYokUyari())}</span>`}${f&&!hesap.size?'<span class="chip aski" title="Mizanı ya da hesap planını Luca\'dan çekin">hesap listesi boş</span>':''}<button class="btn small" id="fgKisa" aria-expanded="${st.kisa}" title="Klavye kısayolları">⌨ Kısa Yollar</button><button class="btn small" id="fgAyarBtn" aria-expanded="${st.ayarAcik}" title="KDV, kapat ve kasa hesapları">⚙ Fiş Ayarları</button><button class="btn small" id="fgMini" aria-pressed="${st.mini}" title="Mini hesap planı (Alt+3)">☷ Hesap Planı</button></div>
       </div>
       ${st.kisa?`<div class="fg-kisa"><b>Kısa yollar</b><div class="fg-kisagrid">
         <span><kbd>Enter</kbd></span><span>Sonraki alan; tutardan sonra yeni satır (evrak no, tarih, belge türü, açıklama üst satırdan)</span>
@@ -6039,7 +6041,7 @@ const FISG=(()=>{
       json:{fisNo:'1',fisTarihi:dmyS(d),fisAciklama:(st.ust.ac||'').slice(0,200),fisTipi:tipKod(st.ust.tip||'3'),borc:t.b,alacak:t.c,taslakId:'',
         detaylar:L.map(x=>({hesapKodu:x.kod,evrakNo:String(x.evrak||'').slice(0,50),evrakTarihi:dmyS(x.etarih||d),borc:tutar(x.b)||null,alacak:tutar(x.c)||null,miktar:null,belgeTuru:(x.bt||'').trim()||null,doviz:'0',kur:null,dovizTutar:null,detayAciklama:(x.ac||st.ust.ac||'').slice(0,200),tcVergiNo:null}))}};}
   async function kaydet(){
-    const f=firma();if(!f){toast('Üstten firma seçin.');return;}if(!f.lucaId){toast('Bu firmanın Luca karşılığı yok. Firmayı Luca\'dan ekleyin.');return;}
+    const f=firma();if(!f){toast(firmaYokUyari()+'.');return;}if(!f.lucaId){toast('Bu firmanın Luca karşılığı yok. Firmayı Luca\'dan ekleyin.');return;}
     const x=fis();const t=toplam();if(!x.L.length||Math.abs(t.fark)>=0.005){toast('Fiş denk değil ya da satır yok.');return;}
     if(x.L.some(l=>!l.kod||!hesap.has(l.kod)||!(tutar(l.b)||tutar(l.c)))){toast('Eksik satır var: hesap ya da tutar boş / planda yok.');return;}
     try{await LucaBag.bekle();}catch(e){toast(clean(e));return;}
@@ -6059,7 +6061,7 @@ const FISG=(()=>{
   function yeniFis(sor){const tr=st.ust.tarih;st.satir=[];st.ust={tarih:tr,ac:'',tip:'3'};ciz({c:'kod',i:0});}
   /* ---- Fiş şablonları (firmaya özel): mevcut fişi şablon yap / şablondan doldur / sil ---- */
   async function sablonMenu(){
-    const f=firma();if(!f){toast('Üstten firma seçin.');return;}const L=(f.fkFisSablon||[]);
+    const f=firma();if(!f){toast(firmaYokUyari()+'.');return;}const L=(f.fkFisSablon||[]);
     const dolu=st.satir.some(x=>x.kod);
     const sec=await Desk.choose('Fiş şablonları',L.length?`${f.name} için ${L.length} şablon. Şablon seçince tutarlar şablondaki gibi gelir; tarih bugünün tarihi olur.`:'Henüz şablon yok. Fişi doldurup "Bu fişi şablon yap" ile saklayın.',
       [...L.map((x,i)=>({label:`${x.ad} · ${x.satir.length} satır`,value:'ac:'+i})),...(dolu?[{label:'＋ Bu fişi şablon yap',value:'kaydet',primary:true}]:[]),...(L.length?[{label:'Şablon sil…',value:'sil'}]:[])]);
@@ -6188,7 +6190,7 @@ const FISL=(()=>{
   const TIP_AD={'1':'Tahsil','2':'Tediye','3':'Mahsup','4':'Açılış','5':'Kapanış'};
   async function yukle(zorla){
     const f=firma();const P=$('#flPanel');if(!P||P.hidden)return;
-    if(!f){st.fisler=[];st.m=null;st.hata='Üstten firma seçin.';ciz();return;}
+    if(!f){st.fisler=[];st.m=null;st.hata=firmaYokUyari()+'.';ciz();return;}
     st.yukleniyor=true;st.hata='';ciz();
     try{const api=window.desktop.fk;const ds=((await api.muavinList()).donemler||[]).filter(d=>(f.lucaId&&String(d.luca_id||'')===String(f.lucaId))||N(d.firma)===N(f.name)).sort((a,b)=>String(b.zaman||'').localeCompare(String(a.zaman||'')));
       if(!ds.length){st.fisler=[];st.m=null;st.hata=`${f.name} için indirilmiş muavin yok. Muavin sekmesinden ya da aşağıdaki düğmeyle Luca'dan çekin.`;}
@@ -6224,7 +6226,7 @@ const FISL=(()=>{
       ${st.hata?`<div class="banner" style="margin:0 0 8px">${esc(st.hata)}</div>`:''}
       <div class="fl-govde${sec?' bol':''}">
       <div class="mmwrap fl-liste"><table class="tg-yok" id="flTable">${sec?'<colgroup><col><col style="width:92px"></colgroup>':'<colgroup><col style="width:86px"><col style="width:70px"><col style="width:70px"><col><col style="width:48px"><col style="width:110px"><col style="width:110px"></colgroup>'}<thead><tr>${(sec?[['tarih','Tarih · Fiş · Açıklama'],['borc','Tutar']]:[['tarih','Tarih'],['no','Fiş No'],['tip','Tip'],['ac','Açıklama'],['n','Satır'],['borc','Borç'],['alacak','Alacak']]).map(([k,a])=>`<th class="${k==='borc'||k==='alacak'||k==='n'?'n':''}" data-flsort="${k}" style="cursor:pointer;white-space:nowrap">${a} <span class="note">${ok(k)}</span></th>`).join('')}</tr></thead>
-        <tbody>${l.slice(0,PARCA).map(satirHtml).join('')||`<tr><td colspan="${sec?2:7}" class="note" style="padding:24px;text-align:center">${st.yukleniyor?'Yükleniyor…':'Fiş yok'}</td></tr>`}</tbody>
+        <tbody>${l.slice(0,PARCA).map(satirHtml).join('')||`<tr><td colspan="${sec?2:7}" class="bosliste">${st.yukleniyor?'Yükleniyor…':'Bu tarih aralığında fiş yok. Tarih aralığını genişletin ya da muavini Luca\'dan çekin.'}</td></tr>`}</tbody>
         ${l.length?(sec?`<tfoot><tr><td><b>Toplam</b> · ${l.length} fiş</td><td class="n mono"><b>${n2(l.reduce((t,x)=>t+x.borc,0))}</b></td></tr></tfoot>`:`<tfoot><tr><td colspan="4"><b>Toplam</b> · ${l.length} fiş</td><td class="n">${l.reduce((t,x)=>t+x.n,0)}</td><td class="n mono"><b>${n2(l.reduce((t,x)=>t+x.borc,0))}</b></td><td class="n mono"><b>${n2(l.reduce((t,x)=>t+x.alacak,0))}</b></td></tr></tfoot>`):''}</table>
         </div>
       ${sec?`<aside class="fl-detay"><div class="fl-detaybas"><b>Fiş ${esc(sec.no)}</b> · ${esc(TIP_AD[String(sec.tip)]||sec.tip)} · ${esc(trd(sec.tarih))}<span style="flex:1"></span>${f&&f.lucaId?`<button class="btn small" id="flLuca" title="Luca'da firma ve dönemi seçip pencereyi açar; fiş numarası panoya kopyalanır (Luca › Fiş İşlemleri › Fiş Ara)">Luca'da Aç</button>`:''}<button class="btn small" id="flPdf">PDF Yazdır</button><button class="btn small" id="flFisXls">Excel</button><button class="btn small ghost" id="flKapat">✕</button></div>
