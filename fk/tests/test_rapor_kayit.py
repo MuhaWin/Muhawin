@@ -112,3 +112,19 @@ def test_denetim_sayfasi_program_secimi():
     assert 'fd.append("program", "mikro")' not in s and 'fd.append("program", $("#program").value)' in s
     assert 'id="program"' in s and "/api/muavin/programlar?denetim=1" in s
     assert "Firmanın Mikro muavinini seçin" not in s and "Mikro muavinini yükleyip" not in s
+
+
+def test_web_app_playwright_olmadan_iceri_aktarilir():
+    """toplu_api'nin Luca/Playwright zinciri tembel: web.app Playwright olmadan yüklenir, toplu uçları yine kayıtlı."""
+    betik = textwrap.dedent(f"""
+        import json, sys
+        sys.modules["playwright"] = None
+        sys.path.insert(0, {str(FK)!r})
+        import fatura_kontrol.web.app as A
+        print(json.dumps({{"otomasyon": "fatura_kontrol.luca.otomasyon" in sys.modules,
+                          "toplu": "/api/toplu/durum" in A.app.openapi()["paths"]}}))
+    """)
+    r = subprocess.run([sys.executable, "-c", betik], capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0, r.stderr[-3000:]
+    s = json.loads(r.stdout.strip().splitlines()[-1])
+    assert not s["otomasyon"] and s["toplu"]

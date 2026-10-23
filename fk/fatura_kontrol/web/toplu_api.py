@@ -19,7 +19,15 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from ..luca import toplu as T
+class _TopluTembel:
+    """luca.toplu (Playwright zinciri) ilk kullanımda yüklenir: web.app Playwright olmadan da içe aktarılabilir
+    (tarayıcı köprüsü / Pyodide); toplu uçları çağrılınca masaüstündeki gibi çalışır."""
+    def __getattr__(self, ad):
+        from ..luca import toplu
+        return getattr(toplu, ad)
+
+
+T = _TopluTembel()
 from .. import depo
 
 router = APIRouter(prefix="/api/toplu")
