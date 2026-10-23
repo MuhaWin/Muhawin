@@ -54,7 +54,7 @@ async function oturum(fatura, o = {}) {
     check(kartlar.filter(k => k[1]).map(k => k[0]).join(',') === 'denetim,gecici,personel', 'Denetim, Geçici Vergi ve Personel pasif (Yakında)');
     check(kartlar.map(k => k[0]).join(',') === 'fatura,ekstre,okc,denetim,gecici,personel', 'modül sırası: Muhasebe, Banka, ÖKC, Denetim, Geçici Vergi');
     check(['fatura', 'ekstre', 'okc'].every(m => !kartlar.find(k => k[0] === m)[2]) && /Lisanslı/.test(await w.textContent('#modLisDurum')), 'tek lisans: lisans durumu modül kartlarında değil, alttaki tek lisans notunun yanında');
-    check(/Luca/.test(await w.textContent('#modLuca')), 'modül ekranında Luca bağlantı önerisi');
+    check(/Luca/.test(await w.textContent('#modLuca')) && !(await w.$('#modLucaBag')), 'modül ekranında Luca durumu yazıyor, ayrı bağlan düğmesi yok');
     // Ekstre modülü
     await w.click('.modcard[data-mod=ekstre]');
     await w.waitForSelector('#modGate', { state: 'hidden' });
@@ -63,6 +63,12 @@ async function oturum(fatura, o = {}) {
       const b = await w.$(sel); if (b) { await b.click().catch(() => {}); await w.waitForTimeout(300); }
     }
     check(await w.isVisible('.app'), 'Ekstre modülü açıldı');
+    // menü düzeni B: üstte kalıcı modül sekmeleri; Yeni firma ve Luca'dan firma ekle üst şeritte / araç çubuğunda değil
+    { const ms = await w.$$eval('#modSekme [data-modsekme]', b => b.map(x => [x.dataset.modsekme, x.disabled, x.getAttribute('aria-selected'), x.textContent.trim()]));
+      check(ms.map(x => x[0]).join(',') === 'ekstre,fatura,okc,denetim,gecici,personel', 'modül sekmeleri: Banka · Muhasebe · Belgeden Fiş · Denetim · Geçici Vergi · Personel (' + ms.map(x => x[3]).join(' · ') + ')');
+      check(ms.filter(x => x[1]).map(x => x[0]).join(',') === 'denetim,gecici,personel' && ms.filter(x => x[1]).every(x => /yakında/.test(x[3])), 'pasif modül sekmeleri pasif ve "(yakında)"');
+      check(ms.find(x => x[0] === 'ekstre')[2] === 'true' && /^Banka$/.test(ms[0][3]) && /^Belgeden Fiş$/.test(ms[2][3]), 'Banka sekmesi seçili'); }
+    check(!(await w.$('#newFirmBtn')) && !(await w.$('#toolbar [data-luca="firms"], #bottombar [data-luca="firms"], header.top [data-luca="firms"]')), 'Yeni firma ve Luca\'dan firma ekle üst şeritte / araç çubuğunda yok');
     const sekmeler = await w.$$eval('#modeTabs [data-mode]', b => b.map(x => x.dataset.mode));
     check(sekmeler.join(',') === 'bank,card', 'Ekstre modülünde yalnız banka/kredi kartı sekmeleri');
     { const tb = await w.$$eval('#tabs [data-tab]', b => b.map(x => x.dataset.tab)); check(tb[1] === 'bos' && tb[2] === 'dolu', 'Banka: Boş / Dolu karşı hesap filtresi (' + tb.slice(0, 4).join(',') + ')');
@@ -135,10 +141,18 @@ wb.save(${JSON.stringify(ex)})`]);
     check(dv.aoa[0] === '1:102.02.001:41827.1:0:USD:41.8271:1000' && dv.aoa[1] === '1:120.02.001:0:41827.1:::', 'Luca şablonu: Para Birimi, Kur, Döviz Tutar sütunları dolu');
     check(dv.t1 === 'EUR' && dv.t2 === 'USD' && dv.t3 === 'TRY' && dv.t4 === 'USD', 'para birimi hesap adından / ekstre başlığından bulunuyor');
     // modüllere dön → Fatura
+    // modül sekmesinden geçiş (modül seçim ekranı açılmadan): Belgeden Fiş → Banka
+    await w.click('#modSekme [data-modsekme=okc]'); await w.waitForSelector('#okcPanel:not([hidden])', { timeout: 8000 }).catch(() => {});
+    check(await w.isVisible('#okcPanel') && await w.isHidden('#modGate') && await w.getAttribute('#modSekme [data-modsekme=okc]', 'aria-selected') === 'true', 'modül sekmesi: Belgeden Fiş açıldı (modül ekranı açılmadan)');
+    await w.click('#modSekme [data-modsekme=ekstre]'); await w.waitForTimeout(400);
+    check(await w.isHidden('#okcPanel') && await w.isVisible('.app'), 'modül sekmesi: Banka\'ya dönüldü');
     await w.click('#modulesBtn');
     await w.waitForSelector('#modGate:not([hidden])');
     await w.click('.modcard[data-mod=fatura]');
     const frameEl = await w.waitForSelector('#fkFrame:not([hidden])', { timeout: 40000 });
+    check(await w.getAttribute('#modSekme [data-modsekme=fatura]', 'aria-selected') === 'true' && await w.isVisible('#modSekme'), 'Muhasebe sekmesi seçili ve görünür');
+    { const r = await w.evaluate(() => [document.querySelector('#modSekme').getBoundingClientRect().bottom, document.querySelector('#fkPanel').getBoundingClientRect().top]);
+      check(r[1] >= r[0], 'Muhasebe paneli modül sekmelerinin altında başlıyor (' + r.map(Math.round).join(' / ') + ')'); }
     let fr = await frameEl.contentFrame();
     const fkFrame = async () => { const fe = await w.waitForSelector('#fkFrame:not([hidden])', { timeout: 40000 }); return fe.contentFrame(); };
     await fr.waitForSelector('#sekmeler', { timeout: 20000 });
@@ -233,9 +247,10 @@ wb.save(${JSON.stringify(mzx)})`]);
     await w.waitForTimeout(800);
     await w.click('#mmBtn'); await w.waitForSelector('#mmPanel:not([hidden])');
     await w.waitForTimeout(800);
-    // Hesap Planı sekmesiyle açılır; sekme sırası Hesap Planı → Muavin → Mizan
-    check(await w.getAttribute('[data-mmtab=plan]', 'aria-pressed') === 'true', 'Mizan/Muavin penceresi Hesap Planı sekmesiyle açıldı');
-    check((await w.$$eval('[data-mmtab]', b => b.map(x => x.dataset.mmtab).join(','))) === 'plan,muavin,mizan', 'sekme sırası: Hesap Planı, Muavin, Mizan');
+    // Mizan sekmesiyle açılır; sekme sırası Mizan → Muavin → Hesap Planı
+    check(/Mizan \/ Muavin \/ Hesap Planı/.test(await w.textContent('#mmBtn')), 'üst şerit düğmesi: "Mizan / Muavin / Hesap Planı"');
+    check(await w.getAttribute('[data-mmtab=mizan]', 'aria-pressed') === 'true', 'Mizan / Muavin / Hesap Planı penceresi Mizan sekmesiyle açıldı');
+    check((await w.$$eval('[data-mmtab]', b => b.map(x => x.dataset.mmtab).join(','))) === 'mizan,muavin,plan', 'sekme sırası: Mizan, Muavin, Hesap Planı');
     await w.click('[data-mmtab=muavin]'); await w.waitForTimeout(800);
     let n = await w.$$eval('#mmTable tbody tr', t => t.length);
     check(n === 3, 'muavin satırları listelendi (' + n + ')');
@@ -287,18 +302,28 @@ wb.save(${JSON.stringify(mzx)})`]);
       ipcMain.handle('luca-muavin-indir', (e, a) => { global.__cek.push('muavin:' + a.ay); return new Promise(r => setTimeout(() => r({ id: 'EXPO İNŞ/2026/09', satir: 3 }), 2500)); });
       ipcMain.handle('luca-hesap-plani', (e, a) => { global.__cek.push('plan'); return { year: String(a.year), hesaplar: [['100', 'KASA'], ['100.01', 'TL KASA'], ['320', 'SATICILAR'], ['320.01', 'ABC LTD']], kaynak: 'rapor' }; });
       ipcMain.handle('luca-mizan', (e, a) => { global.__cek.push('mizan'); return { year: String(a.year), donemId: '1', rows: [['100', 'KASA', 5000, 1200], ['100.01', 'TL KASA', 5000, 1200], ['320', 'SATICILAR', 300, 9000], ['320.01', 'ABC LTD', 300, 9000], ['600', 'YURTİÇİ SATIŞLAR', 0, 25000], ['102', 'BANKALAR', 0, 0], ['335', 'PERSONELE BORÇLAR', 500, 500]].map(r => [r[0], r[1], '', r[2], r[3]]) }; }); });
-    // Luca bağlantısı tüm ekranlarda aynı: durum değişince (olay ya da 5 sn yoklama) bütün "Luca'ya bağlan" düğmeleri yeşil
-    await w.waitForFunction(() => { const L = [...document.querySelectorAll('[data-lucabag],[data-luca="connect"]')]; return L.length >= 3 && L.every(b => b.classList.contains('luca-on')); }, null, { timeout: 8000 }).catch(() => {});
-    { const d = await w.evaluate(() => { const L = [...document.querySelectorAll('[data-lucabag],[data-luca="connect"]')]; return { n: L.length, on: L.filter(b => b.classList.contains('luca-on')).length, t: [...new Set(L.map(b => b.textContent.trim()))] }; });
-      check(d.n >= 3 && d.on === d.n && d.t.every(x => /bağlı/i.test(x)), 'Luca bağlıyken bütün ekranlardaki Luca düğmeleri yeşil ve "bağlı" (' + JSON.stringify(d) + ')'); }
+    // Luca giriş düğmesi tek: üst şeritte (#lucaTopBtn). Sayfalarda / araç çubuğunda ayrı "Luca'ya bağlan" düğmesi yok
+    await w.waitForFunction(() => document.querySelector('#lucaTopBtn').classList.contains('luca-on'), null, { timeout: 8000 }).catch(() => {});
+    { const d = await w.evaluate(() => { const L = [...document.querySelectorAll('[data-lucabag],[data-luca="connect"]')]; return { n: L.length, ids: L.map(b => b.id), t: (document.querySelector('#lucaTopBtn') || {}).textContent, on: document.querySelector('#lucaTopBtn').classList.contains('luca-on') }; });
+      check(d.n === 1 && d.ids[0] === 'lucaTopBtn' && d.on && /● Luca bağlı/i.test(d.t), 'Luca giriş düğmesi yalnız üst şeritte; bağlıyken "● Luca bağlı" (' + JSON.stringify(d) + ')'); }
     await app.evaluate(({ BrowserWindow }) => { global.__lucaBagli = false; for (const x of BrowserWindow.getAllWindows()) x.webContents.send('luca-event', 'durum', { loggedIn: false, windows: 0 }); });
     await w.waitForTimeout(300);
     { const off = await w.evaluate(() => [...document.querySelectorAll('[data-lucabag],[data-luca="connect"]')].every(b => b.classList.contains('luca-off')));
+      check(/^Luca'ya giriş$/i.test((await w.textContent('#lucaTopBtn')).trim()), 'bağlı değilken üst şerit düğmesi "Luca\'ya giriş"');
+      // Luca gerektiren işlem bağlantı yokken sessiz kalmaz: açık uyarı + üst şeritteki giriş düğmesi vurgulanır
+      await app.evaluate(({ ipcMain }) => { global.__lucaAcildi = 0; const H = ipcMain._invokeHandlers; global.__lucaOpenAsil = H && H.get('luca-open'); ipcMain.removeHandler('luca-open'); ipcMain.handle('luca-open', () => { global.__lucaAcildi++; return {}; }); });
+      await w.evaluate(() => { document.querySelector('#toast').textContent = ''; window.__bk = window.__lucaBag.bekle().then(() => 'ok', e => String(e)); });
+      await w.waitForFunction(() => /Luca bağlı değil/.test(document.querySelector('#toast').textContent || ''), null, { timeout: 4000 }).catch(() => {});
+      const u = await w.evaluate(() => ({ t: document.querySelector('#toast').textContent, v: document.querySelector('#lucaTopBtn').classList.contains('vurgu') }));
+      check(/Luca bağlı değil/.test(u.t) && /üst şerit/i.test(u.t) && u.v && await app.evaluate(() => global.__lucaAcildi) === 1, 'Luca yokken Luca gerektiren işlem: uyarı gösterildi, üst şeritteki giriş düğmesi vurgulandı (' + u.t.slice(0, 80) + ')');
       await app.evaluate(() => { global.__lucaBagli = true; });
       await w.evaluate(() => { const b = document.createElement('button'); b.className = 'btn luca-off lucabag'; b.dataset.lucabag = '1'; b.id = 'yeniLB'; document.body.appendChild(b); });
       await w.waitForFunction(() => document.querySelector('#yeniLB').classList.contains('luca-on'), null, { timeout: 7000 }).catch(() => {});
       const yeni = await w.evaluate(() => { const b = document.querySelector('#yeniLB'); const r = b.classList.contains('luca-on'); b.remove(); return r; });
-      check(off && yeni, 'ana süreçten gelen durum olayı düğmeleri hemen boyar; sonradan çizilen düğme de son durumu alır'); }
+      check(off && yeni, 'ana süreçten gelen durum olayı düğmeleri hemen boyar; sonradan çizilen düğme de son durumu alır');
+      const bk = await w.evaluate(() => Promise.race([window.__bk, new Promise(r => setTimeout(() => r('zaman aşımı'), 6000))]));
+      check(bk === 'ok' && !(await w.$eval('#lucaTopBtn', b => b.classList.contains('vurgu'))), 'Luca bağlanınca bekleyen işlem devam etti, vurgu kalktı (' + bk + ')');
+      await app.evaluate(({ ipcMain }) => { ipcMain.removeHandler('luca-open'); if (global.__lucaOpenAsil) ipcMain.handle('luca-open', global.__lucaOpenAsil); }); }
     await w.click('[data-mmcek]'); await w.waitForSelector('#mmYk:not([hidden])'); await w.click('#mmYkCek');
     await w.waitForFunction(() => { const b = document.querySelector('#mwBusyIptal'); return b && !b.hidden && /arka/i.test(b.textContent) && !document.querySelector('#mwBusy').hidden; }, null, { timeout: 5000 }).catch(() => {});
     const arkaAd = await w.textContent('#mwBusyIptal').catch(() => '');
@@ -702,6 +727,7 @@ _mikro(Path(${JSON.stringify(md)}, 'mikro_muavin.xlsx'), satis_matrah=1900, cari
     // Ayarlar → Tüm Firmaları Sil (seçenekler + "emin misiniz")
     const once = await w.evaluate(() => Object.keys(window.__app.Store.local().firms || {}).length);
     await w.click('#ayarlarBtn'); await w.waitForSelector('#regModal:not([hidden]) #delAllFirms', { timeout: 8000 });
+    check(!!(await w.$('#regFirmEkle [data-luca="firms"]')) && !!(await w.$('#regFirmEkle [data-yenifirma]')), 'Ayarlar › Firmalar: "Luca\'dan firma ekle" ve "Yeni firma" burada');
     const lk = await w.evaluate(async () => { const a = await window.desktop.luca.kayitBaslat(); const d = await window.desktop.luca.kayitDurum(); return a.acik && d.acik; });
     check(lk && await w.$('#lkBaslat') !== null, 'Ayarlar: Luca istek kaydı başlatılabiliyor');
     await app.evaluate(({ shell }) => { shell.showItemInFolder = () => {}; });

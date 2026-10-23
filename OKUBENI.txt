@@ -136,7 +136,7 @@ KULLANIM
 - Luca istek kaydı tüm Luca adreslerini, yüklenen dosya bilgisini ve uzun yanıtları kaydeder (şifre alanları gizlenir).
 
 2.9.5 YENİLİKLER
-- Otomatik güncelleme GitHub'daki McLk007/muhawin-surumler deposundan yapılır. 2.9.5'i her bilgisayara BİR KEZ elle kurun;
+- Otomatik güncelleme GitHub'daki muhawin/muhawin-surumler deposundan yapılır. 2.9.5'i her bilgisayara BİR KEZ elle kurun;
   sonraki sürümler program açıkken kendiliğinden indirilir (Ayarlar → Hakkında → Güncellemeleri Denetle).
 
 2.9.4 YENİLİKLER — Faturaları Luca'ya kaydet (fiş)
@@ -524,12 +524,12 @@ KULLANIM
 - Fiş İşlemleri: Çeyrek dönem sonu kur değerlemesi (TCMB, 646/656) — geliştiriliyor.
 - Otomatik güncelleme: program açıldıktan sonra ve her 4 saatte bir yeni sürümü denetler, arka planda indirir;
   hazır olunca sağ altta "Yeniden başlat ve güncelle" çıkar (ya da program kapanınca kurulur).
-  Ayarlar → Hakkında → "Güncellemeleri denetle". Sürümler: github.com/MuhaWin/muhawin-surumler (Releases).
+  Ayarlar → Hakkında → "Güncellemeleri denetle". Sürümler: github.com/muhawin/muhawin-surumler (Releases).
 - Luca penceresinde (Banka İşlemleri / fiş kesme / mizan çekme) "Zaman Aşımı – Parola Girişi" çıkarsa
   Ayarlar'daki parola yazılıp Giriş'e basılır.
 
 YENİ SÜRÜM YAYINLAMA (otomatik güncelleme için)
-1. github.com/MuhaWin/muhawin-surumler → Releases → "Draft a new release".
+1. github.com/muhawin/muhawin-surumler → Releases → "Draft a new release".
 2. Tag: v<sürüm> (örn. v2.6.0), başlık: MuhaWin <sürüm>.
 3. Şu üç dosyayı sürükleyin: MuhaWin-Kurulum-<sürüm>.exe, MuhaWin-Kurulum-<sürüm>.exe.blockmap, latest.yml
    (üçü de aynı derlemeden olmalı). "Publish release".

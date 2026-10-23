@@ -34,6 +34,7 @@
       "kur.js",
       "datastore.js",
       "sidecar.js",
+      "guncelleme.js",
       "ocr_onisle.js",
       "renderer/**/*",
       "package.json"
@@ -99,7 +100,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "McLk007",
+        "owner": "muhawin",
         "repo": "muhawin-surumler",
         "releaseType": "release"
       }
