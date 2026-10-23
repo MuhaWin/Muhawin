@@ -60,8 +60,8 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | 04 | Alan adı, barındırma, tanıtım sitesi, web modülleri analizi | `gorevler/gorev-04-web-sitesi.md` | **Birleştirildi** ([#16](https://github.com/MuhaWin/Muhawin/pull/16)), Web Asistanı. Site `web/site/`. Kullanıcı kararı: belgeler **tarayıcıda** işlenir; alan adı alınacak (`muhawin.com.tr` + Cloudflare) |
 | 05 | Fatura görüntüleme güvenliği | `gorevler/gorev-05-fatura-goruntu-guvenligi.md` | **Birleştirildi** ([#15](https://github.com/MuhaWin/Muhawin/pull/15)) |
 | 07 | Canlı `ofis_veri` tablosu depoya + yetki düzeltmesi | (Yazılımcı'ya mesajla; rapor-07) | Açık. Canlıya uygulama kullanıcıda |
-| 08 | Rapor kaydı ayrımı (W1 ön koşulu) | `gorevler/gorev-08-rapor-kayit-ayrimi.md` | Açık (06, 07'den sonra). Yazılımcı |
-| 09 | Web: Mikro Denetim tarayıcıda + site girişi | `gorevler/gorev-09-web-mikro-denetim.md` | Açık. Web Asistanı |
+| 08 | Rapor kaydı ayrımı + Denetim'de program seçimi (W1 ön koşulu) | `gorevler/gorev-08-rapor-kayit-ayrimi.md` | Açık (06, 07'den sonra). Yazılımcı |
+| 09 | Web: Denetim tarayıcıda + site girişi | `gorevler/gorev-09-web-mikro-denetim.md` | Açık. Web Asistanı. Kullanıcı kararı: alan adı `muhawin.com.tr` (öneri: `muhawin.tr` de alınıp yönlendirilir); siteye ilk geçecek modül **Denetim**, Mikro dışındaki programlarla genişleyecek |
 | 06 | WhatsApp sunucu güvenliği (rapor-02 G-C) | `gorevler/gorev-06-whatsapp-sunucu-guvenligi.md` | Açık (05'ten sonra). Uygulayan: **Yazılımcı**. Canlı Supabase'e uygulama kullanıcıda |
 | G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | İş akışı `.github/workflows/surum.yml` birleştirildi ([#11](https://github.com/MuhaWin/Muhawin/pull/11)). G-01: 2.9.13 deneme (Görev 01 + 03 dahil); kullanıcı onayı bekliyor (testleri atla + varsayılan dal `main`) |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
