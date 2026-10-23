@@ -67,6 +67,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | 06 | WhatsApp sunucu güvenliği (rapor-02 G-C) | `gorevler/gorev-06-whatsapp-sunucu-guvenligi.md` | **Birleştirildi** ([#18](https://github.com/MuhaWin/Muhawin/pull/18)). WhatsApp canlıda kurulu değil; kurulumda rapor-06 adımları |
 | 10 | "Hızlı Fiş Girişi" → "Belgeden Fiş"; "Mikro Denetim" → "Muhasebe Denetimi" | `gorevler/gorev-10-belgeden-fis-adi.md` | **Birleştirildi** ([#30](https://github.com/MuhaWin/Muhawin/pull/30)), Menü Düzenleme; adlar kullanıcı onaylı |
 | 13 | Mobil yönetim paneli: `MuhaWin/Muhawin-yonetim-` ile otomatik eşitleme, D5 düzeltmesi | `gorevler/gorev-13-mobil-yonetim.md` | Açık. Web Asistanı |
+| 17–22 | Gece planı (arayüz, butonlar, toplu kontrol, muavin, kural, cari öneri) | `gorevler/gece-23-10.md` | Açık |
 | G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | İş akışı `.github/workflows/surum.yml`. **G-02 açık:** `test/guncelleme.js` iş akışına + testler açık deneme çalıştırması (yayın yok). **G-01 tamam:** 2.9.13 deneme derlendi ([#21](https://github.com/MuhaWin/Muhawin/pull/21), run 40018199927), kullanıcıya bağlantı verildi; `v2.9.13` etiketi konmaz. İlk yayın 2.9.14+ |
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
 
