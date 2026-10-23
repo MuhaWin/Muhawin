@@ -521,11 +521,24 @@ ipcMain.handle('luca-doviz-kodlari', () => luca.dovizKodlari());
 ipcMain.handle('luca-isletme-listeleri', (e, a) => luca.isletmeListeleri(a || {}));
 ipcMain.handle('luca-kayit-baslat', () => luca.kayitBaslat());
 ipcMain.handle('luca-kayit-durum', () => luca.kayitDurumu());
+// Luca istek kayıtları fatura / muavin içeriğini düz metin tutar (rapor-02 D16): 7 günden eskiler silinir
+const KAYIT_KLASORU = () => path.join(app.getPath('documents'), 'MuhaWin Luca Kayıtları');
+function eskiLucaKayitlariniSil(gun = 7) {
+  try {
+    const dir = KAYIT_KLASORU(); const sinir = Date.now() - gun * 864e5;
+    for (const ad of fs.readdirSync(dir)) {
+      if (!/^luca-istek-kaydi-.*\.json$/.test(ad)) continue;
+      const y = path.join(dir, ad); try { if (fs.statSync(y).mtimeMs < sinir) fs.unlinkSync(y); } catch (e) {}
+    }
+  } catch (e) {}
+}
+app.whenReady().then(() => eskiLucaKayitlariniSil());
 ipcMain.handle('luca-kayit-durdur', async () => {
   const olaylar = luca.kayitDurdur();
-  const dir = path.join(app.getPath('documents'), 'MuhaWin Luca Kayıtları'); fs.mkdirSync(dir, { recursive: true });
+  eskiLucaKayitlariniSil();
+  const dir = KAYIT_KLASORU(); fs.mkdirSync(dir, { recursive: true });
   const dosya = path.join(dir, 'luca-istek-kaydi-' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json');
-  fs.writeFileSync(dosya, JSON.stringify({ surum: app.getVersion(), olusturuldu: new Date().toISOString(), adet: olaylar.length, pencere: olaylar.pencere, atlanan: olaylar.atlanan || {}, olaylar: [...olaylar] }, null, 1), 'utf8');
+  fs.writeFileSync(dosya, JSON.stringify({ uyari: 'Bu dosya Luca\'dan gelen fatura ve muavin içeriklerini düz metin olarak içerir. Destek için gönderdikten sonra silin; MuhaWin 7 gün sonra kendiliğinden siler.', surum: app.getVersion(), olusturuldu: new Date().toISOString(), adet: olaylar.length, pencere: olaylar.pencere, atlanan: olaylar.atlanan || {}, olaylar: [...olaylar] }, null, 1), 'utf8');
   shell.showItemInFolder(dosya);
   return { dosya, adet: olaylar.length };
 });

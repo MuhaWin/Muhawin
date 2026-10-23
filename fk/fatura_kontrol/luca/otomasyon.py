@@ -1306,7 +1306,20 @@ def firma_isle(L, firma: str, bas: date, bit: date, turler: list[str], cikti: Pa
                 dene("Muavin", lambda: muavin_indir(s.L, durum["kok"], durum["uye"], s), "muavin")
     finally:
         (cikti / "adimlar.json").write_text(json.dumps(s.adimlar, ensure_ascii=False, indent=1), encoding="utf-8")
+        hata_goruntulerini_sil(cikti)
     return s
+
+
+def hata_goruntulerini_sil(klasor: Path):
+    """Hata ekran görüntüleri ve sayfa kopyaları (VKN, unvan, fatura içerebilir) iş bitince silinir; yalnız
+    tanılama modunda (FK_TANILAMA=1) bırakılır (rapor-02 D10). Eski sürümlerden kalanlar da silinir."""
+    if os.environ.get("FK_TANILAMA") == "1":
+        return
+    for y in list(klasor.glob("hata_*.jpg")) + list(klasor.glob("hata_*_frm3.html")):
+        try:
+            y.unlink()
+        except OSError:
+            pass
 
 
 def indir(firma: str, bas: date, bit: date, turler: list[str], cikti: Path,
