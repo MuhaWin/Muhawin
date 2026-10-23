@@ -72,7 +72,7 @@
   /** Ofisinize Özel Çözümler içindeki bir işe (ör. 'mikro') izin: { izin, neden, gun } */
   function ozelIzni(st, is) {
     if (!st) return { izin: false, neden: 'Lisans durumu alınamadı.' };
-    if (!ozelListesi(st).includes(is)) return { izin: false, neden: 'Bu bölüm ofisinize tanımlı değil. Açtırmak için bilgi@smmmantalya.com adresine yazın.' };
+    if (!ozelListesi(st).includes(is)) return { izin: false, neden: 'Bu bölüm ofisinize tanımlı değil. Açtırmak için muhawin@muhawin.com.tr adresine yazın.' };
     if (st.devicesBlocked) return { izin: false, neden: st.reason || 'Bilgisayar sınırı aşıldı.' };
     const m = birlesik(st) || { valid: !!st.valid, reason: st.reason, daysLeft: st.daysLeft };
     return m.valid ? { izin: true, gun: m.daysLeft, tur: m.type } : { izin: false, neden: m.reason || 'Lisansınızın süresi dolmuş.' };
