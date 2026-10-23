@@ -118,7 +118,7 @@ table:has(> thead > tr.tg-filtre) > thead{position:sticky;top:0;z-index:3}
 table:has(> thead > tr.tg-filtre) > thead th{position:static}
 .tablo-kap{overflow:auto;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
 .durum{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap}
-.bos{padding:40px;text-align:center;color:var(--muted);font-style:italic}
+.bos{padding:40px;text-align:center;color:var(--muted)}   /* Görev 25 Ö4: boş liste mesajları MuhaWin'deki gibi düz yazı */
 
 /* tema seçici */
 .tema-sec{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}

@@ -298,7 +298,7 @@ textarea{min-height:0;padding:8px 10px}
 /* çubuklardaki kutular ve düğmeler tek boy: aynı yükseklik, aynı köşe */
 .mmbar select,.mmbar input,.mmbar .btn,.mmbar .btn.small,.mmtop .btn,.mmtop .btn.small,.firmbar select,.firmbar .btn,.fknav .btn,.fg-ust input,.fg-ust select,.fg-alt .btn,.hp-baslik .btn,#hpPanel .btn.small{min-height:34px;height:34px;border-radius:var(--rs);font-size:13px;padding-top:0;padding-bottom:0}
 .mmbar label.note{display:inline-flex;align-items:center;gap:6px}
-.mmtabs .btn.small{min-height:30px;height:30px}
+.mmtabs .btn.small{min-height:34px;height:34px}   /* Ö2 (Görev 25): bar içindeki süzgeç düğmeleri yanındaki düğmelerle aynı boyda (34 / 28 px) */
 .mmbar input[type=date],.mmbar input[type=search],.mmbar select{width:auto}
 input[type=text]:hover,input[type=number]:hover,input[type=date]:hover,select:hover{border-color:color-mix(in srgb,var(--ink) 25%,var(--line))}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--ring)}
@@ -393,7 +393,7 @@ label.lbl .note{text-transform:none;letter-spacing:0;font-weight:400}
 #lg_parola{flex:1;min-width:0}
 /* 1024–1280 px: üst şerit tek satırda kalsın (kısayol ipucu ve düğme iç boşlukları küçülür) */
 @media (max-width:1280px){#komutBtn kbd{display:none}.firmbar{gap:6px}.firmbar .btn{padding-left:10px;padding-right:10px}}
-@media (max-width:1100px){.firmbar>div:first-child{min-width:0!important;flex:0 0 170px}.firmbar .btn{padding-left:8px;padding-right:8px;font-size:13px}}
+@media (max-width:1100px){.firmbar>div:first-child{min-width:0!important;flex:0 0 190px}.firmbar .btn{padding-left:8px;padding-right:8px;font-size:13px}}
 .modsekme{display:flex;flex-wrap:wrap;gap:2px;margin:0 0 12px;padding:3px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)}
 .modsek{appearance:none;border:0;background:none;font:inherit;font-weight:600;font-size:14px;color:var(--muted);padding:7px 14px;border-radius:7px;cursor:pointer;white-space:nowrap}
 .modsek:hover:not(:disabled){color:var(--ink);background:var(--surface)}
@@ -647,3 +647,26 @@ td.amt .dvz{display:block;font-size:10.5px;color:var(--muted);font-family:var(--
 /* Mikro Denetim (iframe) */
 #mdPanel{display:flex;flex-direction:column;height:calc(100vh - 120px);background:var(--bg)}
 #mdPanel iframe{flex:1;width:100%;border:0;border-radius:10px;background:var(--surface)}
+
+/* ---------- Görev 25 – arayüz düzeni ---------- */
+/* Ö1: tek sekme görünümü (alt çizgili) — modül sekmeleri, Muhasebe alt sekmeleri, Mizan / Muavin / Hesap Planı sekmeleri
+   Banka › "Banka Ekstreleri / Kredi Kartı Ekstreleri" ve pencere sekmeleri (.mtab) zaten bu görünümde. */
+.modsekme{padding:0;gap:4px;border:0;border-radius:0;background:none;border-bottom:2px solid var(--line)}
+.modsek{border-radius:6px 6px 0 0;padding:9px 18px 8px;margin-bottom:-2px;border-bottom:3px solid transparent;font-size:15px}
+.modsek:hover:not(:disabled){background:var(--surface-2)}
+.modsek[aria-selected=true],.modsek[aria-selected=true]:hover{color:var(--accent);background:var(--surface);border-bottom-color:var(--accent)}
+.fknav{gap:4px;padding:0 16px;border-bottom:2px solid var(--line)}
+.fknav .btn,.fknav .btn:hover{border:0;border-radius:6px 6px 0 0;background:none;box-shadow:none;height:auto;min-height:0;padding:9px 14px 8px;margin-bottom:-2px;border-bottom:3px solid transparent;color:var(--muted);font-weight:600;font-size:14px}
+.fknav .btn:hover{color:var(--ink);background:var(--surface-2)}
+.fknav .btn[aria-pressed=true],.fknav .btn[aria-pressed=true]:hover{color:var(--accent);background:var(--surface);border-color:transparent;border-bottom-color:var(--accent)}
+#mmPanel .mmtabs{gap:2px;align-self:stretch;align-items:flex-end}
+#mmPanel .mmtabs .btn.small,#mmPanel .mmtabs .btn.small:hover{border:0;border-radius:6px 6px 0 0;background:none;box-shadow:none;height:auto;min-height:0;padding:8px 14px 7px;border-bottom:3px solid transparent;color:var(--muted);font-weight:600;font-size:14px}
+#mmPanel .mmtabs .btn.small:hover{color:var(--ink);background:var(--surface-2)}
+#mmPanel .mmtabs .btn.small[aria-pressed=true],#mmPanel .mmtabs .btn.small[aria-pressed=true]:hover{color:var(--accent);background:none;border-bottom-color:var(--accent)}
+/* Ö3: Belgeden Fiş (ve Çek / Senet) başlığı: açıklama başlığın altına iner, düğmeler başlık satırında kalır */
+#okcPanel .mmtop>.note,#cekPanel .mmtop>.note{order:9;flex-basis:100%;margin:-6px 0 0}
+/* Ö4: boş liste mesajları tek biçim: ortada, düz yazı, bir sonraki adımı söyleyen tek cümle */
+.bosliste{padding:28px 16px!important;text-align:center!important;color:var(--muted);font-size:13px;font-style:normal;white-space:normal}
+/* Ö6: liste boşken tablonun yatay kaydırma çubuğu görünmesin */
+.mmwrap:has(td.bosliste){overflow-x:hidden!important}
+.mmwrap:has(td.bosliste)>table{min-width:0!important}
