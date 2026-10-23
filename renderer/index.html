@@ -125,7 +125,7 @@ th.kz-gizli,td.kz-gizli{display:none}
   <nav class="toolbar" id="toolbar" aria-label="Firma ve kurallar"></nav>
 
   <section id="okcPanel" hidden>
-    <div class="mmtop"><h2>Hızlı Fiş Girişi</h2><span class="note">Yazar kasa fişleri, Z raporları ve yurt dışı faturaları: belgeyi ekleyin, program okusun, kontrol edip Luca'ya kaydedin.</span><span style="flex:1"></span>
+    <div class="mmtop"><h2>Belgeden Fiş</h2><span class="note">Yazar kasa fişleri, Z raporları ve yurt dışı faturaları: belgeyi ekleyin, program okusun, kontrol edip Luca'ya kaydedin.</span><span style="flex:1"></span>
       <button class="btn small" id="okcXls" title="Luca'nın Excel'den fiş aktarımı biçiminde">Excel'e aktar</button>
       <button class="btn small primary" id="okcGo">Luca'ya kaydet</button></div>
     <div class="mmbar" id="okcBar"></div>
@@ -194,7 +194,7 @@ th.kz-gizli,td.kz-gizli{display:none}
   <div class="authfeatw" id="authFeatW"><ul class="authfeat">
     <li><span class="fi"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg></span><div><b>Banka İşlemleri</b><span>Banka ve kredi kartı ekstrelerinden kurallarla Luca fişi</span></div></li>
     <li><span class="fi"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 14l2 2 4-4"/></svg></span><div><b>Muhasebe İşlemleri</b><span>Fatura – muavin kontrolü; eksik faturaları kurallarla Luca'ya kaydeder</span></div></li>
-    <li><span class="fi"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span><div><b>Hızlı Fiş Girişi</b><span>ÖKC fişleri, Z raporları ve yurt dışı faturalarından Luca fişi</span></div></li>
+    <li><span class="fi"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span><div><b>Belgeden Fiş</b><span>ÖKC fişleri, Z raporları ve yurt dışı faturalarından Luca fişi</span></div></li>
     <li><span class="fi"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h7M6 14h4M16 13h3"/></svg></span><div><b>Ofisinize Özel Çözümler</b><span>Sadece sizin muhasebe ofisinize özel, sizin tarafınızdan talep edilmiş yazılımlar</span></div></li>
   </ul><p class="authyakinda">Yakında: Denetim ve Analiz · Geçici Vergi İşlemleri · Personel</p></div>
   <span class="authsurum" id="authSurum"></span></div></div><div class="licbox" id="authBox"></div><div class="authupd"><span id="updDurumAuth"></span><button type="button" class="btn small" id="updBtnAuth">Güncellemeleri Denetle</button></div><div class="authgelistiren">Program <b>SMMM Mehmet Çelik</b> tarafından geliştirilmiştir.</div></div>
@@ -1978,7 +1978,7 @@ const Desk=(()=>{
     el.textContent=licText();
     tb.appendChild(el);
   }
-  const MOD_NAMES={fatura:'Muhasebe İşlemleri',ekstre:'Banka İşlemleri',okc:'Hızlı Fiş Girişi',denetim:'Denetim ve Analiz',ozel:'Ofisinize Özel Çözümler',gecici:'Geçici Vergi İşlemleri',personel:'Personel'};
+  const MOD_NAMES={fatura:'Muhasebe İşlemleri',ekstre:'Banka İşlemleri',okc:'Belgeden Fiş',denetim:'Denetim ve Analiz',ozel:'Ofisinize Özel Çözümler',gecici:'Geçici Vergi İşlemleri',personel:'Personel'};
   async function tryActivate(input,onErr,want){
     let r;try{r=await api.license.activate(input);}catch(e){if(onErr)onErr(cleanErr(e));return false;}
     const got=r.activated_module||'ekstre';
@@ -2423,7 +2423,7 @@ const Desk=(()=>{
       </section>
       <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px" id="waSec">
         <h3 style="margin:0;font-family:var(--f-display);font-size:16px">WhatsApp Fiş Kutusu</h3>
-        <p class="note" style="margin:0">Mükellefler ÖKC fişlerinin fotoğrafını ofisin WhatsApp Business numarasına gönderir; fotoğraflar sunucuda toplanır, Hızlı Fiş Girişi'nde “WhatsApp'tan Al” ile gönderen numaraya göre firmaya düşer. Numara → firma eşlemesi aşağıdaki Firmalar listesindeki “WhatsApp no” alanından yapılır.</p>
+        <p class="note" style="margin:0">Mükellefler ÖKC fişlerinin fotoğrafını ofisin WhatsApp Business numarasına gönderir; fotoğraflar sunucuda toplanır, Belgeden Fiş ekranında “WhatsApp'tan Al” ile gönderen numaraya göre firmaya düşer. Numara → firma eşlemesi aşağıdaki Firmalar listesindeki “WhatsApp no” alanından yapılır.</p>
         <div class="actions" style="margin:0"><label class="note">Meta Phone number ID <input type="text" id="waPid" class="mono" style="width:190px" placeholder="1234567890123"></label><label class="note">Numara <input type="text" id="waDisp" style="width:150px" placeholder="+90 5xx xxx xx xx"></label><button class="btn small" type="button" id="waBagla">Ofise Bağla</button><span class="note" id="waMsg"></span></div>
         <details><summary class="note">Kurulum adımları (bir kez, ofis yöneticisi)</summary><ol class="note" style="margin:6px 0 0 18px;padding:0;display:grid;gap:4px">
           <li>business.facebook.com → WhatsApp Business hesabı açın, ofis için ayrı bir telefon numarası ekleyin (mevcut kişisel WhatsApp numarası kullanılamaz).</li>
@@ -5708,7 +5708,7 @@ function enterModule(id){
   if(id!=='okc')OKC.hide();
   if(id!=='yonetim'&&typeof ADM!=='undefined')ADM.hide();
   if(id==='yonetim'){HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Yönetim';ADM.show();modSekmeCiz();window.scrollTo(0,0);return;}
-  if(id==='okc'){HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Hızlı Fiş Girişi';OKC.show();}
+  if(id==='okc'){HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Belgeden Fiş';OKC.show();}
   else if(id==='fatura'){HUB.hide();S.view='fatura';if(h)h.textContent='Muhasebe İşlemleri';FKUI.show();}
   else if(id==='denetim'||id==='ozel'){if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent=id==='ozel'?'Ofisinize Özel Çözümler':'Denetim ve Analiz';HUB.show(id);}
   else{HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Banka İşlemleri';renderModeTabs();renderToolbar();}
@@ -5781,7 +5781,7 @@ const KOMUT=(()=>{
       {g:'Ekranlar',b:'Fiş Girişi',d:'Elle fiş girişi; Luca\'ya kaydet',f:()=>modul('fatura',()=>FKUI.sayfaAc('fis')),k:'Alt+3'},
       {g:'Ekranlar',b:'Fiş Listesi',d:'Muavinden fişler; Luca\'da aç, PDF/Excel',f:()=>modul('fatura',()=>FKUI.sayfaAc('fisl')),k:'Alt+4'},
       {g:'Ekranlar',b:'KDV Beyannamesi',d:'KDV1 / KDV2 hazırlama ve karşılaştırma',f:()=>modul('fatura',()=>FKUI.sayfaAc('kdv')),k:'Alt+5'},
-      {g:'Ekranlar',b:'Hızlı Fiş Girişi',d:'ÖKC fişi, Z raporu, yurt dışı faturası (görüntü / PDF)',f:()=>modul('okc'),k:'Alt+6'},
+      {g:'Ekranlar',b:'Belgeden Fiş',d:'ÖKC fişi, Z raporu, yurt dışı faturası (görüntü / PDF)',f:()=>modul('okc'),k:'Alt+6'},
       ...((window.__ozelListe||[]).length?[{g:'Ekranlar',b:'Ofisinize Özel Çözümler',d:'Ofisinize tanımlı özel çözümler',f:()=>modul('ozel'),k:'Alt+8'}]:[]),
       ...(window.__admOk?[{g:'Ekranlar',b:'Yönetim',d:'Üyeler, lisanslar, satışlar, kodlar (yalnız program sahibi)',f:()=>modul('yonetim'),k:'Alt+9'}]:[]),
       {g:'Ekranlar',b:'Modüller',d:'Modül seçim ekranı',f:()=>$('#modulesBtn').click()},

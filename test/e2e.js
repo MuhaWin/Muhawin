@@ -473,7 +473,7 @@ yaz('z1.png', ["      ÖRNEK GIDA SAN. TİC. LTD. ŞTİ.","   ANTALYA KURUMLAR V
       await Store.saveMizan('okf', [['100.01', 'KASA'], ['108.01', 'KREDİ KARTI TAHSİLAT'], ['191.01.01', '%1 İndirilecek KDV'], ['191.01.20', '%20 İndirilecek KDV'], ['300.01', 'KREDİ KARTI BORÇLARI'],
         ['391.01.01', '%1 Hesaplanan KDV'], ['391.01.20', '%20 Hesaplanan KDV'], ['600.01', 'YURTİÇİ SATIŞLAR'], ['770.01', 'GENEL YÖNETİM GİDERLERİ']]); });
     await w.click('.modcard[data-mod=okc]'); await w.waitForSelector('#okcPanel:not([hidden])');
-    check(/Hızlı Fiş Girişi/.test(await w.textContent('#h1Mod')) && await w.isHidden('.app'), 'ÖKC Fiş Girişi modülü açıldı');
+    check(/Belgeden Fiş/.test(await w.textContent('#h1Mod')) && await w.isHidden('.app'), 'Belgeden Fiş modülü açıldı');
     await w.selectOption('#firmSel', 'okf'); await w.waitForTimeout(300);
     await w.evaluate(p => window.__okc._ekle([p]), path.join(gorsel, 'fis1.png'));
     await w.waitForSelector('#okcTable tbody tr[data-id]', { timeout: 60000 });
