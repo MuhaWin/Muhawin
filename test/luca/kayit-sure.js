@@ -1,0 +1,20 @@
+// Görev 27 (rapor-02 D16): Luca istek kaydı en çok 30 dakika açık kalır; toplanan olaylar "Kaydı Durdur"a kadar saklanır
+const { mock } = require('node:test');
+const Module = require('module'); const orig = Module._load;
+Module._load = function (r, ...a) { if (r === 'electron') return { BrowserWindow: class {}, session: { fromPartition: () => ({}) } }; return orig.call(this, r, ...a); };
+mock.timers.enable({ apis: ['setTimeout'] });
+const L = require(require('path').join(__dirname, '..', '..', 'luca.js'));
+L.init({ parent: null, notify: () => {} });
+let ok = true; const t = (ad, v) => { console.log(v ? '✓' : '✗', ad); ok = ok && v; };
+const b = L.kayitBaslat();
+t('kayıt açıldı, süre ve uyarı bildirildi', b.acik && b.sureDk === 30 && /düz metin/.test(b.uyari));
+mock.timers.tick(29 * 60 * 1000);
+t('29. dakikada hâlâ açık', L.kayitDurumu().acik === true);
+mock.timers.tick(61 * 1000);
+const d = L.kayitDurumu();
+t('30 dakika dolunca kendiliğinden durdu', d.acik === false && d.sureDoldu === true);
+t('"Kaydı Durdur" yine olayları verir', Array.isArray(L.kayitDurdur()));
+L.kayitBaslat(); L.kayitDurdur(); mock.timers.tick(31 * 60 * 1000);
+t('elle durdurulan kaydın süresi işlemez', L.kayitDurumu().sureDoldu === false);
+mock.timers.reset();
+process.exit(ok ? 0 : 1);

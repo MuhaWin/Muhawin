@@ -42,8 +42,18 @@ app = FastAPI(title="Fatura–Muavin Kontrol")
 @app.middleware("http")
 async def _muhawin_kapisi(request, call_next):
     anahtar = os.environ.get("FK_ANAHTAR") or ""
-    if anahtar and request.url.path != "/api/saglik" and request.headers.get("x-muhawin") != anahtar:
-        return JSONResponse({"detail": "Bu sayfa yalnız MuhaWin içinden açılır."}, status_code=403)
+    if anahtar and request.url.path != "/api/saglik":
+        import hmac
+        esit = lambda x: hmac.compare_digest(str(x or "").encode(), anahtar.encode())
+        # MuhaWin: X-MuhaWin başlığı. Bağımsız çalıştırma (python -m fatura_kontrol.web): açılış adresindeki
+        # ?anahtar= bir kez çereze alınır (yalnız bu site, JavaScript'e kapalı); sonraki istekler çerezle gelir.
+        if not (esit(request.headers.get("x-muhawin")) or esit(request.cookies.get("fk_anahtar"))):
+            if request.method == "GET" and esit(request.query_params.get("anahtar")):
+                from fastapi.responses import RedirectResponse
+                r = RedirectResponse(request.url.path, status_code=303)
+                r.set_cookie("fk_anahtar", anahtar, httponly=True, samesite="strict")
+                return r
+            return JSONResponse({"detail": "Bu sayfa yalnız MuhaWin içinden açılır."}, status_code=403)
     return await call_next(request)
 
 
