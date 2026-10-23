@@ -878,7 +878,7 @@ def rapor_excel(id: str):
 @app.get("/api/fatura/goruntu", response_class=HTMLResponse)
 def fatura_goruntu(id: str, belge: str):
     """Faturayı GİB görsel şablonuyla tarayıcıda açar (yazdır → PDF olarak kaydet)."""
-    from ..goruntu import arsivden_bul, goruntu_html
+    from ..goruntu import arsivden_bul, goruntu_csp, goruntu_html
     from ..fatura_okuyucu import _hamlar, xml_oku
     k = depo.rapor_klasoru(id)
     if not k:
@@ -892,7 +892,8 @@ def fatura_goruntu(id: str, belge: str):
                 break
     if veri is None:
         raise HTTPException(404, "Fatura dosyası bulunamadı")
-    return HTMLResponse(goruntu_html(veri, f"Fatura {belge}"))
+    # şablon faturayla gelir (güvenilmez): script çalışmasın
+    return HTMLResponse(goruntu_html(veri, f"Fatura {belge}"), headers={"Content-Security-Policy": goruntu_csp()})
 
 
 @app.get("/api/rapor/cikti", response_class=HTMLResponse)
