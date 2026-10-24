@@ -22,7 +22,7 @@ Kullanıcı kararı: program ve site birlikte duracak, eski kayıtlar taşınmay
 - `yonetim/raporlar/rapor-32.md`
 
 ## Testler (Linux, xvfb; derleme yok)
-- `xvfb-run -a node test/e2e.js`: **E2E_SONUC** (güncel `main` üzerinde)
+- `xvfb-run -a node test/e2e.js`: **368 ✓, 0 başarısız** (güncel `main` üzerinde)
 - Yeni denetimler:
   - Bant metni ve adres doğru, bağlantı `_blank`. Tıklanınca `shell.openExternal` tam olarak `https://muhawin.com.tr/giris.html?geri=/denetim/` adresiyle çağrılıyor (testte taklit edildi) ve program ekranı yerinde kalıyor.
   - Denetim ekranında bağlantı var; programdaki denetim açılıyor ve sonraki denetim adımları (KDV / matrah / cari, beyanname düğmeleri) aynen geçiyor.
