@@ -86,7 +86,7 @@ kbd.kbd{font:11px/1 var(--f-mono,monospace);border:1px solid var(--line);border-
 .isler{position:relative}.isler::before{content:'';position:absolute;inset:-2px;border-radius:inherit;border:2px solid color-mix(in srgb,var(--accent,#12B5A0) 60%,transparent);animation:islerNabiz 1.6s ease-in-out infinite}
 @keyframes islerNabiz{0%,100%{opacity:.15}50%{opacity:.9}}
 .yardim h3{margin:14px 0 6px;font-size:14px}.yardim table{width:100%;border-collapse:collapse;font-size:13px}.yardim td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:top}.yardim td:first-child{white-space:nowrap;width:160px}
-.kz-tut{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;user-select:none;z-index:2}.kz-tut:hover{background:color-mix(in srgb,var(--accent,#12B5A0) 35%,transparent)}
+.kz-tut{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;user-select:none;z-index:2}th:last-child>.kz-tut{right:0}.kz-tut:hover{background:color-mix(in srgb,var(--accent,#12B5A0) 35%,transparent)}
 th.kz-gizli,td.kz-gizli{display:none}
 .kzmenu{position:fixed;z-index:80;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg,0 10px 30px rgba(0,0,0,.25));padding:6px 0;min-width:200px;max-height:70vh;overflow:auto;font-size:13px}
 .kzmenu label{display:flex;gap:8px;align-items:center;padding:5px 12px;cursor:pointer}.kzmenu label:hover{background:color-mix(in srgb,var(--accent,#16325C) 8%,transparent)}.kzmenu .kzalt{padding:6px 10px 2px;border-top:1px solid var(--line);margin-top:4px}
@@ -215,7 +215,7 @@ th.kz-gizli,td.kz-gizli{display:none}
     <button class="btn small" id="fkkXls" title="Luca'nın Excel'den fiş aktarımı biçiminde">Excel'e aktar</button>
     <button class="btn small primary" id="fkkGo">Luca'ya kaydet</button><button class="btn small" id="fkkClose">✕ Kapat</button></div>
   <div class="mmbar" id="fkkBar"></div>
-  <div class="mmwrap"><table id="fkkTable"></table></div>
+  <div class="mmwrap"><table id="fkkTable" data-kolon-surum="2"></table></div>
   <datalist id="fkkAccList"></datalist>
   <div class="modal" id="fkkModal" hidden><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="fkkModalT" style="width:min(860px,100%)">
     <div class="mhead"><h2 id="fkkModalT"></h2><button class="btn small ghost" data-kx="1" aria-label="Kapat">✕ Kapat</button></div>

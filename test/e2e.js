@@ -259,6 +259,10 @@ wb.save(${JSON.stringify(ex)})`]);
     const fgTop = await w.evaluate(() => window.__fisg._toplam());
     check(fgTop.b === 1100 && await w.$eval('[data-fg=b][data-i="0"]', i => i.value) === '1.100,00', 'tutar binlik ayraçlı okundu ve toplandı (1.100,00)');
     check(await w.evaluate(() => document.activeElement.dataset.fg + document.activeElement.dataset.i) === 'kod1', 'tutardan sonra Enter yeni satır açtı');
+    // Görev 47: kaydedilmemiş satır varken Esc Fiş Girişi'nden çıkarmaz (önce kutudan çıkar, sonra uyarır)
+    { await w.keyboard.press('Escape'); await w.waitForTimeout(200); await w.keyboard.press('Escape'); await w.waitForTimeout(400);
+      const d = await w.evaluate(() => ({ acik: !document.querySelector('#fgPanel').hidden, kod: (window.__fisg._st.satir[0] || {}).kod, kutu: !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#fgPanel input')) }));
+      check(d.acik && d.kod === '770.01' && !d.kutu, 'Esc: Fiş Girişi\'nde yazılmış satır varken ekrandan çıkmaz, satırlar duruyor (' + JSON.stringify(d) + ')'); }
     await w.focus('[data-fg=b][data-i="0"]'); await w.press('[data-fg=b][data-i="0"]', 'F8'); await w.waitForTimeout(300);
     const fgS = await w.evaluate(() => window.__fisg._st.satir.filter(x => x.kod).map(x => x.kod + ':' + (x.b || '') + '/' + (x.c || '')));
     check(fgS.join(' ') === '770.01:1000/ 191.10:100/ 320.01:/1100', 'F8: %10 KDV ayrıldı (matrah 1.000, KDV 100 → 191.10) ve 320.01 kapat hesabıyla fiş eşitlendi (' + fgS.join(' ') + ')');
@@ -1094,6 +1098,23 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
       await w.fill(`${T} [data-ftut] >> nth=0`, '0'); await w.dispatchEvent(`${T} [data-ftut] >> nth=0`, 'change'); await w.waitForTimeout(300); const d6 = await durum();
       const ok = d1.ek === 1 && d1.L === 3 && d2.ek === 1 && d2.L === 4 && d2.cari === 610 && d2.b === d2.c && d3.ek === 0 && d3.L === 3 && d4.cikan === 1 && d4.L === 2 && d4.cari === 100 && d4.b === d4.c && d5.cikan === 0 && d5.cari === 600 && d6.L === 3 && d6.cikan === 0 && d6.cari === 600;
       check(ok, 'fatura fişi (FKAYIT): ＋ Satır ekle görünür ve fişe girer, − çıkarır, Geri ekle döndürür, 0 yazmak çıkarmaz, cari dengeler' + (ok ? '' : ' ' + JSON.stringify([d1, d2, d3, d4, d5, d6]))); }
+    // Görev 47: Faturaları Luca'ya kaydet ekranında Esc ekranı hiç kapatmaz; kutudaysa yalnız kutudan çıkar; küçük pencereyi önce kutudan, sonra kapatır
+    { const H = '#fkkTable tbody tr[data-i] >> nth=0 >> [data-h]';
+      const v0 = await w.$eval(H, x => x.value); await w.click(H); await w.fill(H, v0);
+      await w.keyboard.press('Escape'); await w.waitForTimeout(200);
+      const d1 = await w.evaluate(() => ({ acik: !document.querySelector('#fkKayit').hidden, kutu: document.activeElement && document.activeElement.tagName === 'INPUT' }));
+      await w.keyboard.press('Escape'); await w.waitForTimeout(200); const d2 = !(await w.isHidden('#fkKayit'));
+      const tut = '#fkkTable tr.fisdetay [data-ftut] >> nth=0'; let d3 = true;
+      if (await w.$(tut)) { await w.click(tut); await w.keyboard.press('Escape'); await w.waitForTimeout(200); d3 = !(await w.isHidden('#fkKayit')); }
+      check(d1.acik && !d1.kutu && d2 && d3 && await w.$eval(H, x => x.value) === v0, 'Esc: Luca\'ya kaydet ekranında kutudan çıkar, ekran kapanmaz (ikinci Esc ve fiş kutusunda da) (' + JSON.stringify({ d1, d2, d3 }) + ')');
+      const i0 = await w.$eval('#fkkTable tbody tr[data-i]', t => t.dataset.i);
+      await w.click(`[data-kural="${i0}"]`); await w.waitForSelector('#fkkModal:not([hidden]) [data-kdeger]');
+      await w.click('#fkkModal [data-kdeger] >> nth=0'); await w.keyboard.press('End'); await w.keyboard.type(' ESC');
+      await w.keyboard.press('Escape'); await w.waitForTimeout(200);
+      const m1 = await w.evaluate(() => ({ pencere: !document.querySelector('#fkkModal').hidden, deger: document.querySelector('#fkkModal [data-kdeger]').value }));
+      await w.keyboard.press('Escape'); await w.waitForTimeout(200);
+      const m2 = await w.evaluate(() => ({ pencere: !document.querySelector('#fkkModal').hidden, ekran: !document.querySelector('#fkKayit').hidden }));
+      check(m1.pencere && / ESC$/.test(m1.deger) && !m2.pencere && m2.ekran, 'Esc: Kural penceresinde önce yalnız kutudan çıkar (yazı duruyor), ikinci Esc pencereyi kapatır, ekran açık (' + JSON.stringify({ m1, m2 }) + ')'); }
     await w.screenshot({ path: OUT + '/10-fatura-kayit.png' });
     // fiş kuralları: tevkifat, satış, satış tevkifatı, iadeler, ihraç kayıtlı
     const vakalar = await w.evaluate(() => {
@@ -1367,11 +1388,15 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
       check(k.n === '101' && k.sil === 1 && k.eski === 0 && k.kapsamDisi === 0 && k.noVar === 0 && k.muavinYok === 0 && k.faturaMuavinde === 0,
         'silinen fiş kararı: yalnız kayıttan sonra çekilen ve fişin tarihini kapsayan muavinde fiş no yoksa ve fatura muavinde değilse (' + JSON.stringify(k) + ')');
       check(k.eskiMuavin && await w.evaluate(() => window.__fkayit._st.rows.some(r => r.logged)), 'kayıttan önce indirilmiş muavin fişi "silinmiş" saymadı'); }
-    // "Luca fiş" çipi fişi muavinden açar
-    await w.click('#fkkBar [data-fkf=kaydedilen]'); await w.click('#fkkTable [data-lucafis]'); await w.waitForSelector('#fkkModal:not([hidden])');
+    // Görev 46: durumdaki "Luca fiş N" düz etiket (düğme değil); fiş, satırın Fiş görünümündeki "Fişi aç" ile muavinden açılır
+    await w.click('#fkkBar [data-fkf=kaydedilen]');
+    { const e = await w.evaluate(() => { const r = document.querySelector('#fkkTable tbody tr[data-i]'); const c = [...r.querySelectorAll('.chip')].find(x => /Luca fiş/.test(x.textContent)); return { etiket: !!c && c.tagName === 'SPAN', dugme: !!r.querySelector('[data-lucafis]') }; });
+      check(e.etiket && !e.dugme, 'kaydedilen satırda "Luca fiş N" düz etiket; satırda fiş açma düğmesi yok (' + JSON.stringify(e) + ')'); }
+    if (!(await w.$('#fkkTable tr.fisdetay [data-lucafis]'))) await w.click('#fkkTable tbody tr[data-i] [data-fis]');   // fiş görünümü kapalıysa aç (satır önceki adımlardan açık kalmış olabilir)
+    await w.click('#fkkTable tr.fisdetay [data-lucafis]'); await w.waitForSelector('#fkkModal:not([hidden])');
     await w.waitForFunction(() => !/hazırlanıyor/.test(document.getElementById('fkkModalB').textContent), null, { timeout: 15000 });
     { const t = await w.textContent('#fkkModalT'), b = await w.textContent('#fkkModalB');
-      check(/Luca fiş 101/i.test(t) && /muavinde bulunamadı/.test(b), '"Luca fiş 101" çipine basınca fiş penceresi açıldı (fiş henüz muavinde yok): ' + t + ' / ' + b.slice(0, 120)); }
+      check(/Luca fiş 101/i.test(t) && /muavinde bulunamadı/.test(b), 'Fiş görünümünde "Fişi aç" ile fiş penceresi açıldı (fiş henüz muavinde yok): ' + t + ' / ' + b.slice(0, 120)); }
     await w.click('#fkkModal [data-kx]');
     await w.evaluate(async () => { const F = window.__fkayit, st = F._st; const r = st.rows.find(x => x.logged); const v = r.logged, t = r.f.tarih;
       r.logged = { ...v, n: '1', b: 'yok' }; r.f.tarih = '2026-09-30'; await F._lucaFisAc(r); r.logged = v; r.f.tarih = t; });
