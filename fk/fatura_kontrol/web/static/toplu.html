@@ -129,7 +129,13 @@ td input.not:hover,td input.not:focus{border-color:var(--line);background:var(--
 .kaydedilmedi{color:var(--warn);font-size:12px;font-weight:600}
 /* rapor penceresi */
 #raporPencere{border:0;padding:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;background:var(--bg)}
-#raporPencere::backdrop{background:rgba(0,0,0,.35)}
+#raporPencere::backdrop,#kdv2PdfPen::backdrop{background:rgba(0,0,0,.35)}
+#kdv2PdfPen{border:1px solid var(--line);border-radius:12px;padding:14px 16px;width:min(640px,94vw);max-height:84vh;background:var(--panel);color:inherit}
+#kdv2PdfPen[open]{display:flex;flex-direction:column;gap:8px}
+#kdv2PdfPen .kp-bas,#kdv2PdfPen .kp-arac,#kdv2PdfPen .kp-alt{display:flex;gap:8px;align-items:center}
+#kdv2PdfPen .kp-liste{overflow:auto;border:1px solid var(--line);border-radius:8px;min-height:80px}
+#kdv2PdfPen .kp-liste label{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);cursor:pointer}
+#kdv2PdfPen .kp-liste label:last-child{border-bottom:0}#kdv2PdfPen .kp-liste input{width:auto;min-height:0}
 #raporPencere .rp-ust{display:flex;align-items:center;gap:14px;padding:8px 16px;background:var(--header);color:var(--brand-ink);height:50px}
 #raporCerceve{border:0;width:100%;height:calc(100vh - 50px);display:block}
 /* ayarlar */
@@ -273,6 +279,7 @@ tr.toplam td{font-weight:700;background:var(--th)!important}
         <div><b id="kdv2Baslik">KDV2 Raporu</b> <span class="ipucu" id="kdv2Alt"></span></div>
         <span class="bosluk"></span>
         <input type="text" id="kdv2Ara" placeholder="Firma, satıcı, belge no, kod ara…">
+        <button class="btn" id="kdv2Pdf" type="button" title="Seçtiğiniz firmaların KDV2 raporu tek PDF'te; her firma yeni sayfadan">PDF'e aktar</button>
         <a class="btn birincil" id="kdv2Excel" href="#">Excel'e aktar</a>
       </div>
       <div id="kdv2Icerik"></div>
@@ -330,6 +337,13 @@ tr.toplam td{font-weight:700;background:var(--th)!important}
   </section>
 </main>
 
+<dialog id="kdv2PdfPen" aria-label="KDV2 raporu PDF">
+  <div class="kp-bas"><b>KDV2 raporu – PDF'e aktar</b><span style="flex:1"></span><button class="btn" type="button" id="kdv2PdfKapat">Vazgeç</button></div>
+  <p class="ipucu" style="margin:0 0 8px">Seçilen firmaların raporu tek PDF'te hazırlanır; her firma yeni sayfadan başlar (firma, VKN, dönem, toplamlar ve imza alanı).</p>
+  <div class="kp-arac"><button class="btn kucuk" type="button" id="kdv2Tumu">Tümünü seç</button><button class="btn kucuk" type="button" id="kdv2Hic">Hiçbirini seçme</button><span class="ipucu" id="kdv2Say"></span></div>
+  <div id="kdv2Liste" class="kp-liste"></div>
+  <div class="kp-alt"><span class="hata" id="kdv2PdfHata"></span><span style="flex:1"></span><button class="btn birincil" type="button" id="kdv2PdfOlustur" disabled>PDF oluştur</button></div>
+</dialog>
 <dialog id="raporPencere">
   <div class="rp-ust"><button class="btn" type="button" id="raporKapat">← Toplu Kontrol'e dön</button>
     <b id="raporBaslik"></b><span style="flex:1"></span>
@@ -765,6 +779,33 @@ function kdv2Ciz() {
   }).join("") || `<div class="bos">${kdv2Veri.firmalar.length ? "Eşleşen kayıt yok" : "Bu ayda tevkifatlı alış faturası olan firma yok."}</div>`;
 }
 $("#kdv2Ara").oninput = () => kdv2Veri && kdv2Ciz();
+/* Görev 56: KDV2 raporunu PDF'e aktar — firma seçimi (tümü / hiçbiri), tek PDF, her firma yeni sayfadan */
+function kdv2SecimSay() {
+  const L = [...document.querySelectorAll("#kdv2Liste input[type=checkbox]")], n = L.filter(x => x.checked).length;
+  $("#kdv2Say").textContent = `${n} / ${L.length} firma seçili`; $("#kdv2PdfOlustur").disabled = !n;
+}
+$("#kdv2Pdf").onclick = () => {
+  const F = (kdv2Veri && kdv2Veri.firmalar) || [];
+  if (!F.length) { alert("Bu ayda tevkifatlı alış faturası olan firma yok."); return; }
+  $("#kdv2Liste").innerHTML = F.map(f => `<label><input type="checkbox" value="${esc(f.rapor_id)}" checked><span><b>${esc(f.ad)}</b> <span class="ipucu">VKN ${esc(f.vkn)} · ${f.adet} fatura</span></span><span class="para">${para(f.toplam)} TL</span></label>`).join("");
+  $("#kdv2PdfHata").textContent = ""; kdv2SecimSay(); $("#kdv2PdfPen").showModal();
+};
+$("#kdv2Liste").onchange = kdv2SecimSay;
+$("#kdv2Tumu").onclick = () => { document.querySelectorAll("#kdv2Liste input").forEach(x => x.checked = true); kdv2SecimSay(); };
+$("#kdv2Hic").onclick = () => { document.querySelectorAll("#kdv2Liste input").forEach(x => x.checked = false); kdv2SecimSay(); };
+$("#kdv2PdfKapat").onclick = () => $("#kdv2PdfPen").close();
+$("#kdv2PdfOlustur").onclick = async () => {
+  const sec = [...document.querySelectorAll("#kdv2Liste input:checked")].map(x => x.value); if (!sec.length) return;
+  const b = $("#kdv2PdfOlustur"); b.disabled = true; $("#kdv2PdfHata").textContent = "";
+  try {
+    const r = await fetch(`/api/toplu/calisma/${calisma.klasor}/kdv2.html`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({firmalar: sec})});
+    const html = await r.text(); if (!r.ok) throw new Error((() => { try { return JSON.parse(html).detail; } catch (e) { return "PDF hazırlanamadı"; } })());
+    const ad = `KDV2_Raporu_${calisma.ay || calisma.klasor}` + (sec.length === 1 ? "_" + ((kdv2Veri.firmalar.find(f => f.rapor_id === sec[0]) || {}).ad || "") : "");
+    if (MUHAWIN) muhawinMesaj({tip: "htmlPdf", ad: ad.replace(/[^\wÇĞİÖŞÜçğıöşü.-]+/g, "_"), html, yatay: true});
+    else { const w = window.open("", "_blank"); if (w) { w.document.write(html.replace("</body>", "<script>addEventListener('load',()=>setTimeout(()=>print(),300))<\/script></body>")); w.document.close(); } }
+    $("#kdv2PdfPen").close();
+  } catch (e) { $("#kdv2PdfHata").textContent = e.message; } finally { kdv2SecimSay(); }
+};
 
 $("#klasorBtn").onclick = () => calisma && api(`/api/toplu/calisma/${calisma.klasor}/klasoru-ac`, {method: "POST"});
 

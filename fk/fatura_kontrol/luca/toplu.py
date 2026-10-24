@@ -363,6 +363,49 @@ def kdv2_raporu(sonuclar: list[dict], bas: str | None = None, bit: str | None = 
     return cikti
 
 
+def kdv2_html(sonuclar: list[dict], bas: str | None = None, bit: str | None = None, secili: list[str] | None = None,
+              ofis: str = "") -> str:
+    """KDV2 raporu, yazdırılabilir / PDF (Görev 56): secili (rapor_id) verilirse yalnız o firmalar. Her firma yeni sayfadan
+    başlar; başta firma, VKN, dönem ve toplam; sonda imza alanı. Tek dosya (programın htmlPdf'i ya da tarayıcıda yazdır)."""
+    import html as H
+    e = lambda x: H.escape(str(x if x is not None else ""))
+    tl = lambda x: f"{float(x or 0):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    tr = lambda d: ".".join(reversed(str(d or "").split("-"))) if d else ""
+    rapor = kdv2_raporu(sonuclar, bas, bit)
+    if secili is not None:
+        s = set(secili)
+        rapor = [f for f in rapor if f["rapor_id"] in s]
+    donem = f"{tr(bas)} – {tr(bit)}" if bas or bit else ""
+    firmalar = []
+    for f in rapor:
+        sat = "".join(f"<tr><td>{e(tr(t.get('tarih')))}</td><td class=k>{e(t['belge_no'])}</td><td>{e(t['karsi_taraf'])}</td>"
+                      f"<td class=k>{e(t['vkn'])}</td><td class=n>{tl(t['matrah'])}</td><td class=n>{tl(t['kdv'])}</td>"
+                      f"<td class=k><b>{e(t['kod'])}</b></td><td>{e(t['tur'])}</td><td>{e(t['oran'])}</td><td class=n><b>{tl(t['tutar'])}</b></td></tr>"
+                      for t in f["satirlar"])
+        firmalar.append(f"""<section class=firma data-rapor="{e(f['rapor_id'])}"><div class=ust><div><h1>{e(f['ad'])}</h1>
+<div class=alt>VKN {e(f['vkn'])} · Dönem {e(donem)}</div></div><div class=sag>KDV2 Raporu<br><span class=alt>tevkifatlı alış faturaları</span></div></div>
+<table class=oz><tr><td>Fatura</td><td><b>{f['adet']}</b></td><td>Kalem</td><td><b>{len(f['satirlar'])}</b></td><td>Matrah</td><td><b>{tl(sum(t['matrah'] for t in f['satirlar']))}</b></td>
+<td>KDV</td><td><b>{tl(sum(t['kdv'] for t in f['satirlar']))}</b></td><td>KDV2 (tevkif edilen)</td><td><b>{tl(f['toplam'])} TL</b></td></tr></table>
+<table><thead><tr><th>Tarih</th><th>Belge no</th><th>Satıcı</th><th>VKN</th><th class=n>Matrah</th><th class=n>KDV</th><th>Kod</th><th>Tevkifat türü</th><th>Oran</th><th class=n>KDV2</th></tr></thead>
+<tbody>{sat}</tbody><tfoot><tr><td colspan=9>Firma toplamı</td><td class=n>{tl(f['toplam'])}</td></tr></tfoot></table>
+<table class=imza><tr><td><b>Hazırlayan</b><div class=cizgi></div><span>Ad Soyad · İmza · Tarih</span></td>
+<td><b>Kontrol eden</b><div class=cizgi></div><span>Ad Soyad · İmza · Tarih</span></td></tr></table></section>""")
+    govde = "".join(firmalar) or "<p>Seçilen firmalarda bu dönemde tevkifatlı alış faturası yok.</p>"
+    return f"""<!doctype html><html lang=tr><head><meta charset=utf-8><title>KDV2 Raporu {e(donem)}</title><style>
+@page{{size:A4 landscape;margin:12mm}}body{{font:11px/1.35 "Segoe UI",Arial,sans-serif;color:#111;margin:0}}
+.firma{{page-break-before:always;break-before:page}}.firma:first-child{{page-break-before:auto;break-before:auto}}
+.ust{{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1F3864;padding-bottom:6px;margin-bottom:8px}}
+h1{{font-size:16px;margin:0}}.alt{{color:#555;font-size:11px}}.sag{{text-align:right;font-weight:700;color:#1F3864}}
+table{{width:100%;border-collapse:collapse;margin-top:6px}}th{{background:#1F3864;color:#fff;text-align:left;padding:4px 6px;font-weight:600}}
+td{{border-bottom:1px solid #ccc;padding:3px 6px;vertical-align:top}}td.n,th.n{{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}}
+td.k{{font-family:Consolas,monospace;white-space:nowrap}}tfoot td{{font-weight:700;border-top:2px solid #1F3864;background:#f2f4f8}}
+table.oz td{{border:1px solid #ccd;background:#f7f8fb}}thead{{display:table-header-group}}tr{{page-break-inside:avoid}}
+table.imza{{margin-top:28px;page-break-inside:avoid}}table.imza td{{border:none;width:50%;padding:0 24px 0 0;background:none}}
+table.imza .cizgi{{height:48px;border-bottom:1px solid #333;margin:4px 0}}table.imza span{{color:#555;font-size:10px}}
+.ayak{{margin-top:8px;color:#777;font-size:9px}}</style></head><body>{govde}
+<p class=ayak>{e(ofis + " · " if ofis else "")}MuhaWin · {e(datetime.now().strftime("%d.%m.%Y %H:%M"))}</p></body></html>"""
+
+
 def kdv2_sayfasi(wb, sonuclar: list[dict], baslik: str | None = None, bas: str | None = None, bit: str | None = None):
     """Excel'e 'KDV2 Raporu' sayfası: firma firma tevkifatlı alış faturaları ve ara toplamlar."""
     rapor = kdv2_raporu(sonuclar, bas, bit)
