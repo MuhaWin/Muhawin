@@ -681,3 +681,8 @@ td.amt .dvz{display:block;font-size:10.5px;color:var(--muted);font-family:var(--
 #mmPanel .mmtop,#mmPanel .mmbar,#fkKayit .mmtop,#fkKayit .mmbar{padding-left:0;padding-right:0;background:none}
 #mmPanel .mmwrap,#fkKayit .mmwrap{margin-left:0;margin-right:0}
 #mmPanel .mmtop,#fkKayit .mmtop{border-top:2px solid var(--line)}
+
+/* Görev 39: fiş önizlemesinde satır çıkar (−) ve çıkarılan satır (soluk, "Geri ekle") */
+.fiscikar{min-width:28px;font-weight:700;font-size:15px;line-height:1}
+tr.fiscikan td{opacity:.55}
+tr.fiscikan td:last-child{opacity:1}

@@ -672,6 +672,29 @@ c.save()`]);
     console.log('OKC Z', JSON.stringify(zr));
     check(zr.no === '0412' && zr.oran === '1:4112.28/41.12 20:10531.65/2106.33' && zr.kredi === 10000, 'Z raporu okundu (Z no, oranlar, kredi kartı)');
     check(zr.L === '108.01:B10000 100.01:B6791.38 600.01:A14643.93 391.01.01:A41.12 391.01.20:A2106.33' && !zr.err.length, 'Z raporu fişi: kasa + kredi kartı borç, satış ve KDV alacak');
+    // Görev 39: fiş önizlemesinde ＋ Satır ekle görünür ve fişe girer; − satırı çıkarır (otomatik satır soluk + Geri ekle); 0 yazmak çıkarmaz; denge doğru
+    const fisSatirDene = async tur => {
+      await w.click(`[data-okctur=${tur}]`); await w.waitForTimeout(300);
+      const id = await w.evaluate(t => { const b = Object.values(window.__app.Store.local().okc.okf).find(x => x.tur === t && !x.logged); return b && b.id; }, tur);
+      if (!id) return { tur, yok: true };
+      await w.evaluate(i => { const r = document.querySelector(`#okcTable tr[data-id="${i}"]`); if (r) r.scrollIntoView(); }, id);
+      if (!(await w.$(`#okcTable tr[data-id="${id}"] + tr.fisdetay`))) { await w.click(`[data-okcfis="${id}"]`); await w.waitForSelector(`#okcTable tr[data-id="${id}"] + tr.fisdetay`); }
+      const D = `#okcTable tr[data-id="${id}"] + tr.fisdetay`;
+      const durum = () => w.evaluate(([i, d]) => { const b = Object.values(window.__app.Store.local().okc.okf).find(x => x.id === i); const s = window.__okc._satirlar(b); const e = document.querySelector(d);
+        return { ek: e.querySelectorAll('tr.fkek').length, cikan: e.querySelectorAll('tr.fiscikan').length, n: s.L.length, b: Math.round(s.L.reduce((t, x) => t + x.b, 0) * 100), c: Math.round(s.L.reduce((t, x) => t + x.c, 0) * 100), ek770: s.L.some(x => x.ek && x.acc === '770.01' && x.b === 12.5) }; }, [id, D]);
+      const s0 = await durum();
+      await w.click(`${D} [data-okcekle]`); await w.waitForTimeout(300); const s1 = await durum();
+      const yaz = async (alan, v) => { const sec = `${D} tr.fkek >> nth=-1 >> [data-alan=${alan}]`; await w.fill(sec, v); await w.dispatchEvent(sec, 'change'); await w.waitForTimeout(250); };
+      await yaz('acc', '770.01'); await yaz('b', '12,50'); const s2 = await durum();
+      await w.click(`${D} tr.fkek >> nth=-1 >> [data-okceksil]`); await w.waitForTimeout(300); const s3 = await durum();
+      await w.click(`${D} [data-okccikar] >> nth=0`); await w.waitForTimeout(300); const s4 = await durum();
+      await w.click(`${D} [data-okcgeri]`); await w.waitForTimeout(300); const s5 = await durum();
+      const tutar = `${D} [data-okctut] >> nth=0`; await w.fill(tutar, '0'); await w.dispatchEvent(tutar, 'change'); await w.waitForTimeout(300); const s6 = await durum();
+      return { tur, ok: s1.ek === s0.ek + 1 && s1.n === s0.n && s2.ek770 && s2.n === s0.n + 1 && s2.b === s2.c && s3.ek === s0.ek && s3.n === s0.n && s4.cikan === 1 && s4.n === s0.n - 1 && s4.b === s4.c && s5.cikan === 0 && s5.n === s0.n && s6.n === s0.n && s6.cikan === 0, s: [s0, s1, s2, s3, s4, s5, s6].map(x => `${x.ek}/${x.cikan}/${x.n}/${x.b === x.c ? '=' : '≠'}`).join(' ') };
+    };
+    for (const tur of ['z', 'fis', 'yd']) { const r = await fisSatirDene(tur);
+      check(r.yok || r.ok, 'fiş önizlemesi (' + tur + '): ＋ Satır ekle görünür ve fişe girer, − çıkarır, Geri ekle döndürür, 0 yazmak çıkarmaz, denge doğru (' + (r.yok ? 'belge yok' : r.s) + ')'); }
+    await w.click('[data-okctur=z]'); await w.waitForTimeout(200);
     await w.click('[data-okcduz]'); await w.waitForSelector('#okcModal:not([hidden]) #okKaydet');
     await w.screenshot({ path: OUT + '/14-okc-duzenle.png' });
     await w.click('#okcModal [data-okx]');
