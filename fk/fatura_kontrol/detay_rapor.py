@@ -49,7 +49,20 @@ def _detay_bolumu(d: dict, tur: str, baslik: str) -> str:
 {f'<details><summary>Uygun bulunanlar ({len(tamam)})</summary><table>{bas}<tbody>{tablo(tamam)}</tbody></table></details>' if tamam else ''}"""
 
 
-def rapor_html(v: dict, d: dict) -> str:
+def _muhtasar_bolumu(mb: dict | None) -> str:
+    if not mb:
+        return ""
+    b = mb.get("beyan") or {}
+    satir = "".join(f"<tr><td>{_e(x['ad'])}</td><td class=n>{'—' if x['beyan'] is None else _tl(x['beyan'])}</td>"
+                    f"<td class=n>{'—' if x['muavin'] is None else _tl(x['muavin'])}</td><td class=n>{'' if x['fark'] is None else _tl(x['fark'])}</td>"
+                    f"<td class={'kotu' if x['durum'] == 'fark' else 'iyi' if x['durum'] == 'uyumlu' else 'not'}>{_e({'fark': 'Fark', 'uyumlu': 'Uyumlu'}.get(x['durum'], 'Bilgi'))}</td>"
+                    f"<td>{_e(x.get('aciklama'))}</td></tr>" for x in mb.get("satirlar", []))
+    uy = "".join(f"<p class=kotu>{_e(u)}</p>" for u in mb.get("uyarilar", []))
+    return f"""<h2>Muhtasar beyannamesi ↔ muavin — {f"{b['ay']:02d}/{b['yil']}" if b.get('ay') else ''} · <span class={'kotu' if mb.get('sorunlu') else 'iyi'}>{mb.get('sorunlu', 0)} fark</span></h2>{uy}
+<table><thead><tr><th>Kontrol</th><th class=n>Beyanname</th><th class=n>Muavin</th><th class=n>Fark</th><th>Sonuç</th><th>Açıklama</th></tr></thead><tbody>{satir}</tbody></table>"""
+
+
+def rapor_html(v: dict, d: dict, mb: dict | None = None) -> str:
     return f"""<!doctype html><html lang=tr><head><meta charset=utf-8><title>Denetim raporu – {_e(v.get('firma'))} {_t(v.get('bas'))} – {_t(v.get('bit'))}</title>
 <style>body{{font:12px/1.4 Arial,sans-serif;margin:24px;color:#111}}h1{{font-size:18px;margin:0}}h2{{font-size:14px;margin:22px 0 6px;border-bottom:1px solid #999;padding-bottom:3px}}h3{{font-size:12.5px;margin:10px 0 4px}}
 .ust{{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #16325C;padding-bottom:6px}}
@@ -67,6 +80,7 @@ table.imza{{margin-top:36px;page-break-inside:avoid}}table.imza td{{border:none;
 {_kontrol_bolumu(v, "Matrah", "Matrah kontrolü")}
 {_detay_bolumu(d, "gider", "Detay denetim · Gider kontrolü (alış)")}
 {_detay_bolumu(d, "gelir", "Detay denetim · Gelir kontrolü (satış)")}
+{_muhtasar_bolumu(mb)}
 <p class=not>Kurala uygun ve geçmişle uyumlu faturalar otomatik değerlendirilmiştir (geçmiş: önceki en az iki ayda aynı cari aynı hesaba, tutar önceki aralıkta).
 Bu rapor kayıt yapmaz; muhasebe kayıtları değiştirilmemiştir.</p>
 <table class=imza><tr><td><b>Hazırlayan</b><div class=cizgi></div><span class=not>Ad Soyad · İmza · Tarih</span></td>

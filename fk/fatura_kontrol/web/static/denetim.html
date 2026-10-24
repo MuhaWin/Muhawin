@@ -110,7 +110,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
         <button type="button" data-g="OIV"><b>ÖİV kontrolü</b><span id="nOIV"></span><small>Faturadaki Özel İletişim Vergisi ↔ fişteki 689 kayıtları</small></button>
         <button type="button" data-g="faturasiz"><b>Faturası olmayan kayıtlar</b><span id="nFaturasiz"></span><small>Muavinde e-belge no'lu ama faturası yüklenmemiş kayıtlar</small></button>
         <button type="button" data-g="red"><b>Red / iptal faturalar</b><span id="nRed"></span><small>Red / iptal listesindeki faturalar ↔ muavin kaydı</small></button>
-        <button type="button" data-g="muhtasar"><b>Muhtasar (deneme)</b><span id="nMuhtasar"></span><small>360 hesaplarındaki stopajlar</small></button>
+        <button type="button" data-g="muhtasar"><b>Muhtasar</b><span id="nMuhtasar"></span><small>360 stopajları · beyanname (PDF) ↔ muavin</small></button>
         <button type="button" data-g="beyan"><b>Beyanname ve çıktı raporu</b><span></span><small>KDV 1 · KDV 2 · çıktı raporu · Excel</small></button>
         <div style="font-size:12px;color:var(--muted);margin:6px 2px 0">Detay denetim</div>
         <button type="button" data-g="gider"><b>Gider kontrolü</b><span id="nGider"></span><small>Alış faturaları ↔ gider / stok hesabı ve fişi (7xx, 15x …)</small></button>
@@ -356,14 +356,14 @@ function ciz() {
         <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td><td class="n">${para(x.kdv)}</td><td>${esc(x.doviz)}</td>
         <td>${x.faturada ? "var" : "yok"}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}${faturaDugmesi(x.belge_no, x.faturada)}</td><td>${esc(x.durum)}<br><small style="color:var(--muted)">${esc(x.dosya)}</small></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Red / iptal listesi yüklenmedi.</div>'}`;
   } else if (gor === "muhtasar") {
-    const m = veri.muhtasar || {satirlar: []};
-    govde = `<div class="uyari">${esc(m.not || "")}</div>
+    const m = veri.muhtasar || {satirlar: []}; mbeyanYukle();
+    govde = `${mbeyanGovde()}<div class="uyari">${esc(m.not || "")}</div>
       <div class="tk"><table><thead><tr><th>Tür</th><th class="n">Oran</th><th class="n">Matrah (gayrisafi)</th><th class="n">Kesilen vergi</th><th class="n">Kayıt</th></tr></thead>
       <tbody>${m.satirlar.map(x => `<tr><td><b>${esc(x.baslik)}</b></td><td class="n">${x.oran ? "%" + x.oran : ""}</td><td class="n">${x.matrah != null ? para(x.matrah) : "—"}</td><td class="n">${para(x.vergi)}</td><td class="n">${x.adet}</td></tr>`).join("") || '<tr><td colspan="5" class="bos">Dönemde 360 stopaj tahakkuku yok.</td></tr>'}</tbody>
       <tfoot><tr><td colspan="3"><b>Muhtasar ile ödenecek (SGK hariç)</b></td><td class="n"><b>${para(m.odenecek)}</b></td><td></td></tr></tfoot></table></div>
       ${m.satirlar.map(x => `<details><summary style="cursor:pointer;font-size:13px">${esc(x.baslik)} · ${x.adet} kayıt</summary><div class="tk" style="margin-top:6px"><table><thead><tr><th>Tarih</th><th>Fiş</th><th>Hesap</th><th>Ünvan / açıklama</th><th class="n">Matrah</th><th class="n">Vergi</th></tr></thead><tbody>${x.satirlar.map(s => `<tr><td>${tarih(s.tarih)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}</td><td class="mono">${esc(s.hesap)}</td><td>${esc(s.unvan || "")} ${esc(s.aciklama || "")}</td><td class="n">${s.matrah != null ? para(s.matrah) : ""}</td><td class="n">${para(s.vergi)}</td></tr>`).join("")}</tbody></table></div></details>`).join("")}
       ${(m.eslesmeyen || []).length ? `<details><summary style="cursor:pointer;font-size:13px">Türü bulunamayan 360 kayıtları (${m.eslesmeyen.length})</summary><div class="tk"><table><tbody>${m.eslesmeyen.map(s => `<tr><td>${tarih(s.tarih)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}</td><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)} · ${esc(s.aciklama)}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
-      <p class="ipucu">Muhtasar ve prim hizmet beyannamesi örneğini gönderdiğinizde bu bölüm GİB biçimine göre tamamlanacak.</p>`;
+`;
   } else if (gor === "gider" || gor === "gelir") {
     govde = detayGovde(gor);
   } else if (gor === "kurallar") {
@@ -382,9 +382,51 @@ function ciz() {
   }
   $("#icerik").innerHTML = bas + govde;
   const cb = $("#sorunlu"); if (cb) cb.onchange = () => { yalnizSorun = cb.checked; ciz(); };
-  detayBagla();
+  detayBagla(); mbeyanBagla();
   $("#icerik").querySelectorAll("[data-git]").forEach(b => b.onclick = () => { gor = b.dataset.git; ciz(); });
   $("#icerik").querySelectorAll("[data-ac]").forEach(b => b.onclick = () => window.open(b.dataset.ac, "_blank"));
+}
+/* ---------- Muhtasar ve Prim Hizmet Beyannamesi (1003A PDF) ↔ muavin: PDF saklanmaz, çalışan bölümleri okunmaz ---------- */
+let mbeyan = null, mbeyanId = "";
+async function mbeyanYukle(zorla) {
+  if (!veri || !veri.rapor_id || (!zorla && mbeyanId === veri.rapor_id)) return;
+  const id = veri.rapor_id; mbeyanId = id; mbeyan = null;
+  try { const r = await fetch("/api/denetim/muhtasar?id=" + encodeURIComponent(id)); mbeyan = r.ok ? await r.json() : null; } catch (e) { mbeyan = null; }
+  if (mbeyan && gor === "muhtasar" && veri && veri.rapor_id === id && !kontrol) ciz();
+}
+function mbeyanGovde() {
+  const yukle = `<div class="araclar"><label class="alan" style="flex:1;min-width:260px">Muhtasar ve Prim Hizmet Beyannamesi (GİB PDF'i) — muavinle karşılaştırmak için
+      <input type="file" id="mbDosya" accept=".pdf,application/pdf"></label><button type="button" class="btn birincil" id="mbYukle">Karşılaştır</button></div>
+    <p class="ipucu">PDF bu ${MW ? "bilgisayarda" : "tarayıcıda"} okunur ve kaydedilmez; yalnız tutarlar saklanır. Çalışan bölümleri (vergi bildirimi, sigortalı çalışan bilgileri) okunmaz; kişi adları ve kimlik numaraları alınmaz.</p><p class="hata" id="mbHata"></p>`;
+  if (!mbeyan) return `<section class="kart">${yukle}</section>`;
+  const b = mbeyan.beyan || {}, ay = b.ay ? AYLAR[b.ay - 1] + " " + b.yil : "";
+  const sinifD = d => d === "fark" ? "d-hata" : d === "uyumlu" ? "d-ok" : "d-bilgi";
+  const tk = b.tevkifat || {};
+  return `<section class="kart" style="display:grid;gap:10px"><div class="araclar"><b>Muhtasar beyannamesi ${esc(b.form || "")} · ${esc(ay)}</b><span style="color:var(--muted)">${esc(b.unvan || "")} · VKN ${esc(b.vkn || "")}${b.onay ? " · onay " + esc(b.onay) : ""}</span>
+      <span style="flex:1"></span><span class="rozet ${mbeyan.sorunlu ? "kotu" : "ok"}">${mbeyan.sorunlu ? mbeyan.sorunlu + " fark" : "uyumlu"}</span></div>
+    ${(mbeyan.uyarilar || []).length ? `<div class="uyari">${mbeyan.uyarilar.map(esc).join("<br>")}</div>` : ""}
+    <div class="tk"><table><thead><tr><th>Kontrol</th><th class="n">Beyanname</th><th class="n">Muavin</th><th class="n">Fark</th><th>Sonuç</th><th>Açıklama</th></tr></thead>
+      <tbody>${(mbeyan.satirlar || []).map(x => `<tr><td>${esc(x.ad)}</td><td class="n">${x.beyan == null ? "—" : para(x.beyan)}</td><td class="n">${x.muavin == null ? "—" : para(x.muavin)}</td>
+        <td class="n" style="${x.durum === "fark" ? "color:#a3262c;font-weight:600" : ""}">${x.fark == null ? "" : para(x.fark)}</td><td><span class="durum ${sinifD(x.durum)}">${x.durum === "fark" ? "Fark" : x.durum === "uyumlu" ? "Uyumlu" : "Bilgi"}</span></td><td>${esc(x.aciklama || "")}</td></tr>`).join("")}</tbody></table></div>
+    <details><summary style="cursor:pointer;font-size:13px">Beyannamenin okunan bölümleri</summary>
+      <div class="tk" style="margin-top:6px"><table><thead><tr><th>Tür kodu</th><th>Ödeme türü</th><th class="n">Gayrisafi</th><th class="n">Vergi kesintisi</th><th class="n">Bildirimdeki kişi</th></tr></thead>
+      <tbody>${Object.entries(b.kodlar || {}).map(([k, x]) => `<tr><td class="mono">${esc(k)}</td><td>${esc(x.ad)}</td><td class="n">${para(x.gayrisafi)}</td><td class="n">${para(x.vergi)}</td><td class="n">${((tk.kodlar || {})[k] || {}).adet || ""}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td colspan="2">Toplam${b.kalan_vergi != null ? ` · terkin sonrası kalan ${para(b.kalan_vergi)}` : ""}${b.damga != null ? ` · damga ${para(b.damga)}` : ""}</td><td class="n">${para((b.toplam || {}).gayrisafi)}</td><td class="n">${para((b.toplam || {}).vergi)}</td><td></td></tr></tfoot></table></div>
+      ${(b.icmal || []).length ? `<div class="tk" style="margin-top:6px"><table><thead><tr><th>Tahakkuka esas icmal</th><th class="n">Matrah</th><th class="n">Tahakkuk eden</th><th class="n">Mahsup</th><th class="n">Ödenecek</th></tr></thead>
+        <tbody>${b.icmal.map(x => `<tr><td>${esc(x.ad)}</td><td class="n">${para(x.matrah)}</td><td class="n">${para(x.tahakkuk)}</td><td class="n">${para(x.mahsup)}</td><td class="n">${para(x.odenecek)}</td></tr>`).join("")}</tbody></table></div>` : ""}</details>
+    <details><summary style="cursor:pointer;font-size:13px">Başka bir beyanname yükle</summary>${yukle}</details></section>`;
+}
+function mbeyanBagla() {
+  const y = $("#mbYukle"); if (!y) return;
+  y.onclick = async () => {
+    const d = $("#mbDosya").files[0]; $("#mbHata").textContent = "";
+    if (!d) { $("#mbHata").textContent = "Beyanname PDF'ini seçin."; return; }
+    const fd = new FormData(); fd.append("id", veri.rapor_id); fd.append("beyanname", d);
+    y.disabled = true;
+    try { const r = await fetch("/api/denetim/muhtasar", {method: "POST", body: fd}); const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || "Beyanname okunamadı"); mbeyan = j; mbeyanId = veri.rapor_id; ciz(); }
+    catch (e) { $("#mbHata").textContent = e.message; } finally { y.disabled = false; }
+  };
 }
 /* ---------- Detay denetim (gider / gelir kontrolü): yalnız kontrol, hiçbir kayıt yapılmaz ---------- */
 let detay = null, detayId = "", detayFiltre = {gider: "bekliyor", gelir: "bekliyor"}, kontrol = null;

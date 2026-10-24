@@ -186,6 +186,13 @@ def main():
         bekle(pg, "!document.querySelector('#kontrolPen.acik')", 30000)
         pg.click("#icerik [data-dfiltre=uygun_degil]")
         kontrol("Uygun değil" in pg.inner_text("#icerik"), "karar (D) kaydedildi, fatura listeden düştü")
+        print("Muhtasar beyannamesi")
+        pg.click("#nav [data-g=muhtasar]")
+        pg.set_input_files("#mbDosya", str(ORNEK / "muhtasar.pdf")); pg.click("#mbYukle")
+        bekle(pg, "document.querySelector('#icerik').textContent.includes('Muhtasar beyannamesi 1003A')", 60000)
+        icerik = pg.inner_text("#icerik")
+        kontrol("022 Serbest meslek" in icerik and "Uyumlu" in icerik and "AHMET" not in icerik and "12345678901" not in icerik,
+                "muhtasar PDF'i tarayıcıda okunur, muavinle karşılaştırılır (kişisel veri yok)")
         pg.click("#nav [data-g=ozet]")
 
         print("Çıktılar")

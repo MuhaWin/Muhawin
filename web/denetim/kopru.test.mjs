@@ -124,6 +124,19 @@ test('Detay denetim: gider / gelir kontrolü, karar, kural, rapor (tarayıcıda,
   assert.match(r.govde, /deneme/);
 });
 
+test('Muhtasar beyannamesi (1003A PDF) tarayıcıda okunur ve muavinle karşılaştırılır; kişisel veri saklanmaz', async () => {
+  const id = json(await istek('GET', '/api/denetim/liste')).liste.find(x => /ÖRNEK/.test(x.id)).id;
+  const y = await istek('POST', '/api/denetim/muhtasar', { form: { id: [id], beyanname: [{ ad: 'muhtasar.pdf', veri: oku(path.join(ORNEK, 'muhtasar.pdf')) }] } });
+  assert.strictEqual(y.durum, 200, y.govde);
+  const j = json(y);
+  assert.strictEqual(j.beyan.form, '1003A');
+  assert.strictEqual(j.beyan.kodlar['022'].vergi, 500);
+  const serbest = j.satirlar.find(x => x.ad.startsWith('022 Serbest meslek · vergi'));
+  assert.strictEqual(serbest.durum, 'uyumlu');
+  assert.ok(!/12345678901|AHMET|MEHMET|KONYAALTI/.test(y.govde));
+  assert.ok(!/12345678901|AHMET/.test(py.runPython("import pathlib; ''.join(p.read_text('utf-8') for p in pathlib.Path('/veri').rglob('*.json'))")));
+});
+
 test('Luca ve sqlite olmadan çalışır (taklit yalnız fastapi / pydantic)', async () => {
   const y = py.runPython("import sys; json_ = __import__('json'); json_.dumps([m in sys.modules for m in ('playwright', 'sqlite3', 'fastapi')])");
   assert.deepStrictEqual(JSON.parse(y), [false, false, true]);

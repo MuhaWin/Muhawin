@@ -147,8 +147,124 @@ Bütün denetim listelerinde fiş düğmesinin yanında **📄 Fatura** düğmes
 
 ---
 
-## FAZ 2 – Detay denetim (gider kontrolü / gelir kontrolü) + Muhtasar ve Prim Hizmet Beyannamesi (1003A) PDF karşılaştırması
-_Faz 1 kabul edilince. Muhtasar: yalnız matrah ve vergi bildirimi, terkin/mahsup, tahakkuka esas icmal, damga ve tevkifata tabi ödemeler okunur; çalışan bilgileri okunmaz, kişisel alanlar kaydedilmez._
+## FAZ 2 – Detay denetim (gider / gelir kontrolü) ve Muhtasar 1003A karşılaştırması
+
+**Hiçbir kayıt yapılmaz.** Bu fazdaki her şey yalnız kontrol: Luca'ya, Mikro'ya, Elektra'ya ya da muavine yazılan bir şey yok. Masaüstünde ve sitede (Pyodide) aynı kod çalışır, belgeler sunucuya gitmez.
+
+### 6. Detay denetim: Gider kontrolü ve Gelir kontrolü (`fk/fatura_kontrol/detay.py`)
+Soldaki menüde yeni "Detay denetim" grubu var: **Gider kontrolü**, **Gelir kontrolü**, **Kontrol kuralları**, **Denetim raporu**.
+
+Denetim çalışırken her dönem faturası için şu çıkarılır ve `denetim.json › detay` bölümüne yazılır:
+- **Kaydı:** Gider hesapları (alış: 15x, 25x, 26x, 6xx gider, 7xx; Denetim'in matrah kontrolündeki kural) ya da gelir hesapları (satış: 60x, 64x, 67x). Tutarlar hesap bazında toplanır.
+- **Fişi:** Toplu fişlerde yalnız o faturanın satırları alınır, başka faturalar karışmaz.
+- **Carisi:** Alışta alacaklı, satışta borçlu cari / ödeme hesabı.
+
+### 7. Kontrol kuralları
+Kural kayıt yapmaz. Kurala uyan fatura otomatik "uygun" sayılır ve listeye düşmez.
+- **Biçim:** "Alış · VKN 1234567890 (ya da ünvan içerir) → hesap 770 / 770.01.01.001 · açıklama".
+- **Uymazsa:** Kural tutar ama kayıt başka hesapta ise fatura listede kalır: "Kural 3: 770 bekliyor; kayıt 760.01".
+- **Nerede saklanır:** Firma klasöründe `detay-kurallari.json`; sonraki aylarda da geçerli.
+- **Nasıl eklenir:** Kurallar ekranından ya da kontrol ekranında "Bu cari için kural ekle" ile. Hesap, faturanın kaydından hazır gelir.
+
+### 8. Geçmişe göre otomatik değerlendirme (deterministik)
+Yıllık muavinde, faturanın carisine ait önceki ayların fişlerine bakılır. Toplu fişler (birden çok cari) atlanır.
+- **Cari kimliği:**
+  - alt hesap firmaya özelse (320.01.0032) hesap kodu;
+  - değilse (Mikro 320.01 + cari ismi) muavindeki ünvanın kökleri.
+- **"Geçmişle uyumlu" sayılma koşulu:**
+  - en az iki önceki ayda kayıt var;
+  - bu ayların hepsinde aynı hesap(lar) kullanılmış;
+  - bu ay da aynı hesap(lar) kullanılmış;
+  - tutar önceki ayların aralığında: en düşüğün yarısı ile en yükseğin 1,5 katı arası.
+- Örnek: her ay gelen SMMM, elektrik, su, kira faturaları.
+- **Uyumsuzsa gerekçe yazılır:** "yalnız 1 ay kayıt var", "önceki aylarda farklı hesaplara", "önceki aylarda 770…; bu ay 760…", "tutar önceki ayların aralığının dışında".
+- **Yapay zeka seçeneği (karar kullanıcının; uygulanmadı):**
+  - Fatura / muavin bir dış yapay zeka servisine gönderilirse "belgeler bilgisayarda kalır" kuralı bozulur. Bu yüzden yapılmadı.
+  - Seçenek A: dışarıya yalnız anonim özet gider (ünvan yerine sektör, tutar aralığı, hesap adı). Kullanıcı onayı ve KVKK değerlendirmesi gerekir.
+  - Seçenek B: kullanıcının bilgisayarında çalışan yerel bir model. Kurulumu ve boyutu büyük.
+  - Bugünkü deterministik kurallar ve kullanıcının kararları zamanla öğreniyor: kurallar firmada birikiyor.
+
+### 9. Kontrol ekranı (büyük ekran)
+"Kontrole başla" ya da bir satırdaki "İncele" ile açılır.
+- **Sol taraf:**
+  - fatura bilgisi (belge no, tarih, karşı taraf, VKN, matrah, KDV, toplam);
+  - kayıt (hesaplar ve tutarları; kayıt ≠ matrah ise kırmızı uyarı), cari, geçmiş özeti;
+  - **fişin kendisi:** muavinden kurulur, faturanın hesap satırları vurgulu;
+  - not alanı.
+- **Sağ taraf:** Faturanın görünümü; listelerdeki "Fatura" düğmesiyle aynı GİB şablonu. Betiksiz (`sandbox=""`) çerçevede açılır. Masaüstünde yan süreçten, sitede tarayıcıdaki köprüden gelir; fatura sunucuya gitmez.
+- **Düğmeler:** Yeşil **✓ Uygun (U)**, kırmızı **✗ Uygun değil (D)**, **← Önceki**, **Sonraki →**.
+- **Karar verilince:** Fatura sıradan çıkar ve sonraki açılır, liste azalır. Liste bitince ekran kapanır.
+- **Kısayollar:** U, D, ←, →, Esc. Not alanına yazarken kısayollar çalışmaz.
+- **Kararlar:** Firma klasöründe `detay-kararlar.json`; fatura anahtarı (ETTN) ile tutulur. Denetim yeniden yapılsa da kalır (testte sınandı).
+- **Öncelik:** karar > kural > geçmiş > bekliyor.
+
+### 10. Denetim raporu (`fk/fatura_kontrol/detay_rapor.py`, `/api/denetim/detay/rapor`)
+Yazdırılabilir HTML; masaüstünde ve sitede ayrı pencerede açılır. Toplu kontrol raporu düzeninde:
+- **KDV kontrolü ve matrah kontrolü:** durum sayıları ve sorunlu satırlar (belge, tarih, karşı taraf, fatura, muavin, fark, fiş, açıklama).
+- **Gider ve gelir kontrolü:** durum kutuları; "uygun değil" ve bekleyenler gerekçeleriyle; uygun bulunanlar katlanır listede.
+- **Muhtasar:** beyanname yüklendiyse karşılaştırması.
+- Hazırlayan / Onaylayan imza alanları.
+
+### Muhtasar ve Prim Hizmet Beyannamesi (1003A PDF) ↔ muavin (`fk/fatura_kontrol/muhtasar_beyan.py`)
+"Muhtasar" ekranında **Beyanname (PDF) → Karşılaştır**.
+- **PDF okuma:** pypdf ile düzen korunarak okunur. pypdf saf Python; masaüstünde `fk/requirements.txt`, sitede `web/denetim/wheels.txt` ile geliyor.
+- **Okunanlar:**
+  - başlık: 1003A, vergi dairesi, yıl / ay (Türkçe ay adı), onay zamanı;
+  - vergi sorumlusu: VKN ve unvan (iki satır birleşir);
+  - matrah ve vergi bildirimi: tür kodu, gayrisafi, kesinti, toplam;
+  - terkin, terkin sonrası kalan, tevkifata ilişkin damga;
+  - tahakkuka esas icmal;
+  - tevkifata tabi ödemeler bildirimi: yalnız tür kodu başına kişi adedi, gayrisafi ve kesinti toplamları.
+- **Okunmayanlar (kullanıcı kararı):** "VERGİ BİLDİRİMİ" (çalışan) ve "Sigortalı Çalışan Bilgileri" bölümleri. 011 ücret yalnız tür kodu satırıyla karşılaştırılıyor.
+- **Kişisel veri:** TC, ad soyad, adres hiçbir yere yazılmaz; okuma sırasında da tutulmaz. PDF kaydedilmez. Dönem klasörüne yalnız tutar ve adetlerden oluşan özet (`muhtasar_beyan.json`) yazılır. Testlerde kayıtta, yanıtta ve rapordaki çıktıda kişi verisi olmadığı sınandı.
+- **Karşılaştırma:** Fark 1 TL'yi aşarsa "Fark".
+  - ödenecek toplam (kalan stopaj + damga) ↔ 360 tahakkukları;
+  - 011 kesinti ↔ 360 ücret stopajı; 011 gayrisafi ↔ ücret giderleri (bilgi: SGK işveren payı olabilir);
+  - 022 kesinti ↔ 360 serbest meslek; 022 gayrisafi ↔ e-SMM alış faturaları; %20 oranı;
+  - 041 kesinti ↔ 360 kira; 041 gayrisafi ↔ kira giderleri; %20 oranı;
+  - damga ↔ 360 damga;
+  - diğer kodlar bilgi olarak.
+  - Beyannamenin dönemi ya da VKN'si denetimle tutmazsa uyarı çıkar.
+- **Güncel kalır:** Karşılaştırma her açılışta güncel denetim ve muavinle yeniden yapılır.
+- **Gerçek PDF ile denenmedi.**
+  - Sahte PDF, aktarılan bölüm düzeninde reportlab ile üretildi (`fk/tests/muhtasar_ornek.py`).
+  - Gerçek GİB PDF'inde satır düzeni farklıysa okuma ayarlanmalı. Özellikle kişi başına gayrisafi / kesinti satırları bilinmiyor; genel toplamla tutmazsa ekranda uyarı çıkar.
+
+### Değişen / yeni dosyalar (Faz 2)
+| Dosya | Değişiklik |
+|---|---|
+| `fk/fatura_kontrol/detay.py` | Yeni: detay hazırlama, geçmiş indeksi, kurallar, kararlar, durum uygulama |
+| `fk/fatura_kontrol/detay_rapor.py` | Yeni: denetim raporu HTML |
+| `fk/fatura_kontrol/muhtasar_beyan.py` | Yeni: 1003A PDF okuma ve karşılaştırma |
+| `fk/fatura_kontrol/denetim.py` | `denetle` → `v["detay"]` |
+| `fk/fatura_kontrol/web/app.py` | `/api/denetim/detay` (GET), `/detay/karar`, `/detay/kural`, `/detay/rapor`; `/api/denetim/muhtasar` (POST / GET) |
+| `fk/fatura_kontrol/web/static/denetim.html` | Detay denetim menüsü ve ekranları, kontrol ekranı, kurallar, rapor; muhtasar PDF yükleme ve karşılaştırma |
+| `fk/requirements.txt` | `pypdf>=6.0` (saf Python). **Programın Python ortamına da girmeli**; kurulum bunu nasıl alıyor, sen bakmalısın |
+| `web/denetim/wheels.txt` · `.github/workflows/site.yml` | `pypdf==6.17.0`; site testleri için `reportlab` |
+
+### Testler (Faz 2)
+- **`fk/tests/test_detay.py`** (9 test):
+  - geçmişle uyumlu;
+  - 4 uyumsuz durum;
+  - kural ve karar önceliği;
+  - toplu fişte faturalar karışmıyor;
+  - API: karar, kural, rapor, yeniden denetimde kararlar kalıyor;
+  - tarayıcıda kontrol ekranı: fiş, fatura çerçevesi, U ile karar, kural ekleme, kurallar listesi, rapor.
+- **`fk/tests/test_muhtasar_beyan.py`** (4 test):
+  - okuma;
+  - çalışan bölümü ve kişisel veri yok;
+  - başka / bozuk PDF reddedilir;
+  - tek satırlı kişi tutarı;
+  - API: karşılaştırma, PDF saklanmaz, kayıtta kişisel veri yok, rapor.
+- **Köprü (Pyodide):** detay denetim ve muhtasar PDF'i tarayıcıda.
+- **site_e2e:** Kontrol ekranı sitenin CSP'siyle; D ile karar; muhtasar PDF'i tarayıcıda okunuyor, kişisel veri yok.
+- **Sonuçlar:**
+  - **pytest:** 185 geçti. 16 hata `main` ile aynı ortam hataları.
+  - **Site:** köprü 8/8, sürüm notu 6/6, site_e2e TAMAM.
+  - **Luca fis-goster:** 20/20.
+- **Elektron e2e bu ortamda çalışmıyor; yöneticinin çalıştırması gerekiyor.** Mevcut Denetim adımları değişmedi; yeni menü düğmeleri yalnız eklendi.
+
+---
 
 ## FAZ 3 – Yönetici raporu (görsel)
 _Faz 2'den sonra._

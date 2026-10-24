@@ -795,7 +795,57 @@ def denetim_detay_rapor(id: str):
     from ..detay_rapor import rapor_html
     k, v = _denetim_veri(id)
     firma = k.parent.parent
-    return HTMLResponse(rapor_html(v, detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma))))
+    try:
+        mb = denetim_muhtasar_getir(id) if (k / MUHTASAR_BEYAN_JSON).exists() else None
+    except Exception:                    # beyanname özeti bozuksa rapor yine çıkar
+        mb = None
+    return HTMLResponse(rapor_html(v, detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma)), mb))
+
+
+# ------------------------------------------------------------------ Muhtasar beyannamesi (1003A PDF) ↔ muavin
+MUHTASAR_BEYAN_JSON = "muhtasar_beyan.json"      # yalnız tutarlar / adetler; PDF ve kişisel alanlar saklanmaz
+
+
+def _muhtasar_karsilastir(k: Path, v: dict, b: dict) -> dict:
+    from .. import muhtasar_beyan as MB
+    bas, bit = date.fromisoformat(v["bas"]), date.fromisoformat(v["bit"])
+    return MB.kayit_bicimi({"beyan": b, **MB.karsilastir(b, v, _denetim_muavini(k), bas, bit),
+                            "zaman": datetime.now().isoformat(timespec="minutes")})
+
+
+@app.post("/api/denetim/muhtasar")
+async def denetim_muhtasar(id: str = Form(...), beyanname: UploadFile = File(...)):
+    """Muhtasar ve Prim Hizmet Beyannamesi PDF'i okunur (çalışan bölümleri hariç), muavinle karşılaştırılır.
+    PDF kaydedilmez; yalnız özet tutarlar dönem klasörüne yazılır."""
+    from .. import muhtasar_beyan as MB
+    from ..denetim import DENETIM_JSON
+    k = depo.rapor_klasoru(id)
+    if not k or not (k / DENETIM_JSON).exists():
+        raise HTTPException(404, "Bu dönemin denetimi yok")
+    veri = await beyanname.read()
+    if not veri.startswith(b"%PDF"):
+        raise HTTPException(400, "Beyannameyi PDF olarak yükleyin (GİB › Beyanname görüntüle › PDF).")
+    try:
+        b = MB.oku(veri)
+    except MB.BeyannameHatasi as e:
+        raise HTTPException(400, str(e))
+    v = json.loads((k / DENETIM_JSON).read_text(encoding="utf-8"))
+    sonuc = _muhtasar_karsilastir(k, v, b)
+    (k / MUHTASAR_BEYAN_JSON).write_text(json.dumps(sonuc, ensure_ascii=False), encoding="utf-8")
+    return sonuc
+
+
+@app.get("/api/denetim/muhtasar")
+def denetim_muhtasar_getir(id: str):
+    """Yüklenmiş beyanname özeti; karşılaştırma güncel denetim ve muavinle yeniden yapılır."""
+    from .. import muhtasar_beyan as MB
+    from ..denetim import DENETIM_JSON
+    k = depo.rapor_klasoru(id)
+    if not k or not (k / MUHTASAR_BEYAN_JSON).exists() or not (k / DENETIM_JSON).exists():
+        raise HTTPException(404, "Bu dönem için muhtasar beyannamesi yüklenmedi")
+    eski = json.loads((k / MUHTASAR_BEYAN_JSON).read_text(encoding="utf-8"))
+    v = json.loads((k / DENETIM_JSON).read_text(encoding="utf-8"))
+    return {**_muhtasar_karsilastir(k, v, MB.kayittan(eski["beyan"])), "zaman": eski.get("zaman")}
 
 
 @app.get("/api/gecmis")
