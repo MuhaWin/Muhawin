@@ -58,3 +58,16 @@ Akış, kullanıcının istek kaydındaki adreslere ve form alanlarına göre ya
 - Fiş no 4 hane biçimi.
 
 Kullanıcının ilk denemesinde bunlar görülür. Sorun olursa fiş numarası bildirimde yazıyor; elle aranabilir. Fiş Listesi düğmesinde yedek yol (panoya kopyalama) var.
+
+## Sonraki değişiklik (24.10.2026, kullanıcı isteği)
+Rapor listelerindeki satır sonu **"Luca'da aç" sütunu kaldırıldı**. Bu sütun kontrol, faturası olmayan, fatura dışı ve red / iptal sekmelerindeydi. Kullanıcı fiş numarasına tıklayıp fiş penceresindeki "Luca'da aç" düğmesini kullanıyor; o düğme yerinde duruyor.
+
+Kod tarafında:
+- `index.html`'de `lucaBtn`, `ilkFis`, `.lucabtn` stili ve `data-lucafis` dinleyicisi silindi.
+- `lucaFisAc` ve `#fisLuca` duruyor.
+
+Test (`fk/tests/test_luca_ac.py`) bunları sınıyor:
+- listede düğme yok;
+- her sekmede başlık, süzgeç ve satır hücre sayıları aynı;
+- fiş penceresindeki düğme `lucaFisAc` mesajını gönderiyor;
+- MuhaWin dışında bu düğme görünmüyor.
