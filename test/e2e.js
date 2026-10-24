@@ -1273,7 +1273,7 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
     check(/HATA Fiş dengesiz/.test(v4.dengesiz), 'elle tutar fişi dengesiz bırakırsa kayıt engellenir');
     // ---- Görev 36: kod tanımları (KDV oranı × işlem → hesap), doldurma kaynağı, satırda [Kod] [Geçmiş] [Kural], kuralda ana hesap
     { await app.evaluate(({ ipcMain }) => { ipcMain.removeHandler('luca-kdv-hesaplari'); global.__kdvCek = 0;
-        ipcMain.handle('luca-kdv-hesaplari', () => { global.__kdvCek++; return { tablo: { '11': { '1': { kod: '153.01.01' }, '20': { kod: '153.01.20' } }, '1': { '20': { kod: '191.01.20' } }, '0': { '20': { kod: '600.01.20' } } } }; }); });
+        ipcMain.handle('luca-kdv-hesaplari', (e, a) => { global.__kdvCek++; global.__kdvArg = a; return { tablo: { '11': { '1': { kod: '153.01.01' }, '20': { kod: '153.01.20' } }, '1': { '20': { kod: '191.01.20' } }, '0': { '20': { kod: '600.01.20' } } } }; }); });
       await w.evaluate(() => { const st = window.__fkayit._st;
         for (const [k, v] of [['153.01.01', '%1 TİCARİ MAL'], ['153.01.10', '%10 TİCARİ MAL'], ['153.01.20', '%20 TİCARİ MAL'], ['153.01.99', 'DİĞER TİCARİ MAL'], ['191.01.20', '%20 İNDİRİLECEK KDV']]) { st.acc.set(k, v); st.leaf.add(k); } });
       const i0 = await w.$eval('#fkkTable tbody tr[data-i]', t => +t.dataset.i);
@@ -1313,6 +1313,14 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
       await w.click('#fkkKod'); await w.click('#fkkKodA'); await w.waitForSelector('#fkkKodTablo'); await w.click('#kodCek'); await w.waitForSelector('#askModal:not([hidden])'); await w.click('#askYes'); await w.waitForTimeout(200);
       const e20b = await w.$eval('[data-kodh="11|20"]', x => x.value); await w.click('#fkkModal [data-kx]');
       check(e20b === '153.01.20' && (await app.evaluate(() => global.__kdvCek)) === 2, 'farkta "Luca\'dakini kullan" denince hücre Luca\'daki oldu (kaydetmeden kapatıldı)');
+      // Görev 45: Luca'dan çek firmanın Luca no'su ve raporun yılıyla gider; firma kartında Luca no yoksa rapordaki Luca firma no kullanılır
+      { const a1 = await app.evaluate(() => global.__kdvArg);
+        const lid = await w.evaluate(() => { const st = window.__fkayit._st; st._lid = st.firm.lucaId; st.firm = { ...st.firm, lucaId: '' }; st.data._lid = st.data.luca_id; st.data.luca_id = '4242'; return st._lid; });
+        await w.click('#fkkKod'); await w.click('#fkkKodA'); await w.waitForSelector('#fkkKodTablo'); const acik = !(await w.$eval('#kodCek', b => b.disabled));
+        await w.click('#kodCek'); await w.waitForTimeout(300); if (await w.isVisible('#askModal')) await w.click('#askNo'); await w.click('#fkkModal [data-kx]');
+        const a2 = await app.evaluate(() => global.__kdvArg);
+        await w.evaluate(() => { const st = window.__fkayit._st; st.firm = { ...st.firm, lucaId: st._lid }; st.data.luca_id = st.data._lid; delete st._lid; delete st.data._lid; });
+        check(String(a1.lucaId) === String(lid) && a1.year === '2026' && acik && a2.lucaId === '4242', 'Luca\'dan çek: firmanın Luca no\'su ve raporun yılı gidiyor; firma kartında Luca no yoksa rapordaki Luca firma no kullanılıyor (' + JSON.stringify([a1, a2]) + ')'); }
       // kural penceresi: ana hesap açıklaması
       await w.click(`[data-kural="${i0}"]`); await w.waitForSelector('#fkkModal:not([hidden]) #kAnaNot');
       check((await w.textContent('#kAnaNot')).trim() === 'Ana hesap yazarsanız detay hesap kod tablosundan seçilir; detay hesap yazarsanız sizin yazdığınız geçerli olur.', 'kural penceresinde ana / detay hesap açıklaması');
