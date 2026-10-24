@@ -94,6 +94,18 @@ test('Denetim program seçimi: yalnız denetime uygun programlar (?denetim=1)', 
   assert.deepStrictEqual(sifir, hepsi);
 });
 
+test('Elektra muavini tarayıcıda okunur (hızlı xlsx okuyucu): Mikro ile aynı sonuç', async () => {
+  const form = muavin => ({
+    faturalar: [{ ad: 'faturalar.zip', veri: oku(path.join(ORNEK, 'faturalar.zip')) }],
+    muavinler: [{ ad: 'muavin.xlsx', veri: oku(path.join(ORNEK, muavin)) }],
+    bas: ['2026-09-01'], bit: ['2026-09-30'], program: [muavin === 'elektra.xlsx' ? 'elektra' : 'mikro'], firma_ad: ['ELEKTRA DENEME A.Ş.'],
+  });
+  const ozet = y => { assert.strictEqual(y.durum, 200, y.govde); return Object.fromEntries(Object.entries(json(y).denetim.ozet).map(([k, v]) => [k, v.sorunlu])); };
+  const e = ozet(await istek('POST', '/api/denetim', { form: form('elektra.xlsx') }));
+  assert.deepStrictEqual(e, ozet(await istek('POST', '/api/denetim', { form: form('muavin.xlsx') })));
+  assert.deepStrictEqual({ KDV: e.KDV, Matrah: e.Matrah, Cari: e.Cari }, { KDV: 0, Matrah: 1, Cari: 1 });
+});
+
 test('Luca ve sqlite olmadan çalışır (taklit yalnız fastapi / pydantic)', async () => {
   const y = py.runPython("import sys; json_ = __import__('json'); json_.dumps([m in sys.modules for m in ('playwright', 'sqlite3', 'fastapi')])");
   assert.deepStrictEqual(JSON.parse(y), [false, false, true]);
@@ -117,9 +129,7 @@ test('hatalar ve kapalı bölümler', async () => {
   const eksik = await istek('POST', '/api/denetim', { form: { bas: ['2026-09-01'] } });
   assert.strictEqual(eksik.durum, 400);                              // muavin artık isteğe bağlı alan (Luca'dan da gelir)
   assert.match(json(eksik).detail, /e-fatura dosyalarını/);
-  const elektra = await istek('POST', '/api/denetim', { form: { bas: ['2026-09-01'], program: ['elektra'] } });
-  assert.strictEqual(elektra.durum, 400);
-  assert.match(json(elektra).detail, /Elektra muavin örneği bekleniyor/);
+
   for (const yol of ['/api/toplu/durum', '/api/kontrol/luca-faturalari', '/api/ayarlar']) {
     assert.strictEqual((await istek('GET', yol)).durum, 404, yol);
   }

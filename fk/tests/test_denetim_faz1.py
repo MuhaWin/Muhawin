@@ -78,23 +78,51 @@ def c(tmp_path, monkeypatch):
 def test_program_listesi_ve_elektra(c, tmp_path):
     from test_denetim import _mikro
     from test_luca_otomasyon import ubl, FIRMA_VKN
+    from elektra_ornek import elektra_yaz
     d = c.get("/api/muavin/programlar", params={"denetim": 1}).json()["programlar"]
-    assert [p["kod"] for p in d] == ["mikro", "elektra", "luca"]
-    assert [p["hazir"] for p in d] == [True, False, True]
+    assert [p["kod"] for p in d] == ["mikro", "elektra", "luca"] and all(p["hazir"] for p in d)
     assert "elektra" not in [p["kod"] for p in c.get("/api/muavin/programlar").json()["programlar"]]   # Tek firma kontrolde yok
     zb = io.BytesIO()
     with zipfile.ZipFile(zb, "w") as z:
         z.writestr("a.xml", ubl("AAA2026000000001", "2026-09-05", "1", FIRMA_VKN, "1000.00", "200.00", 20))
         z.writestr("b.xml", ubl("EX02026000000001", "2026-09-10", FIRMA_VKN, "9", "2000.00", "400.00", 20))   # firma VKN'si iki faturada
-    y = tmp_path / "m.xlsx"; _mikro(y)
-    r = c.post("/api/denetim", data={"bas": "2026-09-01", "bit": "2026-09-30", "program": "elektra"},
-               files=[("faturalar", ("p.zip", zb.getvalue(), "application/zip")), ("muavinler", ("m.xlsx", y.read_bytes(), "application/octet-stream"))])
-    assert r.status_code == 400 and "Elektra muavin örneği bekleniyor" in r.json()["detail"]
-    # Mikro muavininde 191.01.20 adında da %20 → oran adından; denetim yine yapılır, KDV fişi doğru
-    r = c.post("/api/denetim", data={"bas": "2026-09-01", "bit": "2026-09-30", "program": "mikro"},
-               files=[("faturalar", ("p.zip", zb.getvalue(), "application/zip")), ("muavinler", ("m.xlsx", y.read_bytes(), "application/octet-stream"))])
-    assert r.status_code == 200, r.text
-    assert {s["durum"] for s in r.json()["denetim"]["sonuclar"] if s["kontrol"] == "KDV"} == {"Uyumlu"}
+    sonuc = {}
+    for program, yaz in (("mikro", _mikro), ("elektra", elektra_yaz)):
+        y = tmp_path / f"{program}.xlsx"; yaz(y, satis_matrah=1900, cari_alis=1150)
+        r = c.post("/api/denetim", data={"bas": "2026-09-01", "bit": "2026-09-30", "program": program, "firma_ad": f"{program} A.Ş."},
+                   files=[("faturalar", ("p.zip", zb.getvalue(), "application/zip")), ("muavinler", (y.name, y.read_bytes(), "application/octet-stream"))])
+        assert r.status_code == 200, r.text
+        d = r.json()["denetim"]
+        sonuc[program] = ({(s["kontrol"], s["belge_no"]): s["durum"] for s in d["sonuclar"]},
+                          {k: v["sorunlu"] for k, v in d["ozet"].items()}, d["muhtasar"]["odenecek"])
+    assert sonuc["elektra"] == sonuc["mikro"]                    # aynı kayıtlar: Elektra ve Mikro aynı sonuç
+    assert sonuc["elektra"][1] == {"KDV": 0, "Matrah": 1, "Cari": 1, "OIV": 0} and sonuc["elektra"][2] == 500
+
+
+def test_elektra_okuyucu(tmp_path):
+    from elektra_ornek import elektra_yaz, BASLIK
+    from fatura_kontrol import elektra_muavin as EM
+    y = tmp_path / "e.xlsx"; elektra_yaz(y)
+    s, _ = EM.elektra_oku(y)
+    assert len(s) == 7                                           # grup başlıkları (devir toplamı) ve boş satırlar sayılmaz
+    k = {x.hesap_kodu: x for x in s}
+    assert k["120.01.01.A010"].fis_no == "0011" and k["120.01.01.A010"].borc == 2400 and k["120.01.01.A010"].unvan == "ALICI"
+    assert k["191.01.001"].belge_no == "AAA2026000000001" and k["191.01.001"].fis_tarihi == date(2026, 9, 5)
+    assert k["360.01.003"].belge_no is None and k["360.01.003"].fis_tipi == "Makbuz" and k["770.01.01.001"].unvan == ""
+    assert EM._oku(y, EM._openpyxl_satirlari(y))[0] == s       # hızlı okuyucu = openpyxl
+    # paylaşılan metinler (sharedStrings), sayı fiş no ve tarih seri sayısı: openpyxl'in normal kaydı
+    import openpyxl
+    wb = openpyxl.Workbook(); ws = wb.active
+    ws.append(BASLIK)
+    ws.append([" X -> 100.01.01.001 Kasa Hesabı / TL", None, None, None, None, None, None, None, None, 5, 0, 5, 0, 0, 0])
+    ws.append([None, date(2026, 3, 2), 3240, "100.01.01.001", "Kasa Hesabı", None, None, None, None, 5, None, 5])
+    ws.append([None] * 15)
+    y2 = tmp_path / "e2.xlsx"; wb.save(y2)
+    s2, _ = EM.elektra_oku(y2)
+    assert [(x.hesap_kodu, x.fis_no, x.fis_tarihi, x.borc) for x in s2] == [("100.01.01.001", "3240", date(2026, 3, 2), 5)]
+    bozuk = tmp_path / "b.xlsx"; wb = openpyxl.Workbook(); wb.active.append(["a", "b"]); wb.save(bozuk)
+    with pytest.raises(ValueError, match="Elektra muavin başlıkları"):
+        EM.elektra_oku(bozuk)
 
 
 def test_luca_muavini_denetimde(tmp_path, monkeypatch):
@@ -148,7 +176,7 @@ def _luca_muavini_akisi(c, toplu_api, T, depo):
 
 
 def test_tarayicida_program_donem_ve_fis(tmp_path):
-    """denetim.html: program seçimi (Elektra → uyarı, başlat kapalı), dönem tablosu, muhtasar listesinde fiş düğmesi."""
+    """denetim.html: program seçimi (hazır olmayan program → uyarı, başlat kapalı), dönem tablosu, muhtasar listesinde fiş düğmesi."""
     from test_fis_ve_tumu import _sunucu
     from test_denetim import _mikro
     from test_luca_otomasyon import ubl, FIRMA_VKN
@@ -172,6 +200,10 @@ def test_tarayicida_program_donem_ve_fis(tmp_path):
         assert pg.eval_on_selector_all("#program option", "o => o.map(x => x.value)") == ["mikro", "elektra", "luca"]
         assert "Mikro" not in pg.inner_text("header")
         pg.select_option("#program", "elektra")
+        assert pg.is_hidden("#programUyari") and pg.is_enabled("#basla") and "Fiş Numarası" in pg.inner_text("#muavinIpucu")
+        # okuyucusu olmayan program (hazir: false): uyarı, başlat ve muavin kapalı
+        pg.evaluate("programlar.push({kod: 'yok', ad: 'Yeni', uzantilar: ['.xlsx'], ipucu: 'Yeni muavin örneği bekleniyor', hazir: false});"
+                    "document.querySelector('#program').add(new Option('Yeni', 'yok')); document.querySelector('#program').value = 'yok'; programCiz()")
         assert pg.is_visible("#programUyari") and "örneği bekleniyor" in pg.inner_text("#programUyari")
         assert pg.is_disabled("#basla") and pg.is_disabled("#muavin")
         pg.select_option("#program", "luca")

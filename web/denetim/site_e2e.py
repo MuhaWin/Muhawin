@@ -153,7 +153,8 @@ def main():
         kontrol(pg.is_hidden("#lucaKutu") and pg.is_hidden("#lucaMuavinKutu") and pg.is_enabled("#muavin"),
                 "sitede Luca seçilince yalnız dosya yükleme (Luca'dan getirme yok)")
         pg.select_option("#program", "elektra")
-        kontrol(pg.is_visible("#programUyari") and pg.is_disabled("#basla"), "Elektra: örnek bekleniyor uyarısı, denetim kapalı")
+        kontrol(pg.is_hidden("#programUyari") and pg.is_enabled("#basla") and "Fiş Numarası" in pg.inner_text("#muavinIpucu"),
+                "Elektra seçilebilir (muavin yükleme açık)")
         pg.select_option("#program", "mikro")
         pg.set_input_files("#xml", str(ORNEK / "faturalar.zip")); pg.set_input_files("#muavin", str(ORNEK / "muavin.xlsx"))
         pg.fill("#bas", "2026-09-01"); pg.fill("#bit", "2026-09-30"); pg.click("#basla")
