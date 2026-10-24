@@ -95,6 +95,7 @@ contextBridge.exposeInMainWorld('desktop', {
     mizan: a => ipcRenderer.invoke('luca-mizan', a),
     prepareFis: a => ipcRenderer.invoke('luca-prepare-fis', a),
     fisKes: a => ipcRenderer.invoke('luca-fis-kes', a),
+    fisGoster: a => ipcRenderer.invoke('luca-fis-goster', a),
     dovizKodlari: () => ipcRenderer.invoke('luca-doviz-kodlari'),
     isletmeListeleri: a => ipcRenderer.invoke('luca-isletme-listeleri', a),
     hesapPlani: a => ipcRenderer.invoke('luca-hesap-plani', a),
