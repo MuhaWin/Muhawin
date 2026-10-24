@@ -56,12 +56,12 @@ Derleme yapılmadı.
 - **`node test/hesap_dh.js` (yeni):** 8 kontrol, CI'ye (`surum.yml`) eklendi.
   - 102 / 102.01 / 102.01.07 / 102.01.07.01 örneğinde yalnız sonuncusu E.
   - Kardeş detaylar, `102.1` ↔ `102.10`, boşluklu / tireli / noktasız / karışık yazım, alt hesabı olmayan ana hesap, sayı olarak gelen kod.
-- **`test/e2e.js` (Mizan sekmesine kontrol eklendi):**
+- **`test/e2e.js`:** Bu ortamda Electron ile (xvfb) baştan sona çalıştırıldı: **374 kontrol geçti, hata yok** (çıkış 0). Eklenen kontroller:
   - DH sütunu var ve her satırdaki değer `HesapDH` ile aynı.
   - H satırlarının yazısı kalın (≥700), E satırları normal.
   - Mizan kutusunda yatay kaydırma yok.
   - 102 örneği doğru çıkıyor.
   - Muavinde → ile sonraki hesap, ← ile önceki açılıyor; listenin başında duruyor; arama kutusu odaktayken → hesabı değiştirmiyor; "sonraki >" düğmesi var.
   - Fiş penceresinde "Luca'da aç" PDF / Excel düğmelerinin solunda. Basınca `fisGoster`'a doğru fiş no ve yıl gidiyor (testte istek yakalanıyor, Luca'ya gidilmiyor). Luca karşılığı yoksa düğme pasif ve ipucunda neden yazıyor.
-  - Alacağa göre azalan sıralayınca her satırın bakiyesi görünen sıranın yürüyen toplamı ve son satır "Toplam" bakiyesine eşit (örnek hesapta en az iki hareket varsa).
+  - Bakiye: açılışı 100 olan üç hareketli hesap alacağa göre azalan sıralanınca bakiye yeni sıraya göre yürüyor (200 A · 250 A · 250 B) ve son satır "Toplam" bakiyesine eşit.
 - **Görünüm:** Programın stil dosyasıyla örnek tablo tarayıcıda denendi; H satırları kalın, E normal.
