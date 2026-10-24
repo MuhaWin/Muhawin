@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /* MuhaWin sitesi: web/site/surum.json dosyasını ve (--denetim ile) web/site/denetim/ klasörünü üretir.
-   Sürüm ve indirme deposu package.json'dan, sürüm notları OKUBENI.txt'deki "x.y.z YENİLİKLER" bölümlerinden alınır.
+   Sürüm ve indirme deposu package.json'dan; sürüm notu OKUBENI.txt'deki en üstteki "x.y.z YENİLİKLER" bölümünden alınır
+   (sitede yalnız en son yayınlanan sürümün notları görünür; önceki sürümler listelenmez — kullanıcı kararı).
    Denetim: sayfalar fk/fatura_kontrol/web/static'ten kopyalanır (tek kaynak), Python paketi zip'lenir, Pyodide ve
    wheel'ler web/denetim'den alınır (önce: cd web/denetim && npm ci && pip download --no-deps -r wheels.txt -d wheels).
-   Kullanım:  node tools/site_uret.js [--denetim] [kaç sürüm, varsayılan 8] */
+   Kullanım:  node tools/site_uret.js [--denetim] */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -31,6 +32,9 @@ function notlariOku(metin, adet) {
   return notlar.filter(n => n.maddeler.length).slice(0, adet);
 }
 
+// Sitede önceki sürümler listelenmediği için "aşağıdaki 2.9.13 yenilikleri …" gibi o listeye gönderme yapan madde çıkarılır
+const sitedeGoster = n => ({ ...n, maddeler: n.maddeler.filter(m => !/aşağıdaki\b.*\d+\.\d+\.\d+.*yenilik/i.test(m.metin)) });
+
 function modulleriOku(metin) {
   const ilk = metin.split(/\r?\n/)[0] || '';
   const m = /Modüller:\s*(.*)$/.exec(ilk);
@@ -40,7 +44,7 @@ function modulleriOku(metin) {
   return { moduller: ayir(m[1].replace(/\(yakında:[^)]*\)/, '')), yakinda: yakindaM ? ayir(yakindaM[1]) : [] };
 }
 
-function uret(adet = 8) {
+function uret() {
   const pkg = JSON.parse(fs.readFileSync(path.join(KOK, 'package.json'), 'utf8'));
   const okubeni = fs.readFileSync(path.join(KOK, 'OKUBENI.txt'), 'utf8');
   const yay = ((pkg.build && pkg.build.publish) || []).find(p => p.provider === 'github') || {};
@@ -53,7 +57,7 @@ function uret(adet = 8) {
     depo,
     indir: depo ? `https://github.com/${depo}/releases/download/v${pkg.version}/${dosya}` : null,
     ...modulleriOku(okubeni),
-    notlar: notlariOku(okubeni, adet),
+    notlar: notlariOku(okubeni, 1).map(sitedeGoster),   // yalnız son sürüm
     uretildi: new Date().toISOString().slice(0, 10),
   };
 }
@@ -134,14 +138,14 @@ function denetimUret() {
   return { ozet, dosya: paketDosyalari.length, wheels: whl.length, boyut: zip.length };
 }
 
-module.exports = { notlariOku, modulleriOku, uret, zipYaz, sayfaUyarla, denetimUret };
+module.exports = { notlariOku, modulleriOku, sitedeGoster, uret, zipYaz, sayfaUyarla, denetimUret };
 
 if (require.main === module) {
   const arg = process.argv.slice(2);
-  const veri = uret(parseInt(arg.find(x => /^\d+$/.test(x)), 10) || 8);
+  const veri = uret();
   const hedef = path.join(KOK, 'web', 'site', 'surum.json');
   fs.writeFileSync(hedef, JSON.stringify(veri, null, 2) + '\n');
-  console.log(`${path.relative(KOK, hedef)} yazıldı: MuhaWin ${veri.surum}, ${veri.notlar.length} sürüm notu.`);
+  console.log(`${path.relative(KOK, hedef)} yazıldı: MuhaWin ${veri.surum} (${veri.notlar.length ? veri.notlar[0].surum + ' sürüm notu' : 'sürüm notu yok'}).`);
   if (arg.includes('--denetim')) {
     const d = denetimUret();
     console.log(`web/site/denetim/ yazıldı: ${d.dosya} Python dosyası (${(d.boyut / 1024).toFixed(0)} KB zip), ${d.wheels} wheel, paket ${d.ozet}.`);
