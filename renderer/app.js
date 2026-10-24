@@ -2181,7 +2181,7 @@ const Desk=(()=>{
           <li>Meta → Webhook: Callback URL <code>https://&lt;proje&gt;.supabase.co/functions/v1/whatsapp-webhook</code>, verify token = WA_VERIFY_TOKEN, alan: <b>messages</b>.</li>
           <li>Yukarıya Phone number ID'yi yazıp “Ofise Bağla” deyin. Gelen fotoğraflar Meta tarafında ücretsizdir; otomatik “alındı” yanıtı servis mesajıdır (numara başına ayda 1.000 ücretsiz, sonrası ~0,01 $).</li></ol></details>
       </section>
-      <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px" id="yzSec">
+      <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px" id="yzSec" hidden>
         <h3 style="margin:0;font-family:var(--f-display);font-size:16px">Yapay zekâ ile karşılaştırma <span class="note" style="font-weight:400">(Muhasebe Denetimi › Detay denetim)</span></h3>
         <p class="note" style="margin:0">Kurallara ve geçmişe uymayan faturalar için Claude'dan (Anthropic) öneri alınır: uygun / şüpheli / uygun değil, kısa gerekçe ve önerilen hesap. Öneri yalnız yol gösterir; kesin kararı siz verirsiniz, yapay zekâ hiçbir kayıt yapmaz.</p>
         <p class="note" style="margin:0;padding:8px 10px;border:1px solid #f0d49a;background:#fff6e5;color:#7a4d00;border-radius:8px"><b>Veri bilgisayardan çıkar:</b> açıkken her değerlendirmede faturanın özeti (tarih, tür, karşı tarafın unvanı, tutarlar, mal / hizmet kalemleri), firmanın hesap planı ve kaydın hesap satırları Anthropic'e gönderilir. VKN / TCKN, gerçek kişi adları, adres, IBAN, e-posta ve telefon gönderilmez; fatura dosyasının kendisi gönderilmez. Göndermeden önce “Gönderilecek veriyi göster” ile görebilirsiniz. Ücreti kendi Anthropic hesabınıza yansır.</p>
@@ -2218,6 +2218,7 @@ const Desk=(()=>{
   /* Yapay zekâ ile karşılaştırma ayarı (ofis bazında; anahtar ana süreçte şifreli, buraya hiç gelmez) */
   async function yzAyarCiz(msg){const y=window.desktop&&window.desktop.yz,sec=$('#yzSec');if(!sec)return;if(!y){sec.hidden=true;return;}
     let d;try{d=await y.durum();}catch(e){return;}
+    sec.hidden=!d.etkin;if(!d.etkin)return;            // Görev 49: özellik kapalıyken Ayarlar'da görünmez
     $('#yzModel').innerHTML=Object.entries(d.modeller).map(([k,m])=>`<option value="${k}"${k===d.model?' selected':''}>${esc(m.ad)} · $${m.girdi} / $${m.cikti} (1M token)</option>`).join('');
     $('#yzAcik').checked=d.istenen;$('#yzAcik').disabled=!d.anahtarVar;
     $('#yzOnay').textContent=d.onay?'Veri gönderimi onaylandı: '+new Date(d.onay).toLocaleString('tr-TR'):'';
@@ -5798,13 +5799,16 @@ window.__fkayit=FKAYIT;
    (target=_blank → ana süreçteki setWindowOpenHandler → shell.openExternal). Programdaki denetim aynen çalışır. */
 const SITE_DENETIM='https://muhawin.com.tr/giris.html?geri=/denetim/';
 const siteBag=()=>`<span>Muhasebe Denetimi artık sitemizden de kullanılabilir; belgeleriniz bilgisayarınızdan çıkmaz.</span> <a class="btn small" href="${SITE_DENETIM}" target="_blank" rel="noopener noreferrer" data-sitede="1">Sitede Aç ↗</a>`;
-{const m=document.getElementById('mdSite');if(m)m.innerHTML=siteBag();}
 const MDENET=(()=>{
   let url=null;
   const fr=()=>$('#mdFrame');
   const firmaGonder=()=>{const w=fr()&&fr().contentWindow;if(!w)return;const f=S.firm&&S.firm.id!==EXAMPLE_ID?S.firm:null;
     w.postMessage({muhawin:true,tip:'firma',mw:f?f.id:'',id:f&&f.lucaId?String(f.lucaId):'',ad:f?f.name:'',liste:(S.firms||[]).filter(x=>x.id!==EXAMPLE_ID).map(x=>({mw:x.id,id:x.lucaId?String(x.lucaId):'',ad:x.name}))},'*');};
-  async function show(){const P=$('#mdPanel');P.hidden=false;
+  // Görev 49: panel pencereye tam oturur (sayfa kaymaz; üstteki sekmeler hep görünür). Üst bölümün boyu değişince yeniden.
+  const boyla=()=>{const P=$('#mdPanel');if(!P||P.hidden)return;const ust=P.getBoundingClientRect().top+window.scrollY;
+    P.style.height=Math.max(360,Math.floor(window.innerHeight-ust-12))+'px';};
+  window.addEventListener('mw-hiza',boyla);window.addEventListener('resize',boyla);
+  async function show(){const P=$('#mdPanel');P.hidden=false;window.scrollTo(0,0);boyla();
     if(!url){try{const r=await window.desktop.fk.start();url=r.url;}catch(e){$('#mdBekle').textContent='Muhasebe Denetimi açılamadı: '+String(e&&e.message||e);return;}
       fr().src=url+'/denetim';}
     $('#mdBekle').hidden=true;fr().hidden=false;firmaGonder();}

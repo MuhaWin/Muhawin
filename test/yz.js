@@ -1,7 +1,7 @@
 // Görev 43 Faz 4: yapay zekâ ile karşılaştırma — ana süreç modülü (yz.js). Sahte istemci; gerçek API'ye istek gitmez.
 //   node test/yz.js
 const fs = require('fs'); const os = require('os'); const path = require('path');
-const { makeYz, maskele, MODELLER } = require('../yz');
+const { makeYz, maskele, MODELLER, YZ_ETKIN } = require('../yz');
 let ok = true; const t = (ad, kosul) => { console.log((kosul ? '  ✓ ' : '  ✗ ') + ad); if (!kosul) ok = false; };
 const atar = async (f, desen) => { try { await f(); return false; } catch (e) { return desen.test(e.message); } };
 const sahteSafe = (var_ = true) => ({ isEncryptionAvailable: () => var_,
@@ -13,13 +13,21 @@ const ANAHTAR = 'sk-ant-api03-' + 'x'.repeat(40);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'yz-'));
   let istek = null, yanit = null;
   const istemciYap = k => ({ beta: { messages: { create: async r => { istek = { ...r, _anahtar: k }; return yanit; } } } });
-  const yz = makeYz({ dir: () => dir, safeStorage: sahteSafe(), istemciYap });
+  console.log('Görev 49: özellik kapalı (varsayılan)');
+  { let kuruldu = 0; const kapali = makeYz({ dir: () => dir, safeStorage: sahteSafe(), istemciYap: () => { kuruldu++; return null; } });
+    kapali.anahtarKaydet(ANAHTAR); kapali.ayarla('o1', { onay: true, acik: true });
+    const d0 = kapali.durum('o1');
+    t('bayrak kapalı; durum etkin=false, açık=false (anahtar ve onay olsa bile)', YZ_ETKIN === false && !d0.etkin && !d0.acik);
+    t('kapalıyken değerlendirme istemci kurulmadan reddedilir (SDK çağrısı yok)', await atar(() => kapali.degerlendir('o1', { baglam: 'x', istek: '{}' }), /bu sürümde kapalı/) && kuruldu === 0);
+    kapali.anahtarSil(); fs.rmSync(path.join(dir, 'yz-ayar.json'), { force: true }); }
+
+  const yz = makeYz({ dir: () => dir, safeStorage: sahteSafe(), istemciYap, etkin: true });   // açıldığında (ileride) çalışacak yol
 
   console.log('Anahtar ve ayar');
   t('anahtar yokken kapalı ve açıklamalı', !yz.durum('o1').acik && !yz.durum('o1').anahtarVar &&
     await atar(() => yz.degerlendir('o1', { baglam: 'x', istek: '{}' }), /API anahtarı girilmemiş/));
   t('geçersiz anahtar reddedilir', await atar(() => yz.anahtarKaydet('abc'), /sk-ant-/));
-  const yzSifresiz = makeYz({ dir: () => fs.mkdtempSync(path.join(os.tmpdir(), 'yz-')), safeStorage: sahteSafe(false), istemciYap });
+  const yzSifresiz = makeYz({ dir: () => fs.mkdtempSync(path.join(os.tmpdir(), 'yz-')), safeStorage: sahteSafe(false), istemciYap, etkin: true });
   t('güvenli saklama yoksa anahtar kaydedilmez', await atar(() => yzSifresiz.anahtarKaydet(ANAHTAR), /güvenli saklama/) && !yzSifresiz.durum('o1').anahtarVar);
   yz.anahtarKaydet(ANAHTAR);
   const ham = fs.readFileSync(path.join(dir, 'yz-anahtar.bin'), 'utf8');
@@ -68,7 +76,7 @@ const ANAHTAR = 'sk-ant-api03-' + 'x'.repeat(40);
       usage: { input_tokens: 10, output_tokens: 20, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } })); }); });
   await new Promise(r => sunucu.listen(0, '127.0.0.1', r));
   const Anthropic = require('@anthropic-ai/sdk'); const A = Anthropic.default || Anthropic;
-  const gercek = makeYz({ dir: () => dir, safeStorage: sahteSafe(), istemciYap: k => new A({ apiKey: k, baseURL: 'http://127.0.0.1:' + sunucu.address().port, maxRetries: 0 }) });
+  const gercek = makeYz({ dir: () => dir, safeStorage: sahteSafe(), etkin: true, istemciYap: k => new A({ apiKey: k, baseURL: 'http://127.0.0.1:' + sunucu.address().port, maxRetries: 0 }) });
   gercek.ayarla('o1', { model: 'kalite' });
   const r2 = await gercek.degerlendir('o1', { baglam: 'Firmanın hesapları', istek: '{"fatura":{}}' });
   sunucu.close();

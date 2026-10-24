@@ -722,4 +722,3 @@ tr.fiscikan td:last-child{opacity:1}
 /* Görev 32: Muhasebe Denetimi › "Sitede aç" bandı (hub kartlarının altında ve denetim ekranının üstünde) */
 .sitebag{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 0;color:var(--muted);font-size:13px}
 .sitebag .btn{text-decoration:none}
-.mdsite{margin:0 0 8px}

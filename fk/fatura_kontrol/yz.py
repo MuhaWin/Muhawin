@@ -18,6 +18,9 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+# Görev 49: yapay zekâ önerisi şimdilik KAPALI (kod duruyor). Kapalıyken /api/denetim/yz/* uçları 404 döner ve detay
+# listesine öneri eklenmez. Açmak için True (programda yz.js › YZ_ETKIN, ekranda denetim.html › YZ_ETKIN de açılmalı).
+ETKIN = False
 ONBELLEK_JSON = "detay-yz.json"
 KARARLAR = ("uygun", "supheli", "uygun_degil")
 _SIRKET = re.compile(r"\b(A\.?\s?Ş\.?|AŞ|A\.S\.?|LTD|LİMİTED|LIMITED|ŞTİ|STİ|ŞİRKETİ|SIRKETI|KOOP|KOOPERATİF|VAKF|DERNE|BELEDİYE|"

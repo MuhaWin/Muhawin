@@ -177,17 +177,18 @@ def main():
         print("Detay denetim")
         bekle(pg, "document.querySelector('#nGider .rozet')", 60000)
         pg.click("#nav [data-g=gider]")
-        kontrol("yalnız MuhaWin masaüstü" in pg.inner_text("#icerik") and not pg.query_selector("#yzToplu"),
-                "yapay zekâ önerisi sitede kapalı (anahtar tarayıcıya girmez)")
+        kontrol("Yapay zekâ" not in pg.inner_text("#icerik") and not pg.query_selector("#yzToplu"),
+                "yapay zekâ önerisi kapalı (Görev 49; sitede zaten yok)")
         pg.click("#kBasla")
         bekle(pg, "document.querySelector('#kontrolPen.acik #kFis table')", 60000)
         bekle(pg, "document.querySelector('#kFatura').srcdoc.includes('2026')", 60000)
-        kontrol(pg.get_attribute("#kFatura", "sandbox") == "" and "2026" in pg.frame_locator("#kFatura").locator("body").inner_text(),
-                "kontrol ekranı: solda fiş, sağda fatura (betiksiz çerçeve, sitenin CSP'siyle)")
-        pg.click("#kSira"); pg.keyboard.press("d")
+        bekle(pg, "document.querySelector('#kzOran').textContent.includes('sığdırıldı')", 30000)
+        kontrol(pg.get_attribute("#kFatura", "sandbox") == "allow-same-origin" and "2026" in pg.frame_locator("#kFatura").locator("body").inner_text(),
+                "kontrol ekranı: solda fiş, sağda genişliğe sığan fatura (betiksiz çerçeve, sitenin CSP'siyle)")
+        pg.click("#kSira"); pg.keyboard.press("s")
         bekle(pg, "!document.querySelector('#kontrolPen.acik')", 30000)
         pg.click("#icerik [data-dfiltre=uygun_degil]")
-        kontrol("Uygun değil" in pg.inner_text("#icerik"), "karar (D) kaydedildi, fatura listeden düştü")
+        kontrol("Uygun değil" in pg.inner_text("#icerik"), "karar (S = uygun değil) kaydedildi, fatura listeden düştü")
         print("Muhtasar beyannamesi")
         pg.click("#nav [data-g=muhtasar]")
         pg.set_input_files("#mbDosya", str(ORNEK / "muhtasar.pdf")); pg.click("#mbYukle")

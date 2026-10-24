@@ -79,7 +79,21 @@ def c(tmp_path, monkeypatch):
     return TestClient(A.app)
 
 
-def test_api(c, tmp_path):
+def test_api_kapali(c, tmp_path):
+    """Görev 49: özellik kapalı (yz.ETKIN = False): uçlar 404, detay listesine öneri eklenmez."""
+    from fatura_kontrol import yz
+    assert yz.ETKIN is False
+    rid = _denetim(c, tmp_path)
+    assert c.get("/api/denetim/yz/bekleyen", params={"id": rid, "tur": "gider"}).status_code == 404
+    d = c.get("/api/denetim/detay", params={"id": rid}).json()
+    anahtar = d["gider"][0]["anahtar"]
+    assert c.get("/api/denetim/yz/istek", params={"id": rid, "anahtar": anahtar}).status_code == 404
+    assert c.post("/api/denetim/yz/sonuc", json={"id": rid, "anahtar": anahtar, "ozet": "x", "model": "m",
+                                                 "sonuc": {"karar": "uygun", "guven": 1}}).status_code == 404
+    assert "yz" not in d["gider"][0]
+
+
+def _denetim(c, tmp_path):
     from test_denetim import _mikro
     from test_luca_otomasyon import ubl, FIRMA_VKN
     zb = io.BytesIO()
@@ -87,8 +101,16 @@ def test_api(c, tmp_path):
         z.writestr("a.xml", ubl("AAA2026000000001", "2026-09-05", "1", FIRMA_VKN, "1000.00", "200.00", 20))
         z.writestr("b.xml", ubl("EX02026000000001", "2026-09-10", FIRMA_VKN, "9", "2000.00", "400.00", 20))
     y = tmp_path / "m.xlsx"; _mikro(y)
-    rid = c.post("/api/denetim", data={"bas": "2026-09-01", "bit": "2026-09-30", "firma_ad": "YZ A.Ş."},
-                 files=[("faturalar", ("p.zip", zb.getvalue(), "application/zip")), ("muavinler", ("m.xlsx", y.read_bytes(), "application/octet-stream"))]).json()["rapor_id"]
+    return c.post("/api/denetim", data={"bas": "2026-09-01", "bit": "2026-09-30", "firma_ad": "YZ A.Ş."},
+                  files=[("faturalar", ("p.zip", zb.getvalue(), "application/zip")), ("muavinler", ("m.xlsx", y.read_bytes(), "application/octet-stream"))]).json()["rapor_id"]
+
+
+def test_api(c, tmp_path, monkeypatch):
+    """Açıldığında (ileride) çalışacak yol: bayrak testte açılır."""
+    from fatura_kontrol import yz
+    monkeypatch.setattr(yz, "ETKIN", True)
+    from test_luca_otomasyon import FIRMA_VKN
+    rid = _denetim(c, tmp_path)
     b = c.get("/api/denetim/yz/bekleyen", params={"id": rid, "tur": "gider"}).json()
     assert b["adet"] == 1 and b["token"]["baglam"] > 0 and b["token"]["istek"] > 0
     i = c.get("/api/denetim/yz/istek", params={"id": rid, "anahtar": b["anahtarlar"][0]}).json()
@@ -105,9 +127,9 @@ def test_api(c, tmp_path):
     assert d["gider"][0]["yz"]["sonuc"]["karar"] == "uygun" and d["gider"][0]["durum"] == "bekliyor"      # öneri karar değildir
 
 
-def test_tarayicida_oneri_akisi(tmp_path):
-    """MuhaWin içinde (üst sayfa programı taklit eder): toplu sorma (adet + maliyet onayı), öneri rozeti, kontrol ekranında
-    öneri ve "Gönderilecek veriyi göster". Programa giden istekte VKN ve belge no yok."""
+def test_tarayicida_oneri_kapali(tmp_path):
+    """Görev 49: MuhaWin içinde (üst sayfa programı taklit eder; yapay zekâ "açık" yanıtı verse bile) listede toplu sorma,
+    rozet, kontrol ekranında öneri bölümü görünmez ve programa hiçbir yapay zekâ mesajı gitmez."""
     import os
     from test_fis_ve_tumu import _sunucu
     from test_denetim import _mikro
@@ -129,8 +151,8 @@ def test_tarayicida_oneri_akisi(tmp_path):
         pg = ctx.new_page(); hatalar = []; pg.on("pageerror", lambda e: hatalar.append(str(e)))
         diyaloglar = []; pg.on("dialog", lambda d: (diyaloglar.append(d.message), d.accept()))
         pg.goto(f"{adres}/api/saglik")
-        pg.evaluate("""a => { window.__istekler = [];
-          addEventListener('message', e => { const d = e.data, w = e.source; if (!d || !d.fk) return;
+        pg.evaluate("""a => { window.__istekler = []; window.__tipler = [];
+          addEventListener('message', e => { const d = e.data, w = e.source; if (!d || !d.fk) return; window.__tipler.push(d.tip);
             if (d.tip === 'yzDurum') w.postMessage({muhawin: true, tip: 'yzDurum', durum: {acik: true, model: 'kalite', ciktiTahmin: 900,
               modeller: {kalite: {ad: 'Claude Opus 5.5 (kalite)', id: 'claude-opus-5-5', girdi: 4, cikti: 20, onbellek: 0.2, yazma: 5}}}}, '*');
             if (d.tip === 'yzDegerlendir') { window.__istekler.push(d.baglam + d.istek);
@@ -151,24 +173,14 @@ def test_tarayicida_oneri_akisi(tmp_path):
         fr.click("#basla")
         fr.wait_for_selector("#nGider .rozet", timeout=30000)
         fr.click("#nav [data-g=gider]")
-        fr.wait_for_selector("#yzToplu", timeout=10000)
-        fr.click("#yzToplu")
-        fr.wait_for_function("document.querySelector('#icerik').textContent.includes('YZ: Şüpheli')", timeout=20000)
-        assert any("1 fatura" in x and "Tahmini maliyet" in x and "$" in x for x in diyaloglar), diyaloglar
-        assert any("1 öneri alındı" in x for x in diyaloglar), diyaloglar
-        gonderilen = pg.evaluate("window.__istekler.join('\\n')")
-        assert gonderilen and FIRMA_VKN not in gonderilen and "AAA2026000000001" not in gonderilen and "770.01" in gonderilen
-        assert "760.01" in fr.inner_text("#icerik")
+        fr.wait_for_selector("#kBasla", timeout=10000)
+        assert not fr.query_selector("#yzToplu") and not fr.query_selector("#yzAyar") and "Yapay zekâ" not in fr.inner_text("#icerik")
         fr.click("#kBasla")
-        fr.wait_for_selector("#kontrolPen.acik .yzk", timeout=10000)
-        assert "Deneme gerekçesi" in fr.inner_text(".yzk") and "Şüpheli" in fr.inner_text(".yzk")
-        fr.click("#kYzGoster")
-        fr.wait_for_function("document.querySelector('#yzPenMetin').textContent.includes('Bu fatura')", timeout=10000)
-        metin = fr.inner_text("#yzPenMetin")
-        assert "TALİMAT" in metin and "Firmanın kullandığı hesaplar" in metin and FIRMA_VKN not in metin
-        fr.click("#yzPenKapat")
-        fr.click("#kSira"); pg.keyboard.press("u")                 # karar yine kullanıcıda
+        fr.wait_for_selector("#kontrolPen.acik #kUygun", timeout=10000)
+        assert not fr.query_selector(".yzk") and "Yapay zekâ" not in fr.inner_text("#kontrolPen")
+        fr.click("#kSira"); pg.keyboard.press("a")                 # Görev 49: A = uygun
         fr.wait_for_selector("#kontrolPen.acik", state="detached", timeout=10000)
+        assert pg.evaluate("window.__tipler.filter(t => /^yz/.test(t))") == []
         assert not hatalar, hatalar
         ctx.close()
     finally:

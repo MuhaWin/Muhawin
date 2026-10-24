@@ -50,19 +50,30 @@ table.dt .durum{white-space:normal;line-height:1.3}
 .yerel-satir:first-child{border-top:0}.yerel-satir .ipucu{font-size:11.5px}.yerel-dug{display:flex;gap:6px}.yerel-dug .btn{min-height:26px;padding:0 9px;font-size:12px}
 .fisbtn{white-space:nowrap;border:1px solid var(--line);background:var(--panel);color:var(--brand-2,#1f4aa8);border-radius:5px;padding:0 5px;font:inherit;font-size:11px;cursor:pointer;margin:1px 2px 0 0}
 .fisbtn:hover{background:var(--accent,#e7eefb)}a.fisbtn{text-decoration:none;display:inline-block}.fisbtn[disabled]{opacity:.5;cursor:default;color:var(--muted)}
-#fisPen{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;place-items:center;z-index:60}#fisPen.acik{display:grid}
-#fisPen .ic{background:var(--panel);color:inherit;border-radius:12px;width:min(980px,94vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)}
-#fisPen .bas{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}#fisPen .govde{overflow:auto;padding:12px 16px}
+#fisPen,#kuralPen{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;place-items:center;z-index:60}#fisPen.acik,#kuralPen.acik{display:grid}#kuralPen{z-index:65}
+#fisPen .ic,#kuralPen .ic{background:var(--panel);color:inherit;border-radius:12px;width:min(980px,94vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)}#kuralPen .ic{width:min(760px,94vw)}
+#fisPen .bas,#kuralPen .bas{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}#fisPen .govde,#kuralPen .govde{overflow:auto;padding:12px 16px}
+.ksart{display:grid;grid-template-columns:76px minmax(150px,220px) minmax(0,1fr) 38px;gap:8px;align-items:center}
+.kizgara{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.konum{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:3;background:var(--bg,#f4f6fa);padding:2px 0 6px}
+.konum b{font-size:15px}.konum .btn{min-height:28px;font-size:12.5px}
+#belgeKart.kapali > :not(.kbaslik){display:none}.kbaslik{display:flex;align-items:center;gap:8px;margin:0}.kbaslik .btn{min-height:26px;font-size:12px;margin-left:auto}
 #fisPen table{font-size:12.5px;table-layout:auto}#fisPen tfoot td{font-weight:700}
 .donem{display:grid;gap:6px;border:1px solid var(--line);border-radius:10px;padding:8px}
 .donem .yil{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}.donem .yil select{width:auto;min-height:28px;padding:0 6px}
 .aylar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.aylar button{min-height:28px;border-radius:6px;border:1px solid var(--line);background:var(--panel);font:inherit;font-size:12px;color:inherit;cursor:pointer;padding:0}
 .aylar button:hover{background:var(--accent,#e7eefb)}.aylar button[aria-pressed=true]{background:var(--brand-2,#1f4aa8);border-color:var(--brand-2,#1f4aa8);color:#fff;font-weight:600}
 #kontrolPen{position:fixed;inset:0;background:var(--bg,#f4f6fa);display:none;z-index:55;flex-direction:column}#kontrolPen.acik{display:flex}
-#kontrolPen .kbas{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
-#kontrolPen .kgovde{flex:1;min-height:0;display:grid;grid-template-columns:minmax(380px,46%) 1fr;gap:12px;padding:12px}
-#kontrolPen .ksol{overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}#kontrolPen .ksag{min-height:0;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
-#kontrolPen iframe{width:100%;height:100%;border:0;display:block;background:#fff}
+#kontrolPen .kbas{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;min-width:0}
+#kontrolPen .kbas b{overflow-wrap:anywhere}
+#kontrolPen .kgovde{flex:1;min-height:0;display:grid;grid-template-columns:minmax(330px,42%) minmax(0,1fr);gap:12px;padding:12px}
+#kontrolPen .ksol{overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0}
+#kontrolPen .ksag{min-height:0;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden;display:flex;flex-direction:column}
+#kontrolPen .kzoom{display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted)}
+#kontrolPen .kzoom .btn{min-height:26px;padding:0 9px;font-size:12px}
+#kontrolPen iframe{width:100%;flex:1;min-height:0;border:0;display:block;background:#fff}
+#kontrolPen .ksol table{table-layout:auto}#kontrolPen .ksol .tk{overflow-x:auto}
+@media (max-width:1150px){#kontrolPen .kbas .ipucu{display:none}}
 #kontrolPen dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:13px}#kontrolPen dt{color:var(--muted)}#kontrolPen dd{margin:0}
 .kararlar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.btn.yesil{background:#13804f;border-color:#13804f;color:#fff;font-weight:600}.btn.kirmizi{background:#b42318;border-color:#b42318;color:#fff;font-weight:600}
 .kbd{font-size:10.5px;border:1px solid rgba(255,255,255,.6);border-radius:4px;padding:0 4px;margin-left:2px}
@@ -87,8 +98,8 @@ table.dt .durum{white-space:normal;line-height:1.3}
       <p class="ipucu" style="margin-top:6px">Firmayı buradan ya da MuhaWin'in üstündeki firma seçiminden değiştirin.</p>
       <div id="yerelKutu" class="yerel" hidden><div class="yerel-bas">💾 Bu bilgisayarda kayıtlı belgeler <span class="ipucu">— yeni sorgu ya da yükleme yapmadan denetleyin</span></div><div id="yerelListe"></div></div>
     </section>
-    <section class="kart" style="display:grid;gap:10px">
-      <h3 style="margin:0">2. Belgeler</h3>
+    <section class="kart" style="display:grid;gap:10px" id="belgeKart">
+      <h3 class="kbaslik">2. Belgeler <button type="button" class="btn" id="belgeAc" hidden aria-expanded="false">Yeni denetim / belgeleri göster</button></h3>
       <label class="alan">Muhasebe programı<select id="program"><option value="mikro">Mikro</option></select></label>
       <div class="uyari" id="programUyari" hidden></div>
       <label class="alan">Alış ve satış e-faturaları (muhasebe programından ya da GİB portalından alınan XML'ler ya da ZIP)<input type="file" id="xml" multiple accept=".xml,.zip"></label>
@@ -133,8 +144,13 @@ table.dt .durum{white-space:normal;line-height:1.3}
   <button class="btn" type="button" id="fisYazdir">🖨 Yazdır</button><button class="btn" type="button" id="fisPdf">PDF</button><button class="btn" type="button" id="fisKapat">Kapat</button></div>
   <div class="govde" id="fisGovde"></div></div></div>
 <div id="kontrolPen" role="dialog" aria-modal="true" aria-label="Kontrol ekranı"><div class="kbas"><b id="kBaslik">Kontrol</b><span id="kSira" style="color:var(--muted)"></span><span style="flex:1"></span>
-  <span class="ipucu">U: uygun · D: uygun değil · ← →: önceki / sonraki · Esc: kapat</span><button class="btn" type="button" id="kKapat">Kapat</button></div>
-  <div class="kgovde"><div class="ksol" id="kSol"></div><div class="ksag"><iframe id="kFatura" sandbox="" title="Faturanın görünümü"></iframe></div></div></div>
+  <span class="ipucu">A: uygun · S: uygun değil · ← →: önceki / sonraki · Esc: listeye dön</span><button class="btn" type="button" id="kKapat">Kapat</button></div>
+  <div class="kgovde"><div class="ksol" id="kSol"></div><div class="ksag"><div class="kzoom"><span>Fatura</span><span style="flex:1"></span><span id="kzOran"></span>
+    <button class="btn" type="button" id="kzEksi" title="Uzaklaştır" aria-label="Uzaklaştır">−</button><button class="btn" type="button" id="kzSigdir" title="Genişliğe sığdır">Sığdır</button><button class="btn" type="button" id="kzArti" title="Yakınlaştır" aria-label="Yakınlaştır">+</button></div>
+    <!-- betik çalışmaz (allow-scripts yok); aynı köken yalnız genişliği ölçüp sığdırmak için -->
+    <iframe id="kFatura" sandbox="allow-same-origin" title="Faturanın görünümü"></iframe></div></div></div>
+<div id="kuralPen" role="dialog" aria-modal="true" aria-label="Kontrol kuralı"><div class="ic"><div class="bas"><b id="kuralBaslik">Kontrol kuralı</b><span style="flex:1"></span><button class="btn" type="button" id="kuralKapat">Vazgeç</button></div>
+  <div class="govde" id="kuralGovde"></div></div></div>
 <div id="yzPen" role="dialog" aria-modal="true" aria-label="Gönderilecek veri"><div class="ic"><div class="bas" style="display:flex;gap:10px;align-items:center;padding:12px 16px"><b>Yapay zekâya gönderilecek veri</b><span style="flex:1"></span><button class="btn" type="button" id="yzPenKapat">Kapat</button></div>
   <pre id="yzPenMetin"></pre></div></div>
 <div class="yukle" id="yukle"><div>Denetim yapılıyor… (faturalar okunuyor, muavinle karşılaştırılıyor)</div></div>
@@ -309,7 +325,18 @@ async function fisAc(fis, ftarih) {
 document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-fis]"); if (b) { e.preventDefault(); fisAc(b.dataset.fis, b.dataset.tarih); } });
 $("#fisKapat").onclick = () => $("#fisPen").classList.remove("acik");
 $("#fisPen").addEventListener("click", e => { if (e.target.id === "fisPen") $("#fisPen").classList.remove("acik"); });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#fisPen").classList.contains("acik")) { e.stopPropagation(); $("#fisPen").classList.remove("acik"); } }, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#fisPen").classList.contains("acik")) { e.stopImmediatePropagation(); $("#fisPen").classList.remove("acik"); } }, true);
+/* Görev 49: Esc açık pencerede kalır; MuhaWin'e "geri" olarak gitmez (yoksa Muhasebe Denetimi'nden çıkılıyordu).
+   Kutudayken önce yalnız kutudan çıkar (Görev 47); kontrol ekranında Esc geldiği listeye döndürür. */
+const yaziKutusu = t => !!t && (t.isContentEditable || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || (t.tagName === "INPUT" && !/^(checkbox|radio|button|submit|reset|file|range|color|image)$/i.test(t.type || "")));
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  const pen = ["#kuralPen", "#yzPen", "#kontrolPen"].map(x => $(x)).find(x => x.classList.contains("acik"));
+  if (!pen) return;
+  e.stopImmediatePropagation(); e.preventDefault();
+  if (yaziKutusu(e.target)) { e.target.blur(); return; }
+  if (pen.id === "kontrolPen") kontrolKapat(); else pen.classList.remove("acik");
+}, true);
 $("#fisYazdir").onclick = () => acikFis && window.open(fisAdres("/api/denetim/fis/yazdir", acikFis), "_blank");
 $("#fisPdf").onclick = async () => {
   if (!acikFis) return;
@@ -317,8 +344,26 @@ $("#fisPdf").onclick = async () => {
   const html = await (await fetch(fisAdres("/api/denetim/fis/yazdir", acikFis, "&oto=0"))).text();
   window.parent.postMessage({fk: true, tip: "htmlPdf", ad: `Fis_${acikFis.fis}`, html: html.replace(/<div class=yok[\s\S]*?<\/div>/, "")}, "*");
 };
+// Görev 49: denetim sonucu açıkken "2. Belgeler" kapanır (yeni denetim için açılır): bölüm menüsü yukarıda, hep görünür
+let belgeAcik = false, belgeVeri = null;
+function belgeKartCiz() {
+  if (veri !== belgeVeri) { belgeVeri = veri; belgeAcik = false; }
+  const k = $("#belgeKart"), b = $("#belgeAc"), kapali = !!veri && !belgeAcik;
+  k.classList.toggle("kapali", kapali); b.hidden = !veri; b.setAttribute("aria-expanded", String(!kapali));
+  b.textContent = kapali ? "Yeni denetim / belgeleri göster" : "Belgeleri gizle";
+}
+$("#belgeAc").onclick = () => { belgeAcik = !belgeAcik; belgeKartCiz(); };
+let navGor = "";
+function navGoster() {                       // bölüm değişince seçili düğme solda görünsün (yalnız sol sütun kayar; sayfa kaymaz)
+  if (navGor === gor) return; navGor = gor;
+  const a = $("aside"), b = $(`#nav [data-g="${gor}"]`); if (!a || !b) return;
+  const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
+  if (br.top < ar.top) a.scrollTop -= ar.top - br.top + 8; else if (br.bottom > ar.bottom) a.scrollTop += br.bottom - ar.bottom + 8;
+}
+const BOLUM_AD = () => Object.fromEntries([...document.querySelectorAll("#nav [data-g]")].map(b => [b.dataset.g, b.querySelector("b").textContent]));
 function ciz() {
   document.querySelectorAll("#nav [data-g]").forEach(b => { b.setAttribute("aria-pressed", String(b.dataset.g === gor)); b.disabled = !veri && b.dataset.g !== "ozet"; });
+  belgeKartCiz();
   if (!veri) { $("#icerik").innerHTML = `<div class="bos">Soldan firmayı seçin, alış / satış XML'lerini ve ${esc(progAd())} muavinini yükleyip “Denetimi Başlat”a basın.</div>`; ["#nKDV", "#nMatrah", "#nCari", "#nFaturasiz", "#nOzet", "#nMuhtasar", "#nOIV"].forEach(x => rozet(x, null)); detay = null; detayId = ""; detayRozet(); return; }
   const o = veri.ozet || {}; const fs = (veri.faturasi_olmayanlar || []).filter(s => s.uygun == null).length;
   rozet("#nKDV", (o.KDV || {}).sorunlu || 0); rozet("#nMatrah", (o.Matrah || {}).sorunlu || 0); rozet("#nCari", (o.Cari || {}).sorunlu || 0); rozet("#nFaturasiz", fs);
@@ -330,7 +375,8 @@ function ciz() {
   rozet("#nOIV", oivL.length ? oivS : null); document.querySelector('#nav [data-g=OIV]').hidden = !oivL.length;
   $("#nMuhtasar").innerHTML = veri.muhtasar && veri.muhtasar.satirlar.length ? `<span class="rozet gri">${para(veri.muhtasar.odenecek)}</span>` : "";
   if (detayId !== veri.rapor_id) detayYukle(); detayRozet();
-  const bas = `<div class="araclar"><b style="font-size:15px">${esc(veri.firma || "")}</b><span style="color:var(--muted)">VKN ${esc(veri.vkn || "")} · ${tarih(veri.bas)} – ${tarih(veri.bit)} · ${veri.alis || 0} alış, ${veri.satis || 0} satış faturası</span><span style="flex:1"></span>
+  const konum = `<div class="konum">${gor !== "ozet" ? '<button type="button" class="btn" data-git="ozet" title="Özete dön">← Özet</button>' : ""}<b>${esc(BOLUM_AD()[gor] || "")}</b></div>`;
+  const bas = konum + `<div class="araclar"><b style="font-size:15px">${esc(veri.firma || "")}</b><span style="color:var(--muted)">VKN ${esc(veri.vkn || "")} · ${tarih(veri.bas)} – ${tarih(veri.bit)} · ${veri.alis || 0} alış, ${veri.satis || 0} satış faturası</span><span style="flex:1"></span>
     ${["KDV", "Matrah", "Cari", "OIV"].includes(gor) ? `<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="sorunlu" style="width:auto;min-height:0" ${yalnizSorun ? "checked" : ""}> Yalnız sorunlular</label>` : ""}</div>
     ${(veri.uyarilar || []).length ? `<div class="uyari">${veri.uyarilar.map(esc).join("<br>")}</div>` : ""}`;
   let govde = "";
@@ -373,7 +419,7 @@ function ciz() {
       ${(m.eslesmeyen || []).length ? `<details><summary style="cursor:pointer;font-size:13px">Türü bulunamayan 360 kayıtları (${m.eslesmeyen.length})</summary><div class="tk"><table><tbody>${m.eslesmeyen.map(s => `<tr><td>${tarih(s.tarih)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}</td><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)} · ${esc(s.aciklama)}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
 `;
   } else if (gor === "gider" || gor === "gelir") {
-    if (MW && !yzDurum && !yzSoruldu) { yzSoruldu = true; yzSor(); }
+    if (YZ_ETKIN && MW && !yzDurum && !yzSoruldu) { yzSoruldu = true; yzSor(); }
     govde = detayGovde(gor);
   } else if (gor === "kurallar") {
     govde = kurallarGovde();
@@ -397,7 +443,8 @@ function ciz() {
   $("#icerik").innerHTML = bas + govde;
   const cb = $("#sorunlu"); if (cb) cb.onchange = () => { yalnizSorun = cb.checked; ciz(); };
   detayBagla(); mbeyanBagla();
-  $("#icerik").querySelectorAll("[data-git]").forEach(b => b.onclick = () => { gor = b.dataset.git; ciz(); });
+  $("#icerik").querySelectorAll("[data-git]").forEach(b => b.onclick = () => { gor = b.dataset.git; ciz(); $("#icerik").scrollTop = 0; });
+  navGoster();
   $("#icerik").querySelectorAll("[data-ac]").forEach(b => b.onclick = () => window.open(b.dataset.ac, "_blank"));
 }
 /* ---------- Muhtasar ve Prim Hizmet Beyannamesi (1003A PDF) ↔ muavin: PDF saklanmaz, çalışan bölümleri okunmaz ---------- */
@@ -443,11 +490,14 @@ function mbeyanBagla() {
   };
 }
 /* ---------- Yapay zekâ önerisi (Görev 43 Faz 4; yalnız MuhaWin masaüstünde). Çerçeve maskeli veriyi hazırlatır, gönderimi
-   programın ana süreci yapar (anahtar orada); öneri yalnız yol gösterir, karar yine U / D ile kullanıcıdadır. ---------- */
+   programın ana süreci yapar (anahtar orada); öneri yalnız yol gösterir, karar yine A / S ile kullanıcıdadır. ---------- */
+// Görev 49: yapay zekâ önerisi şimdilik KAPALI (kod duruyor; açmak için true ve programda yz.js › YZ_ETKIN, Python'da yz.ETKIN)
+const YZ_ETKIN = false;
 let yzDurum = null, yzNo = 0, yzToplu = null, yzSoruldu = false;
 const yzBekleyen = new Map();
 const YZ_AD = {uygun: "Uygun", supheli: "Şüpheli", uygun_degil: "Uygun değil"};
 function yzMesaj(tip, veri) {
+  if (!YZ_ETKIN) return Promise.reject(new Error("Yapay zekâ önerisi bu sürümde kapalı."));
   return new Promise((ok, red) => { const no = ++yzNo; yzBekleyen.set(no, {ok, red});
     window.parent.postMessage({fk: true, tip, no, ...veri}, "*");
     setTimeout(() => { if (yzBekleyen.has(no)) { yzBekleyen.delete(no); red(new Error("Program yanıt vermedi.")); } }, 180000); });
@@ -458,7 +508,7 @@ window.addEventListener("message", e => {
   if (m.tip === "yzDurum") { yzDurum = m.durum; if (["gider", "gelir"].includes(gor) && !kontrol) ciz(); else if (kontrol) kontrolCiz(); return; }
   if ((m.tip === "yzSonuc" || m.tip === "yzGosterim") && yzBekleyen.has(m.no)) { const b = yzBekleyen.get(m.no); yzBekleyen.delete(m.no); m.hata ? b.red(new Error(m.hata)) : b.ok(m); }
 });
-const yzSor = () => { if (MW) window.parent.postMessage({fk: true, tip: "yzDurum"}, "*"); };
+const yzSor = () => { if (MW && YZ_ETKIN) window.parent.postMessage({fk: true, tip: "yzDurum"}, "*"); };
 const yzRozet = x => x.yz && x.yz.sonuc ? `<span class="durum yz-${x.yz.sonuc.karar}" title="${esc(x.yz.sonuc.gerekce)}">YZ: ${YZ_AD[x.yz.sonuc.karar]} · %${Math.round(x.yz.sonuc.guven * 100)}${x.yz.sonuc.onerilen_hesap ? " → " + esc(x.yz.sonuc.onerilen_hesap) : ""}</span>` : "";
 function yzTahmin(t, adet) {
   const m = yzDurum.modeller[yzDurum.model];
@@ -483,6 +533,7 @@ async function yzGoster(anahtar) {
 }
 $("#yzPenKapat").onclick = () => $("#yzPen").classList.remove("acik");
 function yzListeAraci(tur) {
+  if (!YZ_ETKIN) return "";
   if (!MW) return `<span class="ipucu">Yapay zekâ önerisi yalnız MuhaWin masaüstü programında.</span>`;
   if (!yzDurum) return "";
   if (!yzDurum.acik) return `<button type="button" class="btn" id="yzAyar">Yapay zekâ önerisi kapalı · Ayarlar</button>`;
@@ -510,6 +561,7 @@ function yzBagla() {
   const d = $("#yzDur"); if (d) d.onclick = () => { if (yzToplu) yzToplu.dur = true; };
 }
 function yzKontrolBolumu(x) {
+  if (!YZ_ETKIN) return "";
   const s = x.yz && x.yz.sonuc;
   const ust = s ? `<div class="ust"><span class="durum yz-${s.karar}">${YZ_AD[s.karar]}</span><span class="ipucu">güven %${Math.round(s.guven * 100)}${s.onerilen_hesap ? " · önerilen hesap <b class=mono>" + esc(s.onerilen_hesap) + "</b>" : ""} · ${esc(x.yz.model || "")} · ${esc((x.yz.zaman || "").replace("T", " "))}</span></div>
       <div>${esc(s.gerekce)}</div>` : `<div class="ipucu">${!MW ? "Yapay zekâ önerisi yalnız MuhaWin masaüstü programında." : !yzDurum ? "" : !yzDurum.acik ? "Yapay zekâ önerisi kapalı (Ayarlar › Yapay zekâ ile karşılaştırma)." : "Bu fatura için öneri alınmadı."}</div>`;
@@ -553,28 +605,95 @@ function detayGovde(tur) {
   return `<p class="ipucu">${tur === "gider" ? "Alış faturalarının gider / stok / duran varlık hesabına (15x, 25x, 6xx gider, 7xx …) kaydı" : "Satış faturalarının gelir hesabına (60x, 64x, 67x) kaydı"}, fişi ve carisi.
       Kurala uyan ve geçmişle uyumlu olanlar (önceki en az iki ayda aynı cari aynı hesaba, tutar önceki aralıkta) otomatik uygun sayılır. Burada hiçbir kayıt yapılmaz.</p>
     <div class="ozetler">${["bekliyor", "uygun_degil", "uygun", "kural", "gecmis"].map(k => kutu(k, o[k] || 0, ad[k] || k)).join("")}${kutu("tum", L.length, "Tümü")}</div>
-    <div class="araclar"><button type="button" class="btn birincil" id="kBasla" ${bekleyen ? "" : "disabled"}>Kontrole başla (${bekleyen} bekleyen)</button><span class="ipucu">Büyük ekranda solda kayıt, sağda fatura; U / D ile karar.</span><span style="flex:1"></span>${yzListeAraci(tur)}</div>
+    <div class="araclar"><button type="button" class="btn birincil" id="kBasla" ${bekleyen ? "" : "disabled"}>Kontrole başla (${bekleyen} bekleyen)</button><span class="ipucu">Büyük ekranda solda kayıt, sağda fatura; A (uygun) / S (uygun değil) ile karar.</span><span style="flex:1"></span>${yzListeAraci(tur)}</div>
     ${S.length ? `<div class="tk"><table class="dt"><colgroup><col style="width:130px"><col style="width:150px"><col style="width:88px"><col style="width:190px"><col style="width:96px"><col style="width:240px"><col style="width:150px"><col><col style="width:78px"></colgroup>
       <thead><tr><th>Durum</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Matrah</th><th>Hesap</th><th>Fiş</th><th>Gerekçe</th><th></th></tr></thead>
       <tbody>${S.map(x => `<tr><td><span class="durum d-${x.durum}">${esc(x.durum_ad)}</span></td><td class="mono nw">${esc(x.belge_no)}</td><td class="nw">${tarih(x.tarih)}</td>
         <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td>
-        <td style="font-size:12px">${hesapMetni(x)}</td><td>${fisMetni(x)}${faturaDugmesi(x.belge_no)}</td><td style="font-size:12px">${esc(x.neden || "")}${x.yz ? "<br>" + yzRozet(x) : ""}</td>
+        <td style="font-size:12px">${hesapMetni(x)}</td><td>${fisMetni(x)}${faturaDugmesi(x.belge_no)}</td><td style="font-size:12px">${esc(x.neden || "")}${YZ_ETKIN && x.yz ? "<br>" + yzRozet(x) : ""}</td>
         <td><button type="button" class="btn" style="min-height:26px;padding:0 8px;font-size:12px" data-incele="${esc(x.anahtar)}">İncele</button></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Bu durumda fatura yok.</div>'}`;
 }
 function kurallarGovde() {
   if (!detay) return '<div class="bos">Yükleniyor…</div>';
   if (detay.hata) return `<div class="uyari">${esc(detay.hata)}</div>`;
   const L = detay.kurallar || [];
-  return `<p class="ipucu">Kontrol kuralı kayıt yapmaz: kurala uyan fatura (aynı VKN ya da ünvan, kaydı kuraldaki hesapla başlıyor) otomatik "uygun" sayılır ve kontrol listesine düşmez. Kurallar firmada saklanır, sonraki aylarda da geçerlidir.</p>
-    <div class="kart" style="display:grid;grid-template-columns:110px 130px 1fr 150px 1fr auto;gap:8px;align-items:end">
-      <label class="alan">Yön<select id="krYon"><option value="ALIS">Alış (gider)</option><option value="SATIS">Satış (gelir)</option></select></label>
-      <label class="alan">VKN / TCKN<input id="krVkn" inputmode="numeric"></label><label class="alan">ya da ünvan içerir<input id="krUnvan"></label>
-      <label class="alan">Hesap (ör. 770 ya da 770.01.01.001)<input id="krHesap"></label><label class="alan">Açıklama<input id="krAcik"></label>
-      <button type="button" class="btn birincil" id="krEkle">Kural ekle</button></div><p class="hata" id="krHata"></p>
-    ${L.length ? `<div class="tk"><table><thead><tr><th>No</th><th>Yön</th><th>VKN / ünvan</th><th>Hesap</th><th>Açıklama</th><th>Eklenme</th><th></th></tr></thead>
-      <tbody>${L.map(k => `<tr><td>${k.id}</td><td>${k.yon === "ALIS" ? "Alış" : "Satış"}</td><td class="mono">${esc(k.vkn || "")}${k.unvan ? `<span style="font-family:inherit">“${esc(k.unvan)}”</span>` : ""}</td>
-        <td class="mono">${esc(k.hesap)}</td><td>${esc(k.aciklama || "")}</td><td>${esc((k.zaman || "").replace("T", " "))}</td><td><button type="button" class="btn" data-krsil="${k.id}" style="min-height:26px;font-size:12px">Sil</button></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Henüz kural yok. Kontrol ekranında “Bu cari için kural” ile de eklenebilir.</div>'}`;
+  return `<p class="ipucu">Kontrol kuralı kayıt yapmaz: bütün şartlarını tutan fatura otomatik "uygun" (ya da "uygun değil") sayılır ve kontrol listesine düşmez.
+      Faturaları Luca'ya kaydet › "Kural yap" penceresiyle aynı: şartın içinde <b>|</b> = ya da, <b>+</b> = hepsi geçmeli. Kurallar firmada saklanır, sonraki aylarda da geçerlidir.</p>
+    <div class="araclar"><button type="button" class="btn birincil" id="krYeni">+ Kural ekle</button></div>
+    ${L.length ? `<div class="tk"><table><thead><tr><th style="width:44px">No</th><th>Şartlar</th><th style="width:90px">Yön</th><th style="width:130px">Sonuç</th><th>Açıklama</th><th style="width:130px">Eklenme</th><th style="width:60px"></th></tr></thead>
+      <tbody>${L.map(k => `<tr><td>${k.id}</td><td>${esc(k.metin || "")}</td><td>${k.yon === "ALIS" ? "Alış" : k.yon === "SATIS" ? "Satış" : "Her ikisi"}</td>
+        <td><span class="durum ${k.sonuc === "uygun_degil" ? "d-uygun_degil" : "d-kural"}">${k.sonuc === "uygun_degil" ? "Uygun değil say" : "Uygun say"}</span></td><td>${esc(k.aciklama || "")}</td><td>${esc((k.zaman || "").replace("T", " "))}</td><td><button type="button" class="btn" data-krsil="${k.id}" style="min-height:26px;font-size:12px">Sil</button></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Henüz kural yok. “+ Kural ekle” ya da kontrol ekranında “Bu cari için kontrol kuralı ekle” ile ekleyin.</div>'}`;
 }
+/* ---------- Kontrol kuralı penceresi (Görev 49): Faturaları Luca'ya kaydet › "Kural yap" ile aynı düzen ve aynı eşleştirme.
+   Şart 1, "+ Şart ekle" ile 2., 3. … (hepsi VE); şartlar faturadan dolar; sonuç: uygun say / uygun değil say. ---------- */
+const SART_AD = {unvan: "Ünvan içerir", vkn: "VKN/TCKN eşittir", icerik: "Fatura içeriği içerir", tutar: "Matrah aralığı", hesap: "Kayıt hesabı ile başlar"};
+const NN = v => String(v ?? "").toLocaleUpperCase("tr-TR").replace(/İ/g, "I").replace(/Ş/g, "S").replace(/Ğ/g, "G").replace(/Ü/g, "U").replace(/Ö/g, "O").replace(/Ç/g, "C")
+  .replace(/[ÂÀÁ]/g, "A").replace(/[ÎÌÍ]/g, "I").replace(/[ÛÙÚ]/g, "U").replace(/[^A-Z0-9]+/g, " ").trim();
+const metinTutar = (deger, metin) => { const d = " " + NN(metin) + " ";
+  return String(deger || "").split("|").some(a => { const p = a.split("+").map(NN).filter(Boolean); return p.length && p.every(x => x.length <= 3 ? d.includes(" " + x + " ") : d.includes(x)); }); };
+const tlOku = v => { v = String(v || "").replace(/\s|TL|₺/gi, ""); if (!v) return null;
+  if (v.includes(",")) v = v.replace(/\./g, "").replace(",", "."); else if (/^\d{1,3}(\.\d{3})+$/.test(v)) v = v.replace(/\./g, "");
+  const n = Number(v); return isNaN(n) ? NaN : n; };
+const tutarAraligi = d => { const p = String(d || "").trim().split(/\s*[-–]\s*/); return p.length === 1 ? [tlOku(p[0]), tlOku(p[0])] : [tlOku(p[0]), tlOku(p.slice(1).join("-"))]; };
+function sartTutar(sr, x) {
+  const d = String(sr.deger || "").trim();
+  if (sr.alan === "vkn") return d.split("|").some(v => v.trim() && v.trim() === String(x.vkn || ""));
+  if (sr.alan === "unvan") return metinTutar(d, x.karsi_taraf);
+  if (sr.alan === "icerik") return metinTutar(d, (x.kalemler || []).join(" | "));
+  if (sr.alan === "tutar") { const [a, u] = tutarAraligi(d); return !(Number.isNaN(a) || Number.isNaN(u)) && (a == null || x.matrah >= a) && (u == null || x.matrah <= u); }
+  if (sr.alan === "hesap") { const on = d.split("|").map(v => v.trim()).filter(Boolean), kod = (x.hesaplar || []).map(h => h.kod); return kod.length > 0 && kod.every(c => on.some(o => c.startsWith(o))); }
+  return false;
+}
+let kuralFatura = null;
+function kuralPenAc(x) {
+  kuralFatura = x || null;
+  const ilk = ((x && x.kalemler) || [])[0] || "", kodlar = ((x && x.hesaplar) || []).map(h => h.kod);
+  const ortak = kodlar.length && kodlar.every(k => k === kodlar[0]) ? kodlar[0] : (kodlar[0] || "").slice(0, 3);
+  const tam = n => Math.round(n).toLocaleString("tr-TR");
+  const vars = a => !x ? "" : a === "vkn" ? x.vkn || "" : a === "unvan" ? x.karsi_taraf || "" : a === "icerik" ? ilk.split(/\s+/).slice(0, 2).join(" ")
+    : a === "tutar" ? `${tam(Math.floor((x.matrah || 0) * 0.5))}-${tam(Math.ceil((x.matrah || 0) * 1.5))}` : a === "hesap" ? ortak : "";
+  const sec = a => `<select data-kalan aria-label="Şart">${Object.entries(SART_AD).map(([k, l]) => `<option value="${k}"${k === a ? " selected" : ""}>${l}</option>`).join("")}</select>`;
+  const satir = (n, a, v) => `<div class="ksart"><span class="ipucu">${n === 1 ? "Şart 1" : "VE · Şart " + n}</span>${sec(a)}<input data-kdeger value="${esc(v)}" placeholder="örn. KİRA + OCAK · 1000-5000 · 770" aria-label="Şart değeri">
+      ${n === 1 ? "<span></span>" : '<button class="btn" type="button" data-ksil aria-label="Şartı kaldır" title="Şartı kaldır">×</button>'}</div>`;
+  const ilkler = x ? [x.vkn ? ["vkn", x.vkn] : ["unvan", x.karsi_taraf || ""], ...(ortak ? [["hesap", ortak]] : [])] : [["unvan", ""]];
+  const yon = x ? x.yon : (gor === "gelir" ? "SATIS" : "ALIS");
+  $("#kuralBaslik").textContent = x ? `Kontrol kuralı · ${x.belge_no}` : "Kontrol kuralı";
+  $("#kuralGovde").innerHTML = `<div id="kForm" style="display:grid;gap:12px"><p class="ipucu">Bu firmada bütün şartları tutan faturalara uygulanır (kayıt yapılmaz). Şartın içinde <b>|</b> = ya da, <b>+</b> = hepsi geçmeli.
+      Matrah aralığı: <span class="mono">1000-5000</span>, <span class="mono">1000-</span> (en az), <span class="mono">-5000</span> (en çok).</p>
+    <div id="kSartlar" style="display:grid;gap:8px">${ilkler.map(([a, v], i) => satir(i + 1, a, v)).join("")}</div>
+    <div><button class="btn" type="button" id="kSartEkle" title="Bir şart daha ekle: kural yalnız bütün şartlar birlikte tutunca uygulanır">+ Şart ekle</button></div>
+    <div class="kizgara"><label class="alan">Yön<select id="kYon"><option value="ALIS"${yon === "ALIS" ? " selected" : ""}>Alış faturaları (gider)</option><option value="SATIS"${yon === "SATIS" ? " selected" : ""}>Satış faturaları (gelir)</option><option value="*">Alış ve satış</option></select></label>
+      <label class="alan">Sonuç<select id="kSonuc"><option value="uygun">Uygun say (bu şartlar varsa kayıt doğrudur)</option><option value="uygun_degil">Uygun değil say (bu şartlar varsa kayıt yanlıştır)</option></select></label></div>
+    <label class="alan">Açıklama (isteğe bağlı; rapora yazılır)<input id="kAcik"></label>
+    <div class="araclar" style="justify-content:flex-end"><span class="ipucu" id="kSay" style="margin-right:auto"></span><span class="hata" id="kHata"></span><button class="btn" type="button" data-kx>Vazgeç</button><button class="btn birincil" type="button" id="kKaydet">Kuralı kaydet ve uygula</button></div></div>`;
+  const B = $("#kForm");
+  const oku = () => [...B.querySelectorAll(".ksart")].map(z => ({alan: z.querySelector("[data-kalan]").value, deger: z.querySelector("[data-kdeger]").value.trim()}));
+  const say = () => { const L = oku().filter(z => NN(z.deger)), y = $("#kYon").value;
+    const n = L.length ? ["gider", "gelir"].flatMap(detayListe).filter(z => (y === "*" || z.yon === y) && L.every(q => sartTutar(q, z))).length : 0;
+    $("#kSay").textContent = `${n} fatura bu şartlara uyuyor`; };
+  B.addEventListener("change", e => { const a = e.target.closest("[data-kalan]"); if (a) a.parentElement.querySelector("[data-kdeger]").value = vars(a.value); say(); });
+  B.addEventListener("input", e => { if (e.target.matches("[data-kdeger]")) say(); });
+  B.addEventListener("click", e => {
+    if (e.target.id === "kSartEkle") { const L = $("#kSartlar"), n = L.querySelectorAll(".ksart").length + 1, var_ = new Set(oku().map(z => z.alan));
+      const a = ["icerik", "tutar", "hesap", "unvan", "vkn"].find(z => !var_.has(z)) || "icerik";
+      L.insertAdjacentHTML("beforeend", satir(n, a, vars(a))); L.lastElementChild.querySelector("[data-kdeger]").focus(); say(); return; }
+    const sil = e.target.closest("[data-ksil]");
+    if (sil) { sil.closest(".ksart").remove(); [...B.querySelectorAll(".ksart")].forEach((z, i) => { z.firstElementChild.textContent = i ? "VE · Şart " + (i + 1) : "Şart 1"; }); say(); return; }
+    if (e.target.closest("[data-kx]")) $("#kuralPen").classList.remove("acik");
+  });
+  $("#kKaydet").onclick = async () => {
+    const L = oku().filter(z => NN(z.deger)); $("#kHata").textContent = "";
+    if (!L.length) { $("#kHata").textContent = "Şartın değerini yazın."; return; }
+    try { await kuralGonder({yon: $("#kYon").value, sartlar: L, sonuc: $("#kSonuc").value, aciklama: $("#kAcik").value.trim()}); }
+    catch (e) { $("#kHata").textContent = e.message; return; }
+    $("#kuralPen").classList.remove("acik");
+    if (kontrol && kuralFatura) { const y = detayListe(kontrol.tur).find(z => z.anahtar === kuralFatura.anahtar); if (y && y.durum !== "bekliyor") kontrolCikar(); else kontrolCiz(); }
+    else ciz();
+  };
+  $("#kuralPen").classList.add("acik"); say();
+  setTimeout(() => { const i = B.querySelector("[data-kdeger]"); if (i) i.focus(); }, 30);
+}
+$("#kuralKapat").onclick = () => $("#kuralPen").classList.remove("acik");
 async function kuralGonder(govde) {
   const r = await fetch("/api/denetim/detay/kural", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id: veri.rapor_id, ...govde})});
   const j = await r.json(); if (!r.ok) throw new Error(j.detail || "Kural kaydedilemedi");
@@ -585,9 +704,7 @@ function detayBagla() {
   $("#icerik").querySelectorAll("[data-dfiltre]").forEach(b => b.onclick = () => { detayFiltre[gor] = b.dataset.dfiltre; ciz(); });
   $("#icerik").querySelectorAll("[data-incele]").forEach(b => b.onclick = () => kontrolAc(gor, b.dataset.incele));
   const kb = $("#kBasla"); if (kb) kb.onclick = () => kontrolAc(gor);
-  const ke = $("#krEkle"); if (ke) ke.onclick = async () => { $("#krHata").textContent = "";
-    try { await kuralGonder({yon: $("#krYon").value, vkn: $("#krVkn").value.trim(), unvan: $("#krUnvan").value.trim(), hesap: $("#krHesap").value.trim(), aciklama: $("#krAcik").value.trim()}); }
-    catch (e) { $("#krHata").textContent = e.message; } };
+  const ke = $("#krYeni"); if (ke) ke.onclick = () => kuralPenAc(null);
   $("#icerik").querySelectorAll("[data-krsil]").forEach(b => b.onclick = async () => { if (confirm("Kural silinsin mi?")) await kuralGonder({sil: +b.dataset.krsil}); });
 }
 /* Kontrol ekranı: solda fatura bilgisi, kayıt ve fiş; sağda faturanın görünümü. Karar verilince sıradaki faturaya geçer. */
@@ -595,15 +712,37 @@ function kontrolAc(tur, anahtar) {
   let liste = detayListe(tur).filter(x => x.durum === "bekliyor").map(x => x.anahtar);
   if (anahtar && !liste.includes(anahtar)) liste = [anahtar, ...liste];
   if (!liste.length) return;
-  kontrol = {tur, liste, i: anahtar ? liste.indexOf(anahtar) : 0};
+  kontrol = {tur, liste, i: anahtar ? liste.indexOf(anahtar) : 0, kaydir: $("#icerik").scrollTop};
   $("#kontrolPen").classList.add("acik"); kontrolCiz();
 }
-function kontrolKapat() { kontrol = null; $("#kontrolPen").classList.remove("acik"); $("#kFatura").srcdoc = ""; ciz(); }
+// Görev 49: Kapat / Esc kullanıcıyı geldiği listeye (aynı süzgeç ve kaydırma yeriyle) döndürür
+function kontrolKapat() { const y = kontrol ? kontrol.kaydir : 0; kontrol = null; $("#kontrolPen").classList.remove("acik"); $("#kFatura").srcdoc = ""; ciz(); $("#icerik").scrollTop = y || 0; }
+/* Görev 49: fatura görünümü genişliğe sığar (yatay kaydırma yok); − / + ile elle yakınlaştırılır, "Sığdır" ile geri döner */
+let kZoom = 0;                                 // 0 = genişliğe sığdır
+function kFaturaOlcekle() {
+  const f = $("#kFatura"); let d = null; try { d = f.contentDocument; } catch (e) {}
+  if (!d || !d.documentElement || !d.body) { $("#kzOran").textContent = ""; return; }
+  const h = d.documentElement; h.style.zoom = "1";
+  const w = Math.max(h.scrollWidth, d.body.scrollWidth), sig = w > 0 ? Math.min(1, (f.clientWidth - 2) / w) : 1, z = kZoom || sig;
+  h.style.zoom = String(z); h.style.overflowX = z <= sig + 0.001 ? "hidden" : "auto";
+  $("#kzOran").textContent = "%" + Math.round(z * 100) + (kZoom ? "" : " · sığdırıldı");
+}
+$("#kFatura").addEventListener("load", () => {
+  kFaturaOlcekle();
+  // faturaya tıklanınca da kısayollar (A / S / ← → / Esc) çalışsın: çerçevedeki tuş bu sayfaya aktarılır
+  try { $("#kFatura").contentDocument.addEventListener("keydown", e => { if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (/^(a|s|A|S|ArrowLeft|ArrowRight|Escape)$/.test(e.key)) { e.preventDefault(); document.dispatchEvent(new KeyboardEvent("keydown", {key: e.key, bubbles: true, cancelable: true})); } }); } catch (e) {}
+});
+try { new ResizeObserver(() => { if (kontrol) kFaturaOlcekle(); }).observe($("#kFatura")); } catch (e) {}
+const kzOlcek = () => { try { return parseFloat($("#kFatura").contentDocument.documentElement.style.zoom) || 1; } catch (e) { return 1; } };
+$("#kzEksi").onclick = () => { kZoom = Math.max(0.3, Math.round((kzOlcek() - 0.1) * 10) / 10); kFaturaOlcekle(); };
+$("#kzArti").onclick = () => { kZoom = Math.min(3, Math.round((kzOlcek() + 0.1) * 10) / 10); kFaturaOlcekle(); };
+$("#kzSigdir").onclick = () => { kZoom = 0; kFaturaOlcekle(); };
 let kSira = 0;
 async function kontrolCiz() {
   const x = kontrol && detayListe(kontrol.tur).find(y => y.anahtar === kontrol.liste[kontrol.i]);
   if (!x) { kontrolKapat(); return; }
-  const sira = ++kSira, kodlar = (x.hesaplar || []).map(h => h.kod), ortak = kodlar.length && kodlar.every(k => k === kodlar[0]) ? kodlar[0] : (kodlar[0] || "").slice(0, 3);
+  const sira = ++kSira;
   $("#kBaslik").textContent = (kontrol.tur === "gider" ? "Gider kontrolü" : "Gelir kontrolü") + " · " + x.belge_no;
   $("#kSira").textContent = `${kontrol.i + 1} / ${kontrol.liste.length}`;
   const g = x.gecmis || {};
@@ -613,20 +752,16 @@ async function kontrolCiz() {
       <dt>Kayıt</dt><dd>${hesapMetni(x)}${x.hesap_toplam && Math.abs(x.hesap_toplam - x.matrah) > 0.05 ? `<br><span class="hata">Kayıt ${para(x.hesap_toplam)} ≠ matrah ${para(x.matrah)}</span>` : ""}</dd>
       <dt>Cari</dt><dd>${x.cari ? `<span class="mono">${esc(x.cari.kod)}</span> ${esc(x.cari.ad)}` : "—"}</dd>
       <dt>Geçmiş</dt><dd>${esc(g.aciklama || "—")}${g.aylar ? ` <small style="color:var(--muted)">(${g.aylar} ay, ${para(g.min)} – ${para(g.max)})</small>` : ""}</dd></dl></section>
-    <section class="kart"><h3>Fiş</h3><div id="kFis"><div class="ipucu">${(x.fisler || []).length ? "Fiş muavinden hazırlanıyor…" : "Fatura muavinde kayıtlı değil."}</div></div></section>
+    <section class="kart"><h3>Fiş</h3><div id="kFis">${(x.fisler || []).length ? '<div class="ipucu">Fiş muavinden hazırlanıyor…</div>' : kayitSatirlari(x)}</div></section>
     ${yzKontrolBolumu(x)}
     <section class="kart" style="display:grid;gap:8px"><label class="alan">Not (isteğe bağlı; rapora yazılır)<input id="kNot" value="${esc(x.durum === "uygun_degil" || x.durum === "uygun" ? x.neden || "" : "")}"></label>
-      <div class="kararlar"><button type="button" class="btn yesil" id="kUygun">✓ Uygun <span class="kbd">U</span></button><button type="button" class="btn kirmizi" id="kDegil">✗ Uygun değil <span class="kbd">D</span></button>
+      <div class="kararlar"><button type="button" class="btn yesil" id="kUygun">✓ Uygun <span class="kbd">A</span></button><button type="button" class="btn kirmizi" id="kDegil">✗ Uygun değil <span class="kbd">S</span></button>
         <span style="flex:1"></span><button type="button" class="btn" id="kOnceki">← Önceki</button><button type="button" class="btn" id="kSonraki">Sonraki →</button></div>
-      <details><summary class="ipucu" style="cursor:pointer">Bu cari için kontrol kuralı ekle (sonraki aylarda otomatik uygun)</summary>
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:6px"><label class="alan">Hesap<input id="kKuralHesap" value="${esc(ortak)}"></label>
-        <label class="alan">Açıklama<input id="kKuralAcik"></label><button type="button" class="btn" id="kKural">Kural ekle</button></div><p class="hata" id="kHata"></p></details></section>`;
+      <div><button type="button" class="btn" id="kKural" title="Faturaları Luca'ya kaydet › Kural yap ile aynı: şartlar faturadan dolar, + Şart ekle, sonuç uygun / uygun değil">Bu cari için kontrol kuralı ekle…</button>
+        <span class="ipucu">sonraki aylarda otomatik değerlendirilir</span></div></section>`;
   $("#kUygun").onclick = () => kararVer("uygun"); $("#kDegil").onclick = () => kararVer("uygun_degil"); yzKontrolBagla(x);
   $("#kOnceki").onclick = () => kontrolGit(-1); $("#kSonraki").onclick = () => kontrolGit(1);
-  $("#kKural").onclick = async () => { $("#kHata").textContent = "";
-    try { await kuralGonder({yon: x.yon, vkn: x.vkn || "", unvan: x.vkn ? "" : x.karsi_taraf, hesap: $("#kKuralHesap").value.trim(), aciklama: $("#kKuralAcik").value.trim()});
-      const y = detayListe(kontrol.tur).find(z => z.anahtar === x.anahtar); if (y && y.durum !== "bekliyor") kontrolCikar(); else kontrolCiz(); }
-    catch (e) { $("#kHata").textContent = e.message; } };
+  $("#kKural").onclick = () => kuralPenAc(x);
   // fatura görünümü: içerik alınıp betiksiz çerçeveye yazılır (masaüstünde yan süreçten, sitede tarayıcıdaki köprüden)
   $("#kFatura").srcdoc = '<p style="font:14px system-ui;padding:20px;color:#667">Fatura açılıyor…</p>';
   fetch(`/api/fatura/goruntu?id=${encodeURIComponent(veri.rapor_id)}&belge=${encodeURIComponent(x.belge_no)}`).then(async r => {
@@ -641,7 +776,15 @@ async function kontrolCiz() {
     <div class="tk" style="max-height:none"><table style="table-layout:auto"><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Açıklama</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead>
     <tbody>${j.satirlar.map(y => `<tr${(x.hesaplar || []).some(h => h.kod === y.hesap) ? ' style="background:#eef7f1"' : ""}><td class="mono">${esc(y.hesap)}</td><td>${esc(y.hesap_adi)}</td><td>${esc(y.aciklama)}</td>${tb(y.borc, y.alacak)}</tr>`).join("")}</tbody>
     <tfoot><tr><td colspan="3">Toplam</td>${tb(j.borc, j.alacak)}</tr></tfoot></table></div>`).join("");
-  else if ((x.fisler || []).length) $("#kFis").innerHTML = '<div class="hata">Fiş muavinde bulunamadı.</div>';
+  else if ((x.fisler || []).length) $("#kFis").innerHTML = '<div class="hata">Fiş muavinde bulunamadı.</div>' + kayitSatirlari(x, true);
+}
+// Fiş açılamazsa (muavinde fiş no yok) faturaya ait muavin satırları; hiç yoksa nedeni
+function kayitSatirlari(x, sessiz) {
+  const L = x.kayit_satirlari || [];
+  if (!L.length) return sessiz ? "" : `<div class="ipucu">${x.kayitli ? "Fişin numarası muavinde yok; fiş gösterilemiyor." : "Fatura muavinde bulunamadı (belge no ile; cari / tutar / tarih ile de eşleşmedi)."}</div>`;
+  return `<div class="ipucu" style="margin:4px 0">${x.fisler && x.fisler.length ? "" : "Muavinde fiş numarası yok; "}faturaya ait muavin satırları${x.eslesme ? " · " + esc(x.eslesme) : ""}:</div>
+    <div class="tk" style="max-height:none"><table><thead><tr><th>Tarih</th><th>Hesap</th><th>Hesap adı</th><th>Açıklama</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead>
+    <tbody>${L.map(y => `<tr><td class="nw">${tarih(y.tarih)}</td><td class="mono">${esc(y.hesap)}</td><td>${esc(y.hesap_adi)}</td><td>${esc(y.aciklama)}</td><td class="n">${y.borc ? para(y.borc) : ""}</td><td class="n">${y.alacak ? para(y.alacak) : ""}</td></tr>`).join("")}</tbody></table></div>`;
 }
 function kontrolGit(d) { if (!kontrol) return; kontrol.i = Math.min(Math.max(kontrol.i + d, 0), kontrol.liste.length - 1); kontrolCiz(); }
 function kontrolCikar() {                     // karar verilen fatura sıradan çıkar, sıradaki açılır
@@ -660,12 +803,10 @@ async function kararVer(karar) {
 }
 $("#kKapat").onclick = kontrolKapat;
 document.addEventListener("keydown", e => {
-  if ($("#yzPen").classList.contains("acik")) { if (e.key === "Escape") { e.preventDefault(); $("#yzPen").classList.remove("acik"); } return; }
-  if (!kontrol || $("#fisPen").classList.contains("acik")) return;
-  if (e.key === "Escape") { e.preventDefault(); kontrolKapat(); return; }
+  if (["#yzPen", "#kuralPen", "#fisPen"].some(x => $(x).classList.contains("acik")) || !kontrol) return;     // Esc yukarıdaki dinleyicide
   if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "") || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLocaleLowerCase("tr-TR");
-  if (k === "u") { e.preventDefault(); kararVer("uygun"); } else if (k === "d") { e.preventDefault(); kararVer("uygun_degil"); }
+  if (k === "a") { e.preventDefault(); kararVer("uygun"); } else if (k === "s") { e.preventDefault(); kararVer("uygun_degil"); }
   else if (e.key === "ArrowRight") { e.preventDefault(); kontrolGit(1); } else if (e.key === "ArrowLeft") { e.preventDefault(); kontrolGit(-1); }
 });
 // MuhaWin içinde: fatura PDF'e dönüştürülüp ayrı pencerede açılır (Fatura Kontrol raporundaki gibi)
