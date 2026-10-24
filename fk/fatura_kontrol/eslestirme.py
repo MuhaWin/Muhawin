@@ -40,6 +40,7 @@ IADE_610_UYUMLU = "İade (satış faturasıyla, 610) – uyumlu"
 BELGE_NO_YAKIN = "Belge no farklı yazılmış (tutar ve tarih tutuyor) – uyumlu"
 RED_KAYITSIZ = "Red / iptal – muavinde kaydı yok, uyumlu"
 RED_KAYITLI = "Red / iptal edilmiş fatura muavinde kayıtlı"
+KDV_FIS_FARKI = "KDV faturanın fişinde değil"          # yalnız Denetim (denetim.kdv_fis_kontrol); standart rapor durumlarında yok
 TIP_ADLARI = {"SATIS": "Satış", "IADE": "İade", "TEVKIFAT": "Tevkifatlı", "ISTISNA": "İstisna",
               "IHRACKAYITLI": "İhraç kayıtlı", "OZELMATRAH": "Özel matrah", "SGK": "SGK",
               "KOMISYONCU": "Komisyoncu", "TEVKIFATIADE": "Tevkifat iade", "KONAKLAMAVERGISI": "Konaklama vergisi",

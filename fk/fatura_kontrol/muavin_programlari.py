@@ -4,7 +4,9 @@ Tek firma (dosyadan) kontrolde kullanıcı muavin dökümünün hangi muhasebe p
 programın okuyucusuyla okunup ortak muavin satırlarına (MuavinSatiri) çevrilir, kontrol aynı kurallarla yapılır.
 Yeni program eklemek: aşağıdaki PROGRAMLAR sözlüğüne okuyucu fonksiyonuyla bir kayıt eklenir
 (okuyucu(yol) -> (list[MuavinSatiri], {"firma": ...})).
-  "denetim": True  → program Denetim ekranının (denetim.html) program seçiminde görünür
+  "denetim": True  → program Denetim ekranının (denetim.html) program seçiminde görünür (sıra: DENETIM_SIRA)
+  "hazir": False   → listede görünür ama okuyucusu henüz yok (örnek dosya bekleniyor); seçilince uyarı, denetim yapılmaz
+  "yalniz_denetim" → yalnız Denetim ekranında (Tek firma kontrolün program listesinde görünmez)
   "red_iptal": düzen → red / iptal Excel listelerinin sütun düzeni (red_iptal.DUZENLER; yoksa varsayılan düzen)
 """
 from __future__ import annotations
@@ -29,12 +31,23 @@ def _isletme_oku(y):
     from .isletme_okuyucu import isletme_oku
     return isletme_oku(y)
 
+
+ELEKTRA_BEKLENIYOR = "Elektra muavin örneği bekleniyor: biçim bilinmeden okunamaz. Örnek dosya gelince okuyucu eklenecek."
+
+
+def _elektra_oku(y):
+    """İskelet: Elektra muavin dökümünün sütunları bilinmiyor (kullanıcı örnek verecek). Sütun uydurulmaz;
+    örnek gelince burada muavin_okuyucu.KOLONLAR benzeri bir eşleme ile MuavinSatiri listesi üretilecek."""
+    raise ValueError(ELEKTRA_BEKLENIYOR)
+
+
 PROGRAMLAR: dict[str, dict] = {
     "luca": {
         "ad": "Luca",
         "uzantilar": [".xlsx"],
         "ipucu": "Luca → Defterler → Muavin Defter → Rapor türü: Excel Liste (xlsx) · tüm hesaplar (100–999) önerilir",
         "okuyucu": _luca_oku,
+        "denetim": True,
     },
     "mikro": {
         "ad": "Mikro",
@@ -43,6 +56,15 @@ PROGRAMLAR: dict[str, dict] = {
         "okuyucu": lambda y: _mikro_oku(y),
         "denetim": True,
         "red_iptal": "mikro",
+    },
+    "elektra": {
+        "ad": "Elektra",
+        "uzantilar": [".xlsx", ".xls"],
+        "ipucu": ELEKTRA_BEKLENIYOR,
+        "okuyucu": _elektra_oku,
+        "denetim": True,
+        "hazir": False,
+        "yalniz_denetim": True,
     },
     "luca_isletme_excel": {
         "ad": "Luca İşletme / Serbest Meslek Defteri",
@@ -59,17 +81,26 @@ PROGRAMLAR: dict[str, dict] = {
     },
 }
 VARSAYILAN = "luca"
+DENETIM_SIRA = ["mikro", "elektra", "luca"]   # Denetim ekranındaki program seçimi sırası
 DOSYA = "muavin_program.json"          # dönem klasöründe: muavinin hangi programdan geldiği
 
 
 def liste(denetim: bool = False) -> list[dict]:
-    """Seçim listesi; denetim=True ise yalnız Denetim ekranında kullanılabilen programlar."""
-    return [{"kod": k, "ad": v["ad"], "uzantilar": v["uzantilar"], "ipucu": v["ipucu"]} for k, v in PROGRAMLAR.items()
-            if not v.get("gizli") and (not denetim or v.get("denetim"))]
+    """Seçim listesi; denetim=True ise yalnız Denetim ekranında kullanılabilen programlar (DENETIM_SIRA ile)."""
+    L = [{"kod": k, "ad": v["ad"], "uzantilar": v["uzantilar"], "ipucu": v["ipucu"], "hazir": v.get("hazir", True)}
+         for k, v in PROGRAMLAR.items()
+         if not v.get("gizli") and (v.get("denetim") if denetim else not v.get("yalniz_denetim"))]
+    if denetim:
+        L.sort(key=lambda p: DENETIM_SIRA.index(p["kod"]) if p["kod"] in DENETIM_SIRA else len(DENETIM_SIRA))
+    return L
 
 
 def denetimde_mi(kod: str) -> bool:
     return bool(PROGRAMLAR.get(kod, {}).get("denetim"))
+
+
+def hazir_mi(kod: str) -> bool:
+    return PROGRAMLAR.get(kod, {}).get("hazir", True)
 
 
 def red_iptal_duzeni(kod: str | None) -> str:

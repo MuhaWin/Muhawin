@@ -44,6 +44,7 @@ class MuavinSatiri:
     belge_tarihi: date | None
     belge_no: str | None        # normalize edilmiş (büyük harf, boşluksuz)
     unvan: str
+    kod_orani: Decimal | None = None    # Denetim: hesap adında oran yoksa koddan (191.01.20 → %20); denetim.kod_oranlari
 
     @property
     def ana_hesap(self) -> str:
@@ -51,9 +52,9 @@ class MuavinSatiri:
 
     @property
     def kdv_orani(self) -> Decimal | None:
-        """Hesap adından KDV oranı (%1, %10, %20 ...)."""
+        """Hesap adından KDV oranı (%1, %10, %20 ...); adda yoksa (Denetim'de) hesap kodundan bulunan oran."""
         m = ORAN_RE.search(self.hesap_adi)
-        return Decimal(m.group(1)) if m else None
+        return Decimal(m.group(1)) if m else self.kod_orani
 
     @property
     def e_belge_mi(self) -> bool:

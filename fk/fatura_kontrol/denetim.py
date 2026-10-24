@@ -1,7 +1,8 @@
-"""Firma denetimi (MuhaWin › Ofisinize Özel Çözümler › Mikro Denetim).
+"""Firma denetimi (MuhaWin › Ofisinize Özel Çözümler › Muhasebe Denetimi; sitede muhawin.com.tr/denetim).
 
-Yüklenen e-belgeler (alış / satış XML ya da ZIP) ile firmanın muavini (Mikro; Luca da olur) karşılaştırılır:
-  * KDV kontrolü     — 191 / 391 (Fatura Kontrol'deki kurallarla: binek %70, döviz, tevkifat, ihraç kayıtlı, istisna …)
+Yüklenen e-belgeler (alış / satış XML ya da ZIP) ile firmanın muavini (Mikro, Luca; Elektra örnek bekliyor) karşılaştırılır:
+  * KDV kontrolü     — 191 / 391 (Fatura Kontrol'deki kurallarla: binek %70, döviz, tevkifat, ihraç kayıtlı, istisna …);
+                       KDV oranı ↔ hesap (adındaki %20 ya da kodu: 191.01.20), KDV kaydı faturanın fişinde mi
   * Matrah kontrolü  — alışta gider / stok / duran varlık hesapları (binek KKEG ve indirilemeyen KDV dahil), satışta 60x / 64x / 67x
   * Cari kontrolü    — faturanın ödenecek tutarı ile cari / ödeme hesabı (320, 120, 329, 100, 102 …) tutarı
   * Muhtasar (deneme) — 360 hesaplarındaki stopajlar (ücret, serbest meslek, kira, yurt dışı hizmet …)
@@ -17,7 +18,8 @@ from decimal import Decimal
 from pathlib import Path
 
 from . import arsiv
-from .eslestirme import BILGI_DURUMLARI, DENETIM_KONTROLLER, OIV_RE, _buyuk, esle, oiv_tutari
+from .eslestirme import BILGI_DURUMLARI, DENETIM_KONTROLLER, KDV_FIS_FARKI, OIV_RE, _buyuk, esle, oiv_tutari
+from .muavin_okuyucu import ORAN_RE
 
 DENETIM_JSON = "denetim.json"
 KONTROL_AD = {"KDV": "KDV kontrolü", "Matrah": "Matrah kontrolü", "Cari": "Cari kontrolü"}
@@ -66,7 +68,7 @@ def muhtasar(muavin, bas: date, bit: date) -> dict:
         g = gruplar.setdefault(kod, {"kod": kod, "baslik": baslik, "oran": float(oran * 100) if oran else None,
                                      "vergi": Decimal(0), "satirlar": []})
         g["vergi"] += s.alacak
-        g["satirlar"].append({"tarih": t.isoformat(), "fis_no": s.fis_no, "hesap": s.hesap_kodu, "hesap_adi": s.hesap_adi,
+        g["satirlar"].append({"tarih": t.isoformat(), "fis_no": s.fis_no, "fis_tarihi": s.fis_tarihi.isoformat(), "hesap": s.hesap_kodu, "hesap_adi": s.hesap_adi,
                               "unvan": s.unvan, "aciklama": s.aciklama, "vergi": _sayi(s.alacak),
                               "matrah": _sayi(s.alacak / oran) if oran else None})
     sira = [k for k, *_ in MUHTASAR_TURLERI]
@@ -80,10 +82,60 @@ def muhtasar(muavin, bas: date, bit: date) -> dict:
                          "adet": len(g["satirlar"])})
     odenecek = sum(Decimal(str(x["vergi"])) for x in satirlar if x["kod"] != "sgk")
     return {"bas": bas.isoformat(), "bit": bit.isoformat(), "satirlar": satirlar, "odenecek": _sayi(odenecek),
-            "eslesmeyen": [{"tarih": s.fis_tarihi.isoformat(), "fis_no": s.fis_no, "hesap": s.hesap_kodu, "hesap_adi": s.hesap_adi,
+            "eslesmeyen": [{"tarih": s.fis_tarihi.isoformat(), "fis_tarihi": s.fis_tarihi.isoformat(), "fis_no": s.fis_no, "hesap": s.hesap_kodu, "hesap_adi": s.hesap_adi,
                             "aciklama": s.aciklama, "tutar": _sayi(s.alacak)} for s in digerler[:200]],
             "not": "Deneme: 360 alt hesap adlarından türü bulunur (ücret, serbest meslek, kira, yurt dışı, damga). "
                    "Matrah, stopaj tutarından oranla geri hesaplanır; ücretlerde matrah bordrodan alınmalıdır."}
+
+
+KDV_ORANLARI = {1, 8, 10, 18, 20}
+
+
+def kod_oranlari(muavin) -> str:
+    """Adında oran (%20) olmayan 191 / 391 alt hesaplarında oranı koddan okur: 191.01.20 → %20.
+    Yalnız bütün bu hesapların kodu üç ya da daha çok bölümlüyse, son bölüm bilinen bir KDV oranıysa (1, 8, 10, 18, 20)
+    ve en az biri %8 ya da üstüyse (191.01.01 tek başına sıra numarası olabilir). Dönen: rapora yazılacak not (yoksa "")."""
+    adsiz = {s.hesap_kodu for s in muavin if s.hesap_kodu[:3] in ("191", "391") and not ORAN_RE.search(s.hesap_adi)}
+    oran: dict[str, Decimal] = {}
+    for k in adsiz:
+        p = re.split(r"[.\-]", k)
+        if len(p) < 3 or not p[-1].isdigit() or len(p[-1]) > 2 or int(p[-1]) not in KDV_ORANLARI:
+            return ""
+        oran[k] = Decimal(int(p[-1]))
+    if not oran or max(oran.values()) < 8:
+        return ""
+    for s in muavin:
+        if s.hesap_kodu in oran:
+            s.kod_orani = oran[s.hesap_kodu]
+    return "KDV oranı hesap kodundan okundu: " + ", ".join(f"{k} = %{v}" for k, v in sorted(oran.items()))
+
+
+def _fisler(satirlar) -> set:
+    return {(x.fis_no, x.fis_tarihi) for x in satirlar if x.fis_no}
+
+
+def kdv_fis_kontrol(r) -> int:
+    """KDV kaydı faturanın fişinde mi: KDV satırlarının fişi, aynı faturanın cari (yoksa gider / gelir) satırlarının
+    fiş(ler)inden biri olmalı. Başka fişteyse KDV_FIS_FARKI (uyumlu görünen sonuç sorunluya döner). Dönen: bulunan adet."""
+    gruplar: dict[int, dict] = defaultdict(dict)
+    for so in r.sonuclar:
+        gruplar[id(so.fatura)].setdefault(so.kontrol, so)
+    n = 0
+    for g in gruplar.values():
+        kdv = g.get("KDV")
+        if not kdv or not kdv.satirlar:
+            continue
+        dayanak = next((_fisler(g[k].satirlar) for k in ("Cari", "Matrah") if k in g and _fisler(g[k].satirlar)), set())
+        disari = _fisler(kdv.satirlar) - dayanak
+        if not dayanak or not disari:
+            continue
+        yaz = lambda L: ", ".join(f"{no} ({t:%d.%m.%Y})" for no, t in sorted(L, key=lambda x: (x[1], x[0])))
+        notu = f"KDV {yaz(disari)} fişinde; faturanın cari / gider kaydı {yaz(dayanak)} fişinde"
+        kdv.aciklama = f"{notu}; {kdv.aciklama}" if kdv.aciklama else notu
+        if kdv.durum in BILGI_DURUMLARI:
+            kdv.durum = KDV_FIS_FARKI
+        n += 1
+    return n
 
 
 OIV_UYUMLU, OIV_FARK, OIV_YOK, OIV_KAYITSIZ = "ÖİV – uyumlu", "ÖİV – fark", "ÖİV 689'da kayıtlı değil", "Fatura muavinde yok"
@@ -137,7 +189,11 @@ def denetle(klasor: Path, bas: date, bit: date, vkn: str | None = None, firma: s
     from . import muavin_programlari as MP, red_iptal
     red, red_uyari = red_iptal.oku(red_iptal.dosyalari(klasor), MP.red_iptal_duzeni(MP.klasor_programi(klasor)))
     uyarilar = list(uyarilar) + red_uyari
+    oran_notu = kod_oranlari(muavin)
+    if oran_notu:
+        uyarilar.append(oran_notu)
     r = esle(ft, muavin, Decimal("0.05"), (bas, bit), kontrol_listesi=DENETIM_KONTROLLER, red=red)
+    kdv_fis_kontrol(r)
     v = _json(r, ft, uyarilar, bilgi.get("firma") or firma or "", vkn)
     ozet = {}
     for ad in ("KDV", "Matrah", "Cari"):

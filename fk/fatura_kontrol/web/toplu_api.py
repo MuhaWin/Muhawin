@@ -224,8 +224,8 @@ def baslat(b: Baslat):
             raise HTTPException(400, "Luca'dan fatura almak için tek firma seçin")
         if b.idler[0] not in {f["id"] for f in firmalar}:
             raise HTTPException(400, "Firma toplu kontrol listesinde yok. MuhaWin'de firmayı Luca'dan ekleyin.")
-        if b.adim:                  # yalnız indirilemeyen tür yeniden denenir; diğer indirilenler korunur
-            if b.adim not in T.ADIM_KODLARI or b.adim == "muavin":
+        if b.adim:                  # yalnız indirilemeyen tür (ya da Denetim › "Muavini Luca'dan Al": muavin) alınır; diğerleri korunur
+            if b.adim not in T.ADIM_KODLARI:
                 raise HTTPException(400, "Bilinmeyen belge türü")
             args += ["--adim", b.adim]
         k = _toplu_kok() / "_tek" / b.ay
