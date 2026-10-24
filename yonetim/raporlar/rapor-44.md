@@ -46,7 +46,7 @@
   - Luca penceresi odaktayken düğmeye basılınca **MuhaWin ana penceresi odak alıyor**; Luca penceresi açık ve küçültülmemiş
   - test için `main.js`'te yalnız paketlenmemiş, test sunuculu çalıştırmada `luca` modülü testlere açıldı (`global.__mwTest`); paketlenmiş programda bu kod çalışmıyor
 - Sonuçlar:
-  - `xvfb-run -a node test/e2e.js`: **E2E_SONUC**
+  - `xvfb-run -a node test/e2e.js`: **362 ✓, 0 başarısız** (3 yeni denetim)
   - `test/luca/*.js`: hepsi geçti
   - `node test/mobil.js`: **45/45.**
 
