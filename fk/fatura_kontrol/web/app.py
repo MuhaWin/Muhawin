@@ -739,6 +739,12 @@ def denetim_detay(id: str):
     k, v = _denetim_veri(id)
     firma = k.parent.parent
     d = detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma))
+    from .. import yz
+    ob = yz.onbellek(firma)                     # yapay zekâ önerileri (masaüstünde sorulmuşsa)
+    for t in ("gider", "gelir"):
+        for x in d.get(t, []):
+            if x["anahtar"] in ob:
+                x["yz"] = ob[x["anahtar"]]
     return {**d, "kurallar": detay.kurallar(firma), "durum_ad": detay.DURUM_AD}
 
 
@@ -786,6 +792,76 @@ def denetim_detay_kural(b: DetayKural):
     except ValueError as e:
         raise HTTPException(400, str(e))
     return {"kurallar": L}
+
+
+# ------------------------------------------------------------------ Detay denetim › yapay zekâ önerisi (Görev 43 Faz 4; yalnız masaüstü)
+def _yz_istek(k: Path, v: dict, x: dict) -> dict:
+    from .. import yz
+    rid = depo.rapor_id(k)
+    fis = []
+    for f in x.get("fisler", []):
+        try:
+            fis += _fis_verisi(rid, f["no"], f["tarih"])["satirlar"]
+        except HTTPException:
+            pass
+    baglam = yz.firma_baglami(_denetim_muavini(k))
+    istek = yz.fatura_istegi(x, fis)
+    metin = json.dumps(istek, ensure_ascii=False)
+    return {"anahtar": x["anahtar"], "baglam": baglam, "istek": istek, "ozet": yz.istek_ozeti(baglam, istek),
+            "token": {"baglam": yz.token_tahmini(baglam), "istek": yz.token_tahmini(metin)}}
+
+
+def _detay_ogesi(v: dict, anahtar: str) -> dict:
+    x = next((x for t in ("gider", "gelir") for x in v["detay"].get(t, []) if x["anahtar"] == anahtar), None)
+    if not x:
+        raise HTTPException(404, "Fatura bu denetimde yok")
+    return x
+
+
+@app.get("/api/denetim/yz/istek")
+def denetim_yz_istek(id: str, anahtar: str):
+    """Claude'a gönderilecek veri (maskeli). Gönderimi masaüstünün ana süreci yapar; burada dışarıya bağlanılmaz."""
+    k, v = _denetim_veri(id)
+    return _yz_istek(k, v, _detay_ogesi(v, anahtar))
+
+
+@app.get("/api/denetim/yz/bekleyen")
+def denetim_yz_bekleyen(id: str, tur: str = "gider"):
+    """Toplu değerlendirme öncesi: önerisi olmayan bekleyen faturalar ve tahmini token (maliyeti program hesaplar)."""
+    from .. import detay, yz
+    k, v = _denetim_veri(id)
+    firma = k.parent.parent
+    d = detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma))
+    ob = yz.onbellek(firma)
+    L, tok = [], 0
+    baglam_tok = 0
+    for x in d.get(tur if tur in ("gider", "gelir") else "gider", []):
+        if x["durum"] != "bekliyor":
+            continue
+        i = _yz_istek(k, v, x)
+        if (ob.get(x["anahtar"]) or {}).get("ozet") == i["ozet"]:
+            continue                                     # aynı veriyle daha önce soruldu: yeniden sorulmaz
+        L.append(x["anahtar"]); tok += i["token"]["istek"]; baglam_tok = i["token"]["baglam"]
+    return {"anahtarlar": L, "adet": len(L), "token": {"baglam": baglam_tok, "istek": tok}}
+
+
+class YzSonuc(BaseModel):
+    id: str
+    anahtar: str
+    ozet: str
+    model: str
+    sonuc: dict
+
+
+@app.post("/api/denetim/yz/sonuc")
+def denetim_yz_sonuc(b: YzSonuc):
+    from .. import yz
+    k, v = _denetim_veri(b.id)
+    _detay_ogesi(v, b.anahtar)
+    try:
+        return yz.sonuc_yaz(k.parent.parent, b.anahtar, b.ozet, b.sonuc, b.model)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @app.get("/api/denetim/detay/rapor", response_class=HTMLResponse)

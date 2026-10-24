@@ -68,6 +68,11 @@ table.dt .durum{white-space:normal;line-height:1.3}
 .kbd{font-size:10.5px;border:1px solid rgba(255,255,255,.6);border-radius:4px;padding:0 4px;margin-left:2px}
 .d-kural,.d-gecmis,.d-uygun{background:#dff5ea;color:#13694a}.d-uygun_degil{background:#fde7e7;color:#a3262c}.d-bekliyor{background:#fff1d6;color:#8a5a00}
 .oz.secili{outline:2px solid var(--brand-2,#1f4aa8)}
+.yzk{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;background:var(--panel)}.yzk .ust{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.yz-uygun{background:#dff5ea;color:#13694a}.yz-supheli{background:#fff1d6;color:#8a5a00}.yz-uygun_degil{background:#fde7e7;color:#a3262c}
+#yzPen{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;place-items:center;z-index:70}#yzPen.acik{display:grid}
+#yzPen .ic{background:var(--panel);color:inherit;border-radius:12px;width:min(900px,94vw);max-height:88vh;display:flex;flex-direction:column}
+#yzPen pre{margin:0;padding:12px 16px;overflow:auto;white-space:pre-wrap;font-size:12px;border-top:1px solid var(--line)}
 .yukle{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;place-items:center;z-index:50}.yukle.acik{display:grid}.yukle div{background:var(--panel);padding:20px 26px;border-radius:12px;font-weight:600}
 </style>
 </head>
@@ -130,6 +135,8 @@ table.dt .durum{white-space:normal;line-height:1.3}
 <div id="kontrolPen" role="dialog" aria-modal="true" aria-label="Kontrol ekranı"><div class="kbas"><b id="kBaslik">Kontrol</b><span id="kSira" style="color:var(--muted)"></span><span style="flex:1"></span>
   <span class="ipucu">U: uygun · D: uygun değil · ← →: önceki / sonraki · Esc: kapat</span><button class="btn" type="button" id="kKapat">Kapat</button></div>
   <div class="kgovde"><div class="ksol" id="kSol"></div><div class="ksag"><iframe id="kFatura" sandbox="" title="Faturanın görünümü"></iframe></div></div></div>
+<div id="yzPen" role="dialog" aria-modal="true" aria-label="Gönderilecek veri"><div class="ic"><div class="bas" style="display:flex;gap:10px;align-items:center;padding:12px 16px"><b>Yapay zekâya gönderilecek veri</b><span style="flex:1"></span><button class="btn" type="button" id="yzPenKapat">Kapat</button></div>
+  <pre id="yzPenMetin"></pre></div></div>
 <div class="yukle" id="yukle"><div>Denetim yapılıyor… (faturalar okunuyor, muavinle karşılaştırılıyor)</div></div>
 <script>
 const $ = s => document.querySelector(s);
@@ -366,6 +373,7 @@ function ciz() {
       ${(m.eslesmeyen || []).length ? `<details><summary style="cursor:pointer;font-size:13px">Türü bulunamayan 360 kayıtları (${m.eslesmeyen.length})</summary><div class="tk"><table><tbody>${m.eslesmeyen.map(s => `<tr><td>${tarih(s.tarih)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}</td><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)} · ${esc(s.aciklama)}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
 `;
   } else if (gor === "gider" || gor === "gelir") {
+    if (MW && !yzDurum && !yzSoruldu) { yzSoruldu = true; yzSor(); }
     govde = detayGovde(gor);
   } else if (gor === "kurallar") {
     govde = kurallarGovde();
@@ -434,6 +442,87 @@ function mbeyanBagla() {
     catch (e) { $("#mbHata").textContent = e.message; } finally { y.disabled = false; }
   };
 }
+/* ---------- Yapay zekâ önerisi (Görev 43 Faz 4; yalnız MuhaWin masaüstünde). Çerçeve maskeli veriyi hazırlatır, gönderimi
+   programın ana süreci yapar (anahtar orada); öneri yalnız yol gösterir, karar yine U / D ile kullanıcıdadır. ---------- */
+let yzDurum = null, yzNo = 0, yzToplu = null, yzSoruldu = false;
+const yzBekleyen = new Map();
+const YZ_AD = {uygun: "Uygun", supheli: "Şüpheli", uygun_degil: "Uygun değil"};
+function yzMesaj(tip, veri) {
+  return new Promise((ok, red) => { const no = ++yzNo; yzBekleyen.set(no, {ok, red});
+    window.parent.postMessage({fk: true, tip, no, ...veri}, "*");
+    setTimeout(() => { if (yzBekleyen.has(no)) { yzBekleyen.delete(no); red(new Error("Program yanıt vermedi.")); } }, 180000); });
+}
+window.addEventListener("message", e => {
+  if (e.source !== window.parent || !e.data || !e.data.muhawin) return;
+  const m = e.data;
+  if (m.tip === "yzDurum") { yzDurum = m.durum; if (["gider", "gelir"].includes(gor) && !kontrol) ciz(); else if (kontrol) kontrolCiz(); return; }
+  if ((m.tip === "yzSonuc" || m.tip === "yzGosterim") && yzBekleyen.has(m.no)) { const b = yzBekleyen.get(m.no); yzBekleyen.delete(m.no); m.hata ? b.red(new Error(m.hata)) : b.ok(m); }
+});
+const yzSor = () => { if (MW) window.parent.postMessage({fk: true, tip: "yzDurum"}, "*"); };
+const yzRozet = x => x.yz && x.yz.sonuc ? `<span class="durum yz-${x.yz.sonuc.karar}" title="${esc(x.yz.sonuc.gerekce)}">YZ: ${YZ_AD[x.yz.sonuc.karar]} · %${Math.round(x.yz.sonuc.guven * 100)}${x.yz.sonuc.onerilen_hesap ? " → " + esc(x.yz.sonuc.onerilen_hesap) : ""}</span>` : "";
+function yzTahmin(t, adet) {
+  const m = yzDurum.modeller[yzDurum.model];
+  return (t.baglam * m.yazma + t.baglam * Math.max(adet - 1, 0) * m.onbellek + t.istek * m.girdi + adet * yzDurum.ciktiTahmin * m.cikti) / 1e6;
+}
+async function yzTekSor(anahtar) {
+  const r = await fetch(`/api/denetim/yz/istek?id=${encodeURIComponent(veri.rapor_id)}&anahtar=${encodeURIComponent(anahtar)}`); const i = await r.json();
+  if (!r.ok) throw new Error(i.detail || "Veri hazırlanamadı");
+  const y = await yzMesaj("yzDegerlendir", {baglam: i.baglam, istek: JSON.stringify(i.istek)});
+  const k = await fetch("/api/denetim/yz/sonuc", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({id: veri.rapor_id, anahtar, ozet: i.ozet, model: y.model, sonuc: y.sonuc})});
+  if (!k.ok) throw new Error((await k.json()).detail || "Öneri kaydedilemedi");
+  return y;
+}
+async function yzGoster(anahtar) {
+  $("#yzPenMetin").textContent = "Hazırlanıyor…"; $("#yzPen").classList.add("acik");
+  try { const r = await fetch(`/api/denetim/yz/istek?id=${encodeURIComponent(veri.rapor_id)}&anahtar=${encodeURIComponent(anahtar)}`); const i = await r.json();
+    if (!r.ok) throw new Error(i.detail || "Veri hazırlanamadı");
+    const g = (await yzMesaj("yzGoster", {baglam: i.baglam, istek: JSON.stringify(i.istek)})).gosterim;
+    $("#yzPenMetin").textContent = `— Talimat (her istekte aynı) —\n${g.sistem}\n\n— Firma bağlamı (önbelleğe alınır) —\n${g.baglam}\n\n— Bu fatura —\n${g.istek}`;
+  } catch (e) { $("#yzPenMetin").textContent = e.message; }
+}
+$("#yzPenKapat").onclick = () => $("#yzPen").classList.remove("acik");
+function yzListeAraci(tur) {
+  if (!MW) return `<span class="ipucu">Yapay zekâ önerisi yalnız MuhaWin masaüstü programında.</span>`;
+  if (!yzDurum) return "";
+  if (!yzDurum.acik) return `<button type="button" class="btn" id="yzAyar">Yapay zekâ önerisi kapalı · Ayarlar</button>`;
+  if (yzToplu) return `<span class="ipucu">Yapay zekâ: ${yzToplu.bitti} / ${yzToplu.adet}${yzToplu.hata ? " · " + yzToplu.hata + " hata" : ""} <button type="button" class="btn" id="yzDur" style="min-height:26px">Durdur</button></span>`;
+  return `<button type="button" class="btn" id="yzToplu">Bekleyenleri yapay zekâya sor</button>`;
+}
+async function yzTopluBaslat(tur) {
+  const r = await fetch(`/api/denetim/yz/bekleyen?id=${encodeURIComponent(veri.rapor_id)}&tur=${tur}`); const b = await r.json();
+  if (!r.ok) { alert(b.detail || "Hazırlanamadı"); return; }
+  if (!b.adet) { alert("Önerisi alınmamış bekleyen fatura yok (aynı veriyle daha önce sorulanlar yeniden sorulmaz)."); return; }
+  const m = yzDurum.modeller[yzDurum.model];
+  if (!confirm(`${b.adet} fatura ${m.ad} ile değerlendirilecek.\nTahmini maliyet: yaklaşık $${yzTahmin(b.token, b.adet).toFixed(3)} (Anthropic hesabınıza).\nFaturaların maskeli özeti ve firmanın hesap planı Anthropic'e gönderilir. Devam edilsin mi?`)) return;
+  yzToplu = {adet: b.adet, bitti: 0, hata: 0, dur: false, maliyet: 0}; ciz();
+  for (const a of b.anahtarlar) {
+    if (yzToplu.dur) break;
+    try { const y = await yzTekSor(a); yzToplu.maliyet += y.maliyet || 0; } catch (e) { yzToplu.hata++; yzToplu.sonHata = e.message; if (/kapalı|anahtar/i.test(e.message)) break; }
+    yzToplu.bitti++; if (!kontrol) ciz();
+  }
+  const t = yzToplu; yzToplu = null; await detayYukle(true);
+  alert(`Yapay zekâ: ${t.bitti - t.hata} öneri alındı${t.hata ? `, ${t.hata} hata (${t.sonHata})` : ""}. Gerçekleşen maliyet ≈ $${t.maliyet.toFixed(3)}.`);
+}
+function yzBagla() {
+  const a = $("#yzAyar"); if (a) a.onclick = () => { yzDurum = null; yzSoruldu = false; window.parent.postMessage({fk: true, tip: "yzAyar"}, "*"); };
+  const t = $("#yzToplu"); if (t) t.onclick = () => yzTopluBaslat(gor);
+  const d = $("#yzDur"); if (d) d.onclick = () => { if (yzToplu) yzToplu.dur = true; };
+}
+function yzKontrolBolumu(x) {
+  const s = x.yz && x.yz.sonuc;
+  const ust = s ? `<div class="ust"><span class="durum yz-${s.karar}">${YZ_AD[s.karar]}</span><span class="ipucu">güven %${Math.round(s.guven * 100)}${s.onerilen_hesap ? " · önerilen hesap <b class=mono>" + esc(s.onerilen_hesap) + "</b>" : ""} · ${esc(x.yz.model || "")} · ${esc((x.yz.zaman || "").replace("T", " "))}</span></div>
+      <div>${esc(s.gerekce)}</div>` : `<div class="ipucu">${!MW ? "Yapay zekâ önerisi yalnız MuhaWin masaüstü programında." : !yzDurum ? "" : !yzDurum.acik ? "Yapay zekâ önerisi kapalı (Ayarlar › Yapay zekâ ile karşılaştırma)." : "Bu fatura için öneri alınmadı."}</div>`;
+  const dug = MW && yzDurum ? (yzDurum.acik ? `<button type="button" class="btn" id="kYzSor">${s ? "Yeniden sor" : "Yapay zekâya sor"}</button>` : `<button type="button" class="btn" id="kYzAyar">Ayarlar</button>`) +
+    `<button type="button" class="btn" id="kYzGoster">Gönderilecek veriyi göster</button>` : "";
+  return `<section class="kart yzk"><b>Yapay zekâ önerisi <span class="ipucu" style="font-weight:400">— yalnız öneri; karar sizin</span></b>${ust}<div class="kararlar">${dug}<span class="hata" id="kYzHata"></span></div></section>`;
+}
+function yzKontrolBagla(x) {
+  const s = $("#kYzSor"); if (s) s.onclick = async () => { s.disabled = true; $("#kYzHata").textContent = "Soruluyor…";
+    try { await yzTekSor(x.anahtar); await detayYukle(true); kontrolCiz(); } catch (e) { $("#kYzHata").textContent = e.message; s.disabled = false; } };
+  const g = $("#kYzGoster"); if (g) g.onclick = () => yzGoster(x.anahtar);
+  const a = $("#kYzAyar"); if (a) a.onclick = () => { kontrolKapat(); yzDurum = null; yzSoruldu = false; window.parent.postMessage({fk: true, tip: "yzAyar"}, "*"); };
+}
 /* ---------- Detay denetim (gider / gelir kontrolü): yalnız kontrol, hiçbir kayıt yapılmaz ---------- */
 let detay = null, detayId = "", detayFiltre = {gider: "bekliyor", gelir: "bekliyor"}, kontrol = null;
 const DRENK = {bekliyor: "#8a5a00", uygun_degil: "#a3262c", uygun: "#13694a", kural: "#13694a", gecmis: "#13694a"};
@@ -464,12 +553,12 @@ function detayGovde(tur) {
   return `<p class="ipucu">${tur === "gider" ? "Alış faturalarının gider / stok / duran varlık hesabına (15x, 25x, 6xx gider, 7xx …) kaydı" : "Satış faturalarının gelir hesabına (60x, 64x, 67x) kaydı"}, fişi ve carisi.
       Kurala uyan ve geçmişle uyumlu olanlar (önceki en az iki ayda aynı cari aynı hesaba, tutar önceki aralıkta) otomatik uygun sayılır. Burada hiçbir kayıt yapılmaz.</p>
     <div class="ozetler">${["bekliyor", "uygun_degil", "uygun", "kural", "gecmis"].map(k => kutu(k, o[k] || 0, ad[k] || k)).join("")}${kutu("tum", L.length, "Tümü")}</div>
-    <div class="araclar"><button type="button" class="btn birincil" id="kBasla" ${bekleyen ? "" : "disabled"}>Kontrole başla (${bekleyen} bekleyen)</button><span class="ipucu">Büyük ekranda solda kayıt, sağda fatura; U / D ile karar.</span></div>
+    <div class="araclar"><button type="button" class="btn birincil" id="kBasla" ${bekleyen ? "" : "disabled"}>Kontrole başla (${bekleyen} bekleyen)</button><span class="ipucu">Büyük ekranda solda kayıt, sağda fatura; U / D ile karar.</span><span style="flex:1"></span>${yzListeAraci(tur)}</div>
     ${S.length ? `<div class="tk"><table class="dt"><colgroup><col style="width:130px"><col style="width:150px"><col style="width:88px"><col style="width:190px"><col style="width:96px"><col style="width:240px"><col style="width:150px"><col><col style="width:78px"></colgroup>
       <thead><tr><th>Durum</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Matrah</th><th>Hesap</th><th>Fiş</th><th>Gerekçe</th><th></th></tr></thead>
       <tbody>${S.map(x => `<tr><td><span class="durum d-${x.durum}">${esc(x.durum_ad)}</span></td><td class="mono nw">${esc(x.belge_no)}</td><td class="nw">${tarih(x.tarih)}</td>
         <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td>
-        <td style="font-size:12px">${hesapMetni(x)}</td><td>${fisMetni(x)}${faturaDugmesi(x.belge_no)}</td><td style="font-size:12px">${esc(x.neden || "")}</td>
+        <td style="font-size:12px">${hesapMetni(x)}</td><td>${fisMetni(x)}${faturaDugmesi(x.belge_no)}</td><td style="font-size:12px">${esc(x.neden || "")}${x.yz ? "<br>" + yzRozet(x) : ""}</td>
         <td><button type="button" class="btn" style="min-height:26px;padding:0 8px;font-size:12px" data-incele="${esc(x.anahtar)}">İncele</button></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Bu durumda fatura yok.</div>'}`;
 }
 function kurallarGovde() {
@@ -492,6 +581,7 @@ async function kuralGonder(govde) {
   await detayYukle(true);
 }
 function detayBagla() {
+  yzBagla();
   $("#icerik").querySelectorAll("[data-dfiltre]").forEach(b => b.onclick = () => { detayFiltre[gor] = b.dataset.dfiltre; ciz(); });
   $("#icerik").querySelectorAll("[data-incele]").forEach(b => b.onclick = () => kontrolAc(gor, b.dataset.incele));
   const kb = $("#kBasla"); if (kb) kb.onclick = () => kontrolAc(gor);
@@ -524,13 +614,14 @@ async function kontrolCiz() {
       <dt>Cari</dt><dd>${x.cari ? `<span class="mono">${esc(x.cari.kod)}</span> ${esc(x.cari.ad)}` : "—"}</dd>
       <dt>Geçmiş</dt><dd>${esc(g.aciklama || "—")}${g.aylar ? ` <small style="color:var(--muted)">(${g.aylar} ay, ${para(g.min)} – ${para(g.max)})</small>` : ""}</dd></dl></section>
     <section class="kart"><h3>Fiş</h3><div id="kFis"><div class="ipucu">${(x.fisler || []).length ? "Fiş muavinden hazırlanıyor…" : "Fatura muavinde kayıtlı değil."}</div></div></section>
+    ${yzKontrolBolumu(x)}
     <section class="kart" style="display:grid;gap:8px"><label class="alan">Not (isteğe bağlı; rapora yazılır)<input id="kNot" value="${esc(x.durum === "uygun_degil" || x.durum === "uygun" ? x.neden || "" : "")}"></label>
       <div class="kararlar"><button type="button" class="btn yesil" id="kUygun">✓ Uygun <span class="kbd">U</span></button><button type="button" class="btn kirmizi" id="kDegil">✗ Uygun değil <span class="kbd">D</span></button>
         <span style="flex:1"></span><button type="button" class="btn" id="kOnceki">← Önceki</button><button type="button" class="btn" id="kSonraki">Sonraki →</button></div>
       <details><summary class="ipucu" style="cursor:pointer">Bu cari için kontrol kuralı ekle (sonraki aylarda otomatik uygun)</summary>
         <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:6px"><label class="alan">Hesap<input id="kKuralHesap" value="${esc(ortak)}"></label>
         <label class="alan">Açıklama<input id="kKuralAcik"></label><button type="button" class="btn" id="kKural">Kural ekle</button></div><p class="hata" id="kHata"></p></details></section>`;
-  $("#kUygun").onclick = () => kararVer("uygun"); $("#kDegil").onclick = () => kararVer("uygun_degil");
+  $("#kUygun").onclick = () => kararVer("uygun"); $("#kDegil").onclick = () => kararVer("uygun_degil"); yzKontrolBagla(x);
   $("#kOnceki").onclick = () => kontrolGit(-1); $("#kSonraki").onclick = () => kontrolGit(1);
   $("#kKural").onclick = async () => { $("#kHata").textContent = "";
     try { await kuralGonder({yon: x.yon, vkn: x.vkn || "", unvan: x.vkn ? "" : x.karsi_taraf, hesap: $("#kKuralHesap").value.trim(), aciklama: $("#kKuralAcik").value.trim()});
@@ -569,6 +660,7 @@ async function kararVer(karar) {
 }
 $("#kKapat").onclick = kontrolKapat;
 document.addEventListener("keydown", e => {
+  if ($("#yzPen").classList.contains("acik")) { if (e.key === "Escape") { e.preventDefault(); $("#yzPen").classList.remove("acik"); } return; }
   if (!kontrol || $("#fisPen").classList.contains("acik")) return;
   if (e.key === "Escape") { e.preventDefault(); kontrolKapat(); return; }
   if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "") || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -583,7 +675,9 @@ document.addEventListener("click", e => {
   e.preventDefault();
   window.top.postMessage({fk: true, tip: "faturaPdf", id: a.dataset.pdfid, belge: a.dataset.pdfbelge}, "*");
 });
-document.querySelectorAll("#nav [data-g]").forEach(b => b.onclick = () => { if (b.disabled) return; gor = b.dataset.g; ciz(); });
+document.querySelectorAll("#nav [data-g]").forEach(b => b.onclick = () => { if (b.disabled) return; gor = b.dataset.g;
+  if (gor === "gider" || gor === "gelir") yzSoruldu = false;          // ayar programda değişmiş olabilir: yeniden sor
+  ciz(); });
 $("#basla").onclick = async () => {
   $("#hata").textContent = "";
   const f = seciliFirma();
