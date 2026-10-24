@@ -1257,6 +1257,45 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
       await w.screenshot({ path: OUT + '/10e-cari-vkn.png' });
       check(ui.cip && ui.uyari && ui.cari === '320.01.101', 'ekranda carinin VKN ile bulunduğu ve çakışma uyarısı görünüyor');
       await w.evaluate(() => { window.__fkayit._st.rows.pop(); }); await w.click('[data-fkf=kayitsiz]'); await w.waitForTimeout(200); }
+    // ---- Görev 50: "Luca'ya kaydet" pasifken nedeni düğmenin yanında; eksikler gösterilir / seçimden çıkarılır; muavinde kayıtlı faturanın fişi
+    { const durum = async () => { await w.click('[data-fkf=tumu]'); await w.waitForTimeout(150);
+        return w.evaluate(() => ({ kapali: document.querySelector('#fkkGo').disabled, neden: document.querySelector('#fkkNeden').textContent.replace(/\s+/g, ' ').trim(), ipucu: document.querySelector('#fkkNeden').title,
+          satir: document.querySelectorAll('#fkkTable tbody tr[data-i]').length })); };
+      await w.evaluate(() => { const st = window.__fkayit._st; st._g50 = { rows: st.rows, firm: st.firm };
+        const tam = st.rows.find(r => r.f.belge_no === 'YYY2026000000009');   // hesabı ve carisi dolu, eksiksiz fatura
+        const kopya = (o, f) => ({ ...tam, logged: null, haricBekle: false, kuralAtla: false, acik: false, elle: true, cariElle: true, ...o, f: { ...tam.f, haric: null, kayitli: false, muavin_fis: [], ...f } });
+        st._kopya = kopya;
+        st.rows = [kopya({ sec: false }, { anahtar: 'k1', belge_no: 'MUV2026000000001', kayitli: true, durum: 'Uyumlu', muavin_fis: [{ no: '0012', tarih: '2026-09-30' }] }),
+                   kopya({ sec: false }, { anahtar: 'k2', belge_no: 'MUV2026000000002', kayitli: true, durum: 'Uyumlu', muavin_fis: [{ no: '0013', tarih: '2026-09-30' }] })]; });
+      const d1 = await durum();
+      const cip = await w.$$eval('#fkkTable [data-mfis]', l => l.map(x => x.textContent.trim()));
+      check(d1.kapali && /Kaydedilecek fatura yok/.test(d1.neden) && /2 fatura muavinde zaten kayıtlı/.test(d1.ipucu) && /^muavinde var · fiş 0012,muavinde var · fiş 0013$/i.test(cip.join()),
+        'düğme pasif: kayıtsız fatura yok → "2 fatura muavinde zaten kayıtlı"; satırda "muavinde var · fiş N" (' + JSON.stringify([d1, cip]) + ')');
+      await w.click('#fkkTable [data-mfis="0"]'); await w.waitForSelector('#fkkModal:not([hidden])');
+      const fb = await w.textContent('#fkkModalT'); await w.click('#fkkModal [data-kx]');
+      check(/Muavindeki fiş 0012/i.test(fb), 'muavinde kayıtlı faturanın fişi çipten açılıyor (' + fb + ')');
+      // kayıtsız var ama seçili yok
+      await w.evaluate(() => { const st = window.__fkayit._st; st.rows = [st._kopya({ sec: false }, { anahtar: 'k3', belge_no: 'KYT2026000000003' }), st._kopya({ sec: false }, { anahtar: 'k4', belge_no: 'KYT2026000000004' })]; });
+      const d2 = await durum();
+      check(d2.kapali && /Fatura seçilmedi/.test(d2.neden), 'düğme pasif: fatura seçilmedi (' + d2.neden + ')');
+      // biri eksik (cari boş): hepsi durur; "Eksikleri göster" yalnız onu gösterir; "seçimden çıkar" sonra kalanlar kaydedilebilir
+      await w.evaluate(() => { const st = window.__fkayit._st; st.rows = [st._kopya({ sec: true }, { anahtar: 'k5', belge_no: 'KYT2026000000005' }), st._kopya({ sec: true, cari: '' }, { anahtar: 'k6', belge_no: 'KYT2026000000006' }), st._kopya({ sec: true, cari: '' }, { anahtar: 'k7', belge_no: 'KYT2026000000007' })]; });
+      const d3 = await durum();
+      await w.screenshot({ path: OUT + '/10f-kaydet-neden.png' });
+      await w.click('#fkkEksikGoster'); await w.waitForTimeout(150); const goster = await w.$$eval('#fkkTable tbody tr[data-i]', t => t.map(x => x.textContent.includes('KYT2026000000006') || x.textContent.includes('KYT2026000000007')));
+      await w.click('#fkkEksikCikar'); await w.waitForTimeout(150);
+      const d4 = await w.evaluate(() => ({ kapali: document.querySelector('#fkkGo').disabled, neden: document.querySelector('#fkkNeden').textContent.trim(), sec: window.__fkayit._st.rows.filter(r => r.sec).map(r => r.f.belge_no) }));
+      check(d3.kapali && /2 faturada eksik var/.test(d3.neden) && /2 faturada “Cari hesabı seçin”/.test(d3.ipucu), 'düğme pasif: seçili faturalardan ikisinde eksik; ipucunda nedeni ve sayısı (' + d3.ipucu.slice(0, 120) + ')');
+      check(goster.length === 2 && goster.every(Boolean), '"Eksikleri göster" yalnız eksikli faturaları listeler');
+      check(!d4.kapali && d4.neden === '' && d4.sec.join() === 'KYT2026000000005', '"Eksikleri seçimden çıkar": kalan fatura kaydedilebilir, neden kalktı');
+      // firma Luca karşılığı yok / işlem sürüyor
+      const d5 = await w.evaluate(() => { const st = window.__fkayit._st; st.firm = { ...st.firm, lucaId: '' }; return 0; }).then(durum);
+      await w.evaluate(() => { const st = window.__fkayit._st; st.firm = st._g50.firm; st.busy = true; });
+      const d6 = await durum();
+      await w.evaluate(() => { const st = window.__fkayit._st; st.busy = false; st.rows = st._g50.rows; delete st._g50; delete st._kopya; });
+      check(d5.kapali && /Luca karşılığı yok/.test(d5.neden), 'düğme pasif: firmanın Luca karşılığı yok (' + d5.neden + ')');
+      check(d6.kapali && /işlem sürüyor/.test(d6.neden), 'düğme pasif: işlem sürüyor (' + d6.neden + ')');
+      await w.click('[data-fkf=kayitsiz]'); await w.waitForTimeout(150); }
     // 2.9.4: binek araç ve 689 farkında 950 / 951 nazım kaydı; ödenecek farkı yönüne göre 679 / 689; tutar düzeltme, satır ekleme
     const v4 = await w.evaluate(() => {
       const F = window.__fkayit; const st = F._st;

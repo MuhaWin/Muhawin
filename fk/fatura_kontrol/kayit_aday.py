@@ -296,10 +296,15 @@ def adaylar(rapor_id: str) -> dict:
         bit = (bas.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
     rapor = esle(ft, muavin, Decimal("0.05"), (bas, bit) if bas else None)
     durum = {}
+    muavin_fis: dict[str, list] = {}           # Görev 50: kayıtlı sayılan faturanın muavindeki fişleri (no, tarih)
     for s in rapor.sonuclar:
         a = _anahtar(s.fatura)
         if a not in durum or s.durum in (MUAVINDE_YOK, ISTISNA_KAYITSIZ):
             durum[a] = s.durum
+        for x in s.satirlar:
+            k = {"no": x.fis_no, "tarih": x.fis_tarihi.isoformat() if x.fis_tarihi else ""}
+            if x.fis_no and k not in muavin_fis.setdefault(a, []):
+                muavin_fis[a].append(k)
     gecmis, gecmis_u, kdv_h, tevk_h, adlar = ogren(firma_k, vkn)
     kelime = getattr(ogren, "kelime", {})
     onekler = getattr(ogren, "onek", {})
@@ -352,6 +357,7 @@ def adaylar(rapor_id: str) -> dict:
                           for m in getattr(f, "masraflar", [])],
             "doviz": f.doviz, "tl_yok": bool(f.doviz and f.tl_kaynak is None),
             "durum": dr, "kayitli": dr not in (MUAVINDE_YOK, ISTISNA_KAYITSIZ, ""),
+            "muavin_fis": muavin_fis.get(a, []) if dr not in (MUAVINDE_YOK, ISTISNA_KAYITSIZ, "") else [],
             "haric": haric.get(a) or ((lambda k: {"kural": True, "aciklama": f"Kural: {KURAL_ALANLARI.get(k.get('alan'), '')} \"{k.get('ifade', '')}\""}
                                                    if k else None)(haric_kurali(f, kurallar))),
             "gecmis": _gecmis(f), "vkn_gecerli": vkn_gecerli(f.karsi_vkn), "onek": _onek(f),
