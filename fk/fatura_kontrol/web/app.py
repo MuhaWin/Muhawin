@@ -710,7 +710,12 @@ def rapor_getir(id: str):
     v = rapor_oku(id)
     if v is None:
         raise HTTPException(404, "Rapor bulunamadı")
-    v["defter"] = defter_turu(depo.rapor_klasoru(id))
+    k = depo.rapor_klasoru(id)
+    v["defter"] = defter_turu(k)
+    try:                                   # "Luca'da aç" (Görev 37): firmanın Luca kimliği (firma.json, yalnız okuma)
+        v["luca_id"] = str(json.loads((k.parent.parent / "firma.json").read_text(encoding="utf-8")).get("luca_id") or "")
+    except (OSError, ValueError, AttributeError):
+        v["luca_id"] = ""
     return JSONResponse(v)
 
 

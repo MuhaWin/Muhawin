@@ -498,6 +498,11 @@ ipcMain.handle('luca-firms', () => luca.listFirms());
 ipcMain.handle('luca-mizan', (e, args) => luca.fetchMizan(args));
 ipcMain.handle('luca-prepare-fis', (e, args) => luca.prepareFis(args));
 ipcMain.handle('luca-fis-kes', (e, args) => luca.fisKes(args));
+// Rapordaki fişi Luca'da göster (Görev 37): yalnız fiş listesi süzülür, fişte değişiklik yapılmaz
+ipcMain.handle('luca-fis-goster', (e, a) => { const o = a || {};
+  const lucaId = String(o.lucaId || ''), year = String(o.year || ''), fisNo = String(o.fisNo || '').trim();
+  if (!/^\d{1,12}$/.test(lucaId) || !/^20\d\d$/.test(year) || !fisNo || fisNo.length > 20 || /[^0-9A-Za-z\-\/]/.test(fisNo)) throw new Error('Geçersiz fiş bilgisi.');
+  return luca.fisGoster({ lucaId, year, fisNo }); });
 ipcMain.handle('luca-hesap-plani', (e, a) => luca.hesapPlani(a || {}));
 // muavin: açık Luca oturumuyla indirilir, Fatura Kontrol'ün firma / dönem klasörüne yazılır (ayrı tarayıcı açılmaz)
 ipcMain.handle('luca-muavin-indir', async (e, a) => { fkLicensed(); const o = a || {};
