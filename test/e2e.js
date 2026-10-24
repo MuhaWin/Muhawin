@@ -1173,11 +1173,11 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
       await w.click('[data-fkef=""]'); await w.waitForTimeout(150); }
     await w.click('#fkkTable tbody tr[data-i] [data-menu]'); await w.click('.satirmenu:not([hidden]) [data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kHesap');
     await w.fill('#kHesap', '770.01'); await w.click('#kKaydet'); await w.waitForTimeout(400);
-    check(/kural/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'kural uygulandı');
-    check(/Ünvan içerir/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'listede uygulanan kural görünüyor (eski tek şartlı kural)');
+    check(await w.$eval('#fkkTable tbody tr[data-i]', tr => !!tr.querySelector('[data-ks][data-v=kural][aria-pressed=true]')), 'kural uygulandı (satırda Kural seçili)');
+    check(/Ünvan içerir/.test(await w.getAttribute('#fkkTable tbody tr[data-i] [data-h]', 'title') || ''), 'listede uygulanan kural görünüyor (eski tek şartlı kural; hesap kutusunun ipucunda)');
     // Görev 34 · 7: bu ekranın "Kural yap"ı çoklu şart (VE) ve "Hiç kaydetme"
     { const sec0 = await w.evaluate(() => window.__fkayit._st.rows[0].sec);
-      await w.click('#fkkTable tbody tr[data-i] [data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kSartEkle');
+      await w.click('#fkkTable tbody tr[data-i] [data-menu]'); await w.click('.satirmenu:not([hidden]) [data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kSartEkle');
       await w.click('#kSartEkle'); const n2 = await w.$$eval('#kSartlar .ksart', l => l.length);
       const ikinci = await w.$eval('#kSartlar .ksart:nth-child(2) [data-kalan]', e => e.value);
       await w.fill('#kSartlar .ksart:nth-child(2) [data-kdeger]', 'BU KALEM YOK'); await w.waitForTimeout(100);
@@ -1504,7 +1504,7 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
       const once = await w.evaluate(i => { const r = window.__fkayit._st.rows[i]; return { hesap: r.hesap, kaynak: r.kaynak }; }, i0);
       await w.click(`[data-ks="${i0}"][data-v="kod"]`); await w.waitForTimeout(150);
       const kodR = await w.evaluate(i => { const r = window.__fkayit._st.rows[i]; const tr = document.querySelector(`#fkkTable tr[data-i="${i}"]`);
-        return { hesap: r.hesap, kaynak: r.kaynak, basili: tr.querySelector('[data-ks][aria-pressed="true"]').dataset.v, chip: /kod tablosu/.test(tr.textContent), gecmisKapali: tr.querySelector('[data-ks][data-v="gecmis"]').disabled }; }, i0);
+        return { hesap: r.hesap, kaynak: r.kaynak, basili: tr.querySelector('[data-ks][aria-pressed="true"]').dataset.v, chip: /kod tablosu/.test(tr.textContent) || !!tr.querySelector('[data-ks][data-v=kod][aria-pressed=true]'), gecmisKapali: tr.querySelector('[data-ks][data-v="gecmis"]').disabled }; }, i0);
       await w.click(`[data-ks="${i0}"][data-v="kural"]`); await w.waitForTimeout(150);
       const kuralR = await w.evaluate(i => { const r = window.__fkayit._st.rows[i]; return { hesap: r.hesap, kaynak: r.kaynak, basili: document.querySelector(`#fkkTable tr[data-i="${i}"] [data-ks][aria-pressed="true"]`).dataset.v }; }, i0);
       check(once.kaynak === 'kural' && kodR.kaynak === 'kod tablosu' && kodR.basili === 'kod' && kodR.chip && kodR.hesap === '153.01.99', '[Kod] düğmesi: hesap kod tablosundan, satırda kaynak "kod tablosu" (' + JSON.stringify(kodR) + ')');
