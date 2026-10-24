@@ -8,6 +8,11 @@
 const fs = require('fs');
 const path = require('path');
 
+// Görev 49: özellik şimdilik KAPALI (kod duruyor, ileride açılacak). Kapalıyken Ayarlar'da görünmez ve hiçbir yoldan
+// Anthropic'e istek gönderilmez (degerlendir istemciyi kurmadan reddeder). Açmak için true (Muhasebe Denetimi'nde
+// denetim.html › YZ_ETKIN ve Fatura Kontrol'de yz.ETKIN da açılmalı).
+const YZ_ETKIN = false;
+
 // Model adları ve fiyatları tek yerde ($ / 1M token; önbellekten okuma ayrı). Varsayılan: kalite.
 const MODELLER = {
   kalite: { id: 'claude-opus-5-5', ad: 'Claude Opus 5.5 (kalite)', girdi: 4, cikti: 20, onbellek: 0.20, yazma: 5 },
@@ -53,7 +58,7 @@ function maskele(s) {
     .replace(/(?<![\d.,])\+?\d[\d ]{9,14}\d(?![\d,])/g, m => (m.replace(/\D/g, '').length >= 10 ? '[numara]' : m));
 }
 
-function makeYz({ dir, safeStorage, istemciYap } = {}) {
+function makeYz({ dir, safeStorage, istemciYap, etkin = YZ_ETKIN } = {}) {
   const ayarDosya = () => path.join(dir(), 'yz-ayar.json');
   const anahtarDosya = () => path.join(dir(), 'yz-anahtar.bin');
   const sifreVar = () => { try { return !!(safeStorage && safeStorage.isEncryptionAvailable()); } catch (e) { return false; } };
@@ -68,7 +73,7 @@ function makeYz({ dir, safeStorage, istemciYap } = {}) {
   function durum(ofis) {
     const a = ofisAyar(ofis), m = MODELLER[a.model] ? a.model : VARSAYILAN_MODEL;
     const anahtarVar = !!anahtar();
-    return { acik: !!a.acik && !!a.onay && anahtarVar, istenen: !!a.acik, onay: a.onay || '', anahtarVar, sifreVar: sifreVar(),
+    return { etkin: !!etkin, acik: !!etkin && !!a.acik && !!a.onay && anahtarVar, istenen: !!a.acik, onay: a.onay || '', anahtarVar, sifreVar: sifreVar(),
              model: m, modeller: Object.fromEntries(Object.entries(MODELLER).map(([k, v]) => [k, { ad: v.ad, id: v.id, girdi: v.girdi, cikti: v.cikti, onbellek: v.onbellek, yazma: v.yazma }])),
              ciktiTahmin: CIKTI_TAHMIN };
   }
@@ -96,6 +101,7 @@ function makeYz({ dir, safeStorage, istemciYap } = {}) {
 
   // Bir faturanın değerlendirmesi. baglam: firmanın hesap planı (önbelleklenir); istek: faturanın maskeli özeti (JSON)
   async function degerlendir(ofis, { baglam, istek } = {}) {
+    if (!etkin) throw new Error('Yapay zekâ önerisi bu sürümde kapalı.');
     const d = durum(ofis);
     if (!d.anahtarVar) throw new Error('Yapay zekâ kapalı: Ayarlar\'da Anthropic API anahtarı girilmemiş.');
     if (!d.acik) throw new Error('Yapay zekâ ile karşılaştırma Ayarlar\'da kapalı.');
@@ -138,4 +144,4 @@ function varsayilanIstemci(apiKey) {
   return new A({ apiKey, maxRetries: 2, timeout: 120000 });
 }
 
-module.exports = { makeYz, maskele, MODELLER, SEMA, SISTEM };
+module.exports = { makeYz, maskele, MODELLER, SEMA, SISTEM, YZ_ETKIN };

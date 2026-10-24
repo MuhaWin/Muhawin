@@ -23,7 +23,8 @@
     // metin kutusunda yazarken Esc önce yalnız kutudan çıkarır; ikinci Esc geri götürür
     const t = e.target;
     if (t && (t.isContentEditable || t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && !/^(checkbox|radio|button|submit|reset|file|range|color|image)$/i.test(t.type || "")))) { t.blur(); return; }
-    const acik = [...document.querySelectorAll(".modal,.pencere,.kaplama,[role=dialog]")].some(x => x.offsetParent !== null);
+    // görünür mü: getClientRects (offsetParent sabit konumlu pencerelerde hep null; Görev 49)
+    const acik = [...document.querySelectorAll(".modal,.pencere,.kaplama,[role=dialog]")].some(x => x.getClientRects().length > 0 && getComputedStyle(x).visibility !== "hidden");
     if (!acik) window.parent.postMessage({fk: true, tip: "esc"}, "*");
   });
   // MuhaWin içinde Ctrl+K / Ctrl+F: MuhaWin'in komut paleti (bu sayfalarda tarayıcının kendi araması yok)

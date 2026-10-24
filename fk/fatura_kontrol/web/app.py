@@ -740,12 +740,13 @@ def denetim_detay(id: str):
     firma = k.parent.parent
     d = detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma))
     from .. import yz
-    ob = yz.onbellek(firma)                     # yapay zekâ önerileri (masaüstünde sorulmuşsa)
+    ob = yz.onbellek(firma) if yz.ETKIN else {}  # yapay zekâ önerileri (masaüstünde sorulmuşsa; Görev 49: kapalı)
     for t in ("gider", "gelir"):
         for x in d.get(t, []):
             if x["anahtar"] in ob:
                 x["yz"] = ob[x["anahtar"]]
-    return {**d, "kurallar": detay.kurallar(firma), "durum_ad": detay.DURUM_AD}
+    kl = [{**k, "metin": detay.kural_metni(k), "sonuc": k.get("sonuc") or "uygun"} for k in detay.kurallar(firma)]
+    return {**d, "kurallar": kl, "durum_ad": detay.DURUM_AD, "sart_ad": detay.SART_AD}
 
 
 class DetayKarar(BaseModel):
@@ -777,6 +778,8 @@ class DetayKural(BaseModel):
     unvan: str = ""
     hesap: str = ""
     aciklama: str = ""
+    sartlar: list = []           # Görev 49: [{alan: unvan / vkn / icerik / tutar / hesap, deger}] (hepsi VE)
+    sonuc: str = ""              # uygun / uygun_degil
     sil: int = 0                 # verilirse bu kural silinir
 
 
@@ -788,13 +791,20 @@ def denetim_detay_kural(b: DetayKural):
     firma = k.parent.parent
     try:
         L = detay.kural_sil(firma, int(b.sil)) if b.sil else \
-            detay.kural_ekle(firma, {"yon": b.yon, "vkn": b.vkn, "unvan": b.unvan, "hesap": b.hesap, "aciklama": b.aciklama})
+            detay.kural_ekle(firma, {"yon": b.yon, "vkn": b.vkn, "unvan": b.unvan, "hesap": b.hesap, "aciklama": b.aciklama,
+                                     "sonuc": b.sonuc, **({"sartlar": b.sartlar} if b.sartlar else {})})
     except ValueError as e:
         raise HTTPException(400, str(e))
     return {"kurallar": L}
 
 
 # ------------------------------------------------------------------ Detay denetim › yapay zekâ önerisi (Görev 43 Faz 4; yalnız masaüstü)
+def _yz_kapali():
+    from .. import yz
+    if not yz.ETKIN:
+        raise HTTPException(404, "Yapay zekâ önerisi bu sürümde kapalı")
+
+
 def _yz_istek(k: Path, v: dict, x: dict) -> dict:
     from .. import yz
     rid = depo.rapor_id(k)
@@ -821,6 +831,7 @@ def _detay_ogesi(v: dict, anahtar: str) -> dict:
 @app.get("/api/denetim/yz/istek")
 def denetim_yz_istek(id: str, anahtar: str):
     """Claude'a gönderilecek veri (maskeli). Gönderimi masaüstünün ana süreci yapar; burada dışarıya bağlanılmaz."""
+    _yz_kapali()
     k, v = _denetim_veri(id)
     return _yz_istek(k, v, _detay_ogesi(v, anahtar))
 
@@ -828,6 +839,7 @@ def denetim_yz_istek(id: str, anahtar: str):
 @app.get("/api/denetim/yz/bekleyen")
 def denetim_yz_bekleyen(id: str, tur: str = "gider"):
     """Toplu değerlendirme öncesi: önerisi olmayan bekleyen faturalar ve tahmini token (maliyeti program hesaplar)."""
+    _yz_kapali()
     from .. import detay, yz
     k, v = _denetim_veri(id)
     firma = k.parent.parent
@@ -856,6 +868,7 @@ class YzSonuc(BaseModel):
 @app.post("/api/denetim/yz/sonuc")
 def denetim_yz_sonuc(b: YzSonuc):
     from .. import yz
+    _yz_kapali()
     k, v = _denetim_veri(b.id)
     _detay_ogesi(v, b.anahtar)
     try:

@@ -86,6 +86,87 @@ def test_toplu_fis_baska_faturalar_karismaz():
     assert [h["kod"] for h in x["hesaplar"]] == ["770.01.01.001"] and x["cari"]["kod"] == "320.01.01.005"
 
 
+def ms(hesap, adi, borc="0", alacak="0", acik="", fis_no="9", fis=date(2026, 9, 30)):
+    from fatura_kontrol.muavin_okuyucu import MuavinSatiri, aciklama_ayristir
+    bt, bn, u = aciklama_ayristir(acik)
+    return MuavinSatiri("m.xlsx", 1, hesap, adi, fis, "Mahsup", fis_no, acik, D(borc), D(alacak), bt, bn, u)
+
+
+def _fis_numarasiz(acik, fis_no="9"):
+    return [ms("191.01", "İndirilecek KDV %20", borc="200", acik=acik, fis_no=fis_no), ms("770.01.01.001", "Elektrik Gideri", borc="1000", acik=acik, fis_no=fis_no),
+            ms("320.01.01.005", "ÖRNEK GIDA LTD ŞTİ", alacak="1200", acik=acik, fis_no=fis_no)]
+
+
+@pytest.mark.parametrize("acik, nasil", [
+    ("ELEKTRIK FATURASI 2026000000001 ÖRNEK GIDA", "numara farklı yazılmış"),       # seri ön eki yok
+    ("ÖRNEK GIDA EYLÜL ELEKTRİK", "karşı taraf ve ödenecek tutar"),                 # numara hiç yok: cari + tutar + ay
+])
+def test_yedek_eslesme_muavinde_kayitli(acik, nasil):
+    """Görev 49: belge no ile bulunamayan ama muavinde kayıtlı fatura "kayıtlı değil" sayılmaz; fişi ve hesabı bulunur."""
+    x = hazirla(_fis_numarasiz(acik))
+    assert x["kayitli"] and nasil in x["eslesme"], x
+    assert [h["kod"] for h in x["hesaplar"]] == ["770.01.01.001"] and x["fisler"] == [{"no": "9", "tarih": "2026-09-30"}]
+    assert detay.uygula({"gider": [x]}, [], {})["gider"][0]["neden"] != "Fatura muavinde bulunamadı (belge no, cari / tutar / tarih ile)"
+
+
+def test_yedek_eslesme_baska_cari_ya_da_tutar_tutmazsa_bulunmaz():
+    m = [ms("320.01.01.007", "BAŞKA TİCARET LTD", alacak="1200", acik="BAŞKA TİCARET EYLÜL"), ms("770.01", "Gider", borc="1200", acik="BAŞKA TİCARET EYLÜL")]
+    m += [ms("320.01.01.005", "ÖRNEK GIDA LTD ŞTİ", alacak="999", acik="ÖRNEK GIDA", fis_no="10")]
+    x = hazirla(m)
+    assert not x["kayitli"] and x["eslesme"] == "" and x["kayit_satirlari"] == []
+    assert detay.uygula({"gider": [x]}, [], {})["gider"][0]["neden"].startswith("Fatura muavinde bulunamadı")
+
+
+def test_fis_no_olmayan_muavin():
+    """Muavinde fiş no yoksa: aynı gün ve açıklamalı satırlardan kayıt bulunur, satırlar kontrol ekranına gelir."""
+    x = hazirla(_fis_numarasiz("02/09/2026-ABC2026000000001-ÖRNEK GIDA LTD ŞTİ", fis_no=""))
+    assert x["kayitli"] and x["fisler"] == [] and [h["kod"] for h in x["hesaplar"]] == ["770.01.01.001"]
+    assert {s["hesap"] for s in x["kayit_satirlari"]} == {"191.01", "770.01.01.001", "320.01.01.005"}
+
+
+def test_toplu_fiste_numarasiz_gider_satiri():
+    """Toplu fiş: gider satırında belge no yok; faturanın matrahını tutan / karşı tarafı yazan satır bu faturanındır."""
+    m = [fs("191.01", "İndirilecek KDV %20", borc="200"), fs("320.01.01.005", "ELEKTRİK AŞ", alacak="1200"),
+         ms("770.01.01.001", "Elektrik Gideri", borc="1000", acik="EYLÜL GİDERLERİ"),
+         fs("191.01", "İndirilecek KDV %20", borc="10", no="XYZ2026000000099"), fs("320.01.01.009", "KIRTASİYE", alacak="60", no="XYZ2026000000099"),
+         ms("770.02", "Kırtasiye", borc="50", acik="EYLÜL GİDERLERİ")]
+    x = hazirla(m)
+    assert [h["kod"] for h in x["hesaplar"]] == ["770.01.01.001"], x["hesaplar"]
+
+
+def test_kural_cok_sartli_ve_uygun_degil(tmp_path):
+    """Görev 49: Kural yap gibi çok şartlı (VE) kural; şartın içinde | ve +; matrah aralığı; sonuç uygun / uygun değil."""
+    x = hazirla(bu_ay())                                      # matrah 1000, kayıt 770.01.01.001, ÖRNEK GIDA LTD ŞTİ
+    firma = tmp_path / "F"
+    with pytest.raises(ValueError):
+        detay.kural_ekle(firma, {"yon": "ALIS", "sartlar": [{"alan": "tutar", "deger": "-"}]})
+    with pytest.raises(ValueError):
+        detay.kural_ekle(firma, {"yon": "ALIS", "sartlar": [{"alan": "hesap", "deger": "abc"}]})
+    L = detay.kural_ekle(firma, {"yon": "*", "sartlar": [{"alan": "unvan", "deger": "elektrik | örnek + gıda"},
+                                                         {"alan": "tutar", "deger": "500-1.500"}, {"alan": "hesap", "deger": "770"}],
+                                 "sonuc": "uygun", "aciklama": "elektrik"})
+    d = detay.uygula({"gider": [x]}, L, {})["gider"][0]
+    assert d["durum"] == "kural" and "Matrah aralığı" in d["neden"] and "elektrik" in d["neden"], d["neden"]
+    assert detay.uygula({"gider": [{**x, "matrah": 2000.0}]}, L, {})["gider"][0]["durum"] == "bekliyor"      # aralık dışı
+    y = detay.uygula({"gider": [{**x, "hesaplar": [{"kod": "760.01", "ad": "", "tutar": 1000.0}]}]}, L, {})["gider"][0]
+    assert y["durum"] == "bekliyor" and "Kural 1 770 bekliyor" in y["neden"]                                 # yalnız hesap tutmadı
+    L = detay.kural_ekle(firma, {"yon": "ALIS", "sartlar": [{"alan": "unvan", "deger": "örnek gıda"}, {"alan": "icerik", "deger": "elektrik"},
+                                                            {"alan": "vkn", "deger": x["vkn"]}, {"alan": "hesap", "deger": "770"}], "sonuc": "uygun_degil"})
+    d = detay.uygula({"gider": [{**x, "kalemler": ["Elektrik tüketim bedeli"]}]}, L, {})["gider"][0]
+    assert d["durum"] == "uygun_degil" and d["neden"].startswith("Kural 2") and "uygun değil" in d["neden"]   # daha çok şartlı önce
+    K = detay.karar_yaz(firma, x["anahtar"], "uygun", "baktım")
+    assert detay.uygula({"gider": [{**x, "kalemler": ["Elektrik"]}]}, L, K)["gider"][0]["durum"] == "uygun"     # karar kuraldan önce
+
+
+def test_eski_kural_gecerli(tmp_path):
+    """Eski biçimde (Görev 43) kaydedilmiş kural aynen çalışır ve yeni biçimde metniyle gösterilir."""
+    x = hazirla(bu_ay())
+    eski = [{"id": 1, "yon": "ALIS", "vkn": x["vkn"], "unvan": "", "hesap": "770", "aciklama": "elektrik", "zaman": "2026-09-01T10:00"}]
+    d = detay.uygula({"gider": [x]}, eski, {})["gider"][0]
+    assert d["durum"] == "kural" and detay.kural_metni(eski[0]) == f"VKN/TCKN eşittir “{x['vkn']}” VE Kayıt hesabı ile başlar “770”"
+    assert detay.uygula({"gider": [x]}, [{**eski[0], "hesap": "760"}], {})["gider"][0]["neden"].startswith("Kural 1 760 bekliyor")
+
+
 @pytest.fixture
 def c(tmp_path, monkeypatch):
     monkeypatch.setenv("FK_VERI", str(tmp_path / "veri"))
@@ -129,7 +210,8 @@ def test_api_detay_karar_kural_rapor(c, tmp_path):
 
 
 def test_tarayicida_kontrol_ekrani(tmp_path):
-    """Gider kontrolü → kontrol ekranı (solda kayıt + fiş, sağda fatura), U ile karar, sıradaki; gelirde kural; rapor."""
+    """Gider kontrolü → kontrol ekranı (solda kayıt + fiş, sağda genişliğe sığan fatura), Esc ile listeye dönüş, A ile karar;
+    gelirde "Kural yap" gibi kural penceresi (şartlar faturadan, + Şart ekle); kurallar sekmesi; rapor."""
     import os
     from test_fis_ve_tumu import _sunucu
     from test_denetim import _mikro
@@ -161,23 +243,50 @@ def test_tarayicida_kontrol_ekrani(tmp_path):
         pg.wait_for_selector("#kontrolPen.acik #kFis table", timeout=15000)
         assert "770.01" in pg.inner_text("#kFis") and "1 / 1" in pg.inner_text("#kSira")
         pg.wait_for_function("document.querySelector('#kFatura').srcdoc.includes('AAA2026000000001')", timeout=15000)
-        assert pg.get_attribute("#kFatura", "sandbox") == ""
+        assert pg.get_attribute("#kFatura", "sandbox") == "allow-same-origin"          # betik çalışmaz; yalnız ölçmek için
+        # Görev 49: fatura genişliğe sığar (yatay kaydırma yok); + / Sığdır
+        pg.wait_for_function("document.querySelector('#kzOran').textContent.includes('sığdırıldı')", timeout=10000)
+        sig = pg.evaluate("""() => { const f = document.querySelector('#kFatura'), h = f.contentDocument.documentElement;
+          return {w: h.scrollWidth * (parseFloat(h.style.zoom) || 1), c: f.clientWidth, x: getComputedStyle(h).overflowX}; }""")
+        assert sig["w"] <= sig["c"] + 2 and sig["x"] == "hidden", sig
+        pg.click("#kzArti"); assert "sığdırıldı" not in pg.inner_text("#kzOran")
+        pg.click("#kzSigdir"); assert "sığdırıldı" in pg.inner_text("#kzOran")
+        assert "A" in pg.inner_text("#kUygun") and "S" in pg.inner_text("#kDegil") and not pg.query_selector(".yzk")
+        # Esc / Kapat: geldiği listeye (Gider kontrolü, kontrol bekleyen) döner; MuhaWin'e "geri" gitmez
+        pg.keyboard.press("Escape")
+        pg.wait_for_selector("#kontrolPen.acik", state="detached", timeout=5000)
+        assert pg.get_attribute("#nav [data-g=gider]", "aria-pressed") == "true" and pg.is_visible("#icerik #kBasla")
+        assert "← Özet" in pg.inner_text("#icerik .konum")
+        pg.click("#kBasla"); pg.wait_for_selector("#kontrolPen.acik #kFis table", timeout=15000)
         pg.fill("#kNot", "elektrik faturası, doğru hesap")
-        pg.click("#kSira")                                         # odak not alanından çıksın: kısayol çalışsın
-        pg.keyboard.press("u")
+        pg.keyboard.press("Escape")                                # kutudayken Esc yalnız kutudan çıkar (Görev 47)
+        assert pg.is_visible("#kontrolPen.acik")
+        pg.keyboard.press("a")                                     # Görev 49: A = uygun
         pg.wait_for_selector("#kontrolPen.acik", state="detached", timeout=15000)   # tek bekleyen vardı: ekran kapandı
         pg.wait_for_function("document.querySelector('#nGider').textContent.includes('tamam')")
         pg.click("#icerik [data-dfiltre=uygun]")
         assert "elektrik faturası" in pg.inner_text("#icerik")
-        # gelir: kontrol ekranından kural ekle → otomatik uygun (kural)
+        # gelir: kontrol ekranından kural (Kural yap penceresi gibi: şartlar faturadan dolar, + Şart ekle, sonuç)
         pg.click("#nav [data-g=gelir]"); pg.click("#kBasla")
-        pg.wait_for_selector("#kontrolPen.acik #kKuralHesap", state="attached")
-        pg.click("#kSol details summary")
-        assert pg.input_value("#kKuralHesap") == "600.01"
-        pg.fill("#kKuralAcik", "her ay aynı müşteri"); pg.click("#kKural")
+        pg.wait_for_selector("#kontrolPen.acik #kKural")
+        pg.click("#kKural"); pg.wait_for_selector("#kuralPen.acik")
+        sart = lambda: pg.eval_on_selector_all("#kuralPen .ksart", "L => L.map(x => [x.querySelector('select').value, x.querySelector('input').value])")
+        assert sart() == [["vkn", "9"], ["hesap", "600.01"]], sart()
+        assert "1 fatura bu şartlara uyuyor" in pg.inner_text("#kSay")
+        pg.click("#kSartEkle"); assert [a for a, _ in sart()] == ["vkn", "hesap", "icerik"]
+        pg.select_option("#kuralPen .ksart:nth-child(3) select", "tutar")
+        assert sart()[2][1] == "1.000-3.000", sart()                   # matrah 2.000 → aralık faturadan dolar
+        pg.click("#kuralPen .ksart:nth-child(3) [data-ksil]"); assert len(sart()) == 2
+        pg.keyboard.press("Escape"); assert not pg.is_visible("#kuralPen")   # Esc yalnız kural penceresini kapatır (odak kutudaysa önce kutudan çıkar)
+        assert pg.is_visible("#kontrolPen.acik")
+        pg.click("#kKural"); pg.wait_for_selector("#kuralPen.acik")
+        pg.fill("#kAcik", "her ay aynı müşteri"); pg.click("#kKaydet")
         pg.wait_for_selector("#kontrolPen.acik", state="detached", timeout=15000)
         pg.click("#nav [data-g=kurallar]")
-        assert "600.01" in pg.inner_text("#icerik") and "her ay aynı müşteri" in pg.inner_text("#icerik")
+        assert "600.01" in pg.inner_text("#icerik") and "her ay aynı müşteri" in pg.inner_text("#icerik") and "VKN/TCKN eşittir" in pg.inner_text("#icerik")
+        pg.click("#krYeni"); pg.wait_for_selector("#kuralPen.acik")
+        assert sart() == [["unvan", ""]]
+        pg.click("#kuralPen [data-kx]"); assert not pg.is_visible("#kuralPen")
         pg.click("#nav [data-g=gelir]")
         pg.click("#icerik [data-dfiltre=kural]")
         assert "EX02026000000001" in pg.inner_text("#icerik")
