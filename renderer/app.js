@@ -2829,7 +2829,6 @@ const LucaBag=(()=>{
     // bağlıysa yeniden giriş açılmaz: ana süreç açık Luca ekranını öne getirir
     try{const r=await api.luca.open();if(r&&r.bagli)boya({...son,loggedIn:true});}catch(x){}setTimeout(yenile,1500);});
   try{api.luca.on((ev,d)=>{if(ev==='durum'&&d){boya(d);if(d.loggedIn){const k=document.getElementById('lucaCap');if(k)k.remove();}}
-    else if(ev==='muavineDon'){try{if(typeof MMUI!=='undefined')MMUI.open('muavin');}catch(x){}}   // Luca'da Çalış penceresindeki "Muavine dön"
     else if(ev==='captcha'){captchaKutu(d||{});}
     else yenile();});}catch(e){}
   setInterval(()=>{if(document.visibilityState!=='hidden')yenile();},5000);

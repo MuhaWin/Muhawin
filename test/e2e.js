@@ -933,6 +933,27 @@ _mikro(Path(${JSON.stringify(md)}, 'mikro_muavin.xlsx'), satis_matrah=1900, cari
     const sf = await w.evaluate(async () => { try { await window.desktop.showInFolder('/etc/passwd'); return 'acildi'; } catch (e) { return 'red'; } });
     check(sf === 'red' && !(await app.evaluate(() => global.__dis)).some(x => /passwd/.test(x)), 'klasörde göster: programın yazmadığı yol reddedilir');
     for (const ad of GECICI) { fs.mkdirSync(path.join(os.tmpdir(), ad), { recursive: true }); fs.writeFileSync(path.join(os.tmpdir(), ad, 'deneme.pdf'), 'x'); }
+    // Görev 44: Luca'da Çalış penceresinde "MuhaWin'e git" — üst şeritte; basınca MuhaWin ana penceresi öne gelir / odak alır, Luca açık kalır
+    { const sl = await require('./luca/sahte-ust-serit').baslat();
+      try {
+        await app.evaluate(async ({ BrowserWindow }, url) => { const L = global.__mwTest.luca;
+          const lw = new BrowserWindow({ width: 1366, height: 800, show: true, title: 'Luca – çalışma' }); global.__lw = lw; L._git.donDugmesiBagla(lw); await lw.loadURL(url + '/Luca/luca.do'); }, sl.url);
+        const lp = await (async () => { for (let i = 0; i < 50; i++) { const p = app.windows().find(x => /\/Luca\/luca\.do/.test(x.url())); if (p) return p; await w.waitForTimeout(100); } return null; })();
+        const ust = () => lp.frame('frm4');
+        await ust().waitForSelector('#mwMuhaWineGit:not([hidden])', { timeout: 10000 });
+        const d = await ust().evaluate(() => { const b = document.getElementById('mwMuhaWineGit'), r = b.getBoundingClientRect(); return { metin: b.textContent, sol: Math.round(r.left), logoSag: Math.round(document.getElementById('lucaLogo').getBoundingClientRect().right), yuk: innerHeight }; });
+        check(d.metin === "MuhaWin'e git" && d.sol > d.logoSag && d.yuk < 100, 'Luca penceresinde "MuhaWin\'e git" en üstteki şeritte, logonun sağında (' + JSON.stringify(d) + ')');
+        // şerit çerçevesi yenilenince ve içerik sayfası değişince ana süreç düğmeyi yeniden koyar; ikinci düğme oluşmaz
+        await ust().evaluate(() => location.reload()); await w.waitForTimeout(400); await ust().waitForSelector('#mwMuhaWineGit:not([hidden])', { timeout: 10000 });
+        await lp.frame('frm3').evaluate(() => { location.href = 'bos.do?s=2'; }); await w.waitForTimeout(800);
+        const sayi = await Promise.all(lp.frames().map(f => f.evaluate(() => document.querySelectorAll('#mwMuhaWineGit').length).catch(() => 0)));
+        check(sayi.reduce((a, b) => a + b, 0) === 1 && await ust().$('#mwMuhaWineGit'), 'şerit yenilenince / sayfa değişince düğme yerinde, tek düğme (' + sayi.join(',') + ')');
+        const once = await app.evaluate(({ BrowserWindow }) => { global.__lw.focus(); return new Promise(r => setTimeout(() => r(BrowserWindow.getFocusedWindow() === global.__lw), 300)); });
+        await ust().click('#mwMuhaWineGit'); await w.waitForTimeout(700);
+        const o = await app.evaluate(({ BrowserWindow }) => { const f = BrowserWindow.getFocusedWindow(); const ana = BrowserWindow.getAllWindows().find(x => x.getTitle() === 'MuhaWin');
+          return { odak: f ? f.getTitle() : null, anaOdak: !!ana && ana.isFocused(), lucaAcik: !global.__lw.isDestroyed() && global.__lw.isVisible() && !global.__lw.isMinimized() }; });
+        check(once && o.anaOdak && o.odak === 'MuhaWin' && o.lucaAcik, '"MuhaWin\'e git": ana pencere öne geldi ve odak aldı; Luca penceresi açık kaldı (küçültülmedi) (' + JSON.stringify({ oncekiOdakLuca: once, ...o }) + ')');
+      } finally { await app.evaluate(() => { try { global.__lw.destroy(); } catch (e) {} }).catch(() => {}); sl.kapat(); } }
   } catch (e) { bad.push('HATA (2b): ' + e.message.split('\n')[0]); await w.screenshot({ path: OUT + '/hata2b.png' }).catch(() => {}); }
   finally { await app.close().catch(() => {}); fake.server.close(); }
   check(GECICI.every(ad => !fs.existsSync(path.join(os.tmpdir(), ad, 'deneme.pdf'))), 'çıkışta geçici fatura / PDF / WhatsApp klasörleri temizlendi');
