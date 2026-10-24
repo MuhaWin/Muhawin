@@ -174,6 +174,20 @@ def main():
                 "2026" in fat.frame_locator("iframe").locator("body").inner_text(), "fatura görünümü tarayıcıda, kum havuzlu çerçevede")
         fat.close()
 
+        print("Detay denetim")
+        bekle(pg, "document.querySelector('#nGider .rozet')", 60000)
+        pg.click("#nav [data-g=gider]")
+        pg.click("#kBasla")
+        bekle(pg, "document.querySelector('#kontrolPen.acik #kFis table')", 60000)
+        bekle(pg, "document.querySelector('#kFatura').srcdoc.includes('2026')", 60000)
+        kontrol(pg.get_attribute("#kFatura", "sandbox") == "" and "2026" in pg.frame_locator("#kFatura").locator("body").inner_text(),
+                "kontrol ekranı: solda fiş, sağda fatura (betiksiz çerçeve, sitenin CSP'siyle)")
+        pg.click("#kSira"); pg.keyboard.press("d")
+        bekle(pg, "!document.querySelector('#kontrolPen.acik')", 30000)
+        pg.click("#icerik [data-dfiltre=uygun_degil]")
+        kontrol("Uygun değil" in pg.inner_text("#icerik"), "karar (D) kaydedildi, fatura listeden düştü")
+        pg.click("#nav [data-g=ozet]")
+
         print("Çıktılar")
         pg.click("#nav [data-g=beyan]")
         with pg.expect_download() as d:

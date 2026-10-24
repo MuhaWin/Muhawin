@@ -720,6 +720,84 @@ def denetim_listesi():
     return {"liste": out}
 
 
+# ------------------------------------------------------------------ Detay denetim (gider / gelir kontrolü; Görev 43 Faz 2)
+def _denetim_veri(id: str) -> tuple[Path, dict]:
+    from ..denetim import DENETIM_JSON
+    k = depo.rapor_klasoru(id)
+    if not k or not (k / DENETIM_JSON).exists():
+        raise HTTPException(404, "Bu dönemin denetimi yok")
+    v = json.loads((k / DENETIM_JSON).read_text(encoding="utf-8"))
+    if "detay" not in v:
+        raise HTTPException(409, "Bu denetim detay denetimden önce yapılmış; denetimi yeniden çalıştırın.")
+    return k, v
+
+
+@app.get("/api/denetim/detay")
+def denetim_detay(id: str):
+    """Gider ve gelir kontrolü: her faturanın kaydı, durumu (kural / geçmiş / karar / bekliyor), firmanın kuralları."""
+    from .. import detay
+    k, v = _denetim_veri(id)
+    firma = k.parent.parent
+    d = detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma))
+    return {**d, "kurallar": detay.kurallar(firma), "durum_ad": detay.DURUM_AD}
+
+
+class DetayKarar(BaseModel):
+    id: str
+    anahtar: str
+    karar: str = ""              # uygun / uygun_degil / "" (kararı kaldır)
+    notu: str = ""
+
+
+@app.post("/api/denetim/detay/karar")
+def denetim_detay_karar(b: DetayKarar):
+    from .. import detay
+    k, v = _denetim_veri(b.id)
+    x = next((x for t in ("gider", "gelir") for x in v["detay"].get(t, []) if x["anahtar"] == b.anahtar), None)
+    if not x:
+        raise HTTPException(404, "Fatura bu denetimde yok")
+    try:
+        detay.karar_yaz(k.parent.parent, b.anahtar, b.karar, b.notu,
+                        {"belge_no": x["belge_no"], "tarih": x["tarih"], "karsi_taraf": x["karsi_taraf"]})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"tamam": True}
+
+
+class DetayKural(BaseModel):
+    id: str
+    yon: str = ""
+    vkn: str = ""
+    unvan: str = ""
+    hesap: str = ""
+    aciklama: str = ""
+    sil: int = 0                 # verilirse bu kural silinir
+
+
+@app.post("/api/denetim/detay/kural")
+def denetim_detay_kural(b: DetayKural):
+    """Kontrol kuralı ekle / sil (kayıt değil: kurala uyan fatura otomatik "uygun" sayılır)."""
+    from .. import detay
+    k, _ = _denetim_veri(b.id)
+    firma = k.parent.parent
+    try:
+        L = detay.kural_sil(firma, int(b.sil)) if b.sil else \
+            detay.kural_ekle(firma, {"yon": b.yon, "vkn": b.vkn, "unvan": b.unvan, "hesap": b.hesap, "aciklama": b.aciklama})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"kurallar": L}
+
+
+@app.get("/api/denetim/detay/rapor", response_class=HTMLResponse)
+def denetim_detay_rapor(id: str):
+    """Yazdırılabilir rapor: KDV ve matrah kontrolü + detay denetim (uygun / uygun değil / bekleyen)."""
+    from .. import detay
+    from ..detay_rapor import rapor_html
+    k, v = _denetim_veri(id)
+    firma = k.parent.parent
+    return HTMLResponse(rapor_html(v, detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma))))
+
+
 @app.get("/api/gecmis")
 def gecmis():
     with _db() as con:

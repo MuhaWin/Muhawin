@@ -106,6 +106,24 @@ test('Elektra muavini tarayıcıda okunur (hızlı xlsx okuyucu): Mikro ile ayn�
   assert.deepStrictEqual({ KDV: e.KDV, Matrah: e.Matrah, Cari: e.Cari }, { KDV: 0, Matrah: 1, Cari: 1 });
 });
 
+test('Detay denetim: gider / gelir kontrolü, karar, kural, rapor (tarayıcıda, firma klasöründe saklanır)', async () => {
+  const liste = json(await istek('GET', '/api/denetim/liste')).liste;
+  const id = liste.find(x => x.firma === 'ÖRNEK TİCARET A.Ş.' || /ÖRNEK/.test(x.id)).id;
+  const d = json(await istek('GET', '/api/denetim/detay', { sorgu: { id } }));
+  assert.ok(d.gider.length && d.gelir.length, JSON.stringify(d.ozet));
+  const g = d.gider[0];
+  assert.strictEqual((await istek('POST', '/api/denetim/detay/karar', { govde: { id, anahtar: g.anahtar, karar: 'uygun_degil', notu: 'deneme' } })).durum, 200);
+  const k = await istek('POST', '/api/denetim/detay/kural', { govde: { id, yon: 'SATIS', vkn: d.gelir[0].vkn, hesap: d.gelir[0].hesaplar[0].kod.slice(0, 3) } });
+  assert.strictEqual(k.durum, 200, k.govde);
+  const d2 = json(await istek('GET', '/api/denetim/detay', { sorgu: { id } }));
+  assert.strictEqual(d2.gider[0].durum, 'uygun_degil');
+  assert.strictEqual(d2.gelir[0].durum, 'kural');
+  const r = await istek('GET', '/api/denetim/detay/rapor', { sorgu: { id } });
+  assert.strictEqual(r.durum, 200);
+  assert.match(r.govde, /Gider kontrolü/);
+  assert.match(r.govde, /deneme/);
+});
+
 test('Luca ve sqlite olmadan çalışır (taklit yalnız fastapi / pydantic)', async () => {
   const y = py.runPython("import sys; json_ = __import__('json'); json_.dumps([m in sys.modules for m in ('playwright', 'sqlite3', 'fastapi')])");
   assert.deepStrictEqual(JSON.parse(y), [false, false, true]);
