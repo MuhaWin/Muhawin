@@ -43,7 +43,7 @@ Aynı firmada mizan ve muavin çekme çalışıyor (yönetici kullanıcıyla do�
 |---|---|
 | `test/luca/firma-listede-yok.js` (yeni) | **12/12** · eski `luca.js` ile 2. senaryoda kullanıcının hatası çıkıyor |
 | `test/luca/*.js` (15 dosya; Görev 29 sayfa yönetimi dahil) | hepsi geçti |
-| `xvfb-run -a node test/e2e.js` (main `c6afe38` ile birleşik) | **363 geçti, 0 başarısız** |
+| `xvfb-run -a node test/e2e.js` (main `af817e4` ile birleşik) | **367 geçti, 0 başarısız** |
 | `node test/mobil.js` | 45/45 |
 
 `firma-listede-yok.js` (sahte Luca):
