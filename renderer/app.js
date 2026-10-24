@@ -2714,6 +2714,14 @@ const FKUI=(()=>{
     }catch(e){post({tip:'cekBitti',hata:clean(e)});}
     finally{pulling=false;}
   }
+  // Rapordaki "Luca'da aç" (Görev 37): Luca'da Fiş Listesi o fiş numarasıyla süzülmüş açılır; fişe dokunulmaz
+  async function lucaFisAc(d){const lucaId=String(d.lucaId||''),year=String(d.yil||''),fisNo=String(d.fisNo||'');
+    if(!lucaId){toast('Firmanın Luca karşılığı yok. Firmayı Ayarlar › Firmalar › "Luca\'dan firma ekle" ile ekleyin.');return;}
+    if(!fisNo){toast('Bu satırın Luca fişi yok.');return;}
+    try{await LucaBag.bekle();
+      await mwBusy.run('Luca\'da fiş açılıyor…',`Fiş ${fisNo} · ${year}`,()=>window.__mwApi.luca.fisGoster({lucaId,year,fisNo}));
+      toast(`Luca'da Fiş Listesi ${fisNo} numaralı fişle açıldı. Fişe girip kendiniz işlem yapabilirsiniz.`);}
+    catch(x){toast(clean(x));}}
   let bekleyenYenile=null;
   function muavinYenile(id,ay){if(started&&url){post({tip:'muavinYenile',id,ay});}else{bekleyenYenile={id,ay};start();}}
   function sonucYenile(ay){if(started&&url)post({tip:'sonucYenile',ay});}
@@ -2721,6 +2729,7 @@ const FKUI=(()=>{
   window.addEventListener('message',async e=>{
     if(!e.data||!e.data.fk||(e.source!==frameWin()&&e.origin!==fkOrigin()))return;
     if(e.data.tip==='faturaKaydet'&&e.data.id){FKAYIT.open(String(e.data.id));return;}
+    if(e.data.tip==='lucaFisAc'){lucaFisAc(e.data);return;}
     if(e.data.tip==='defterKaydet'&&Array.isArray(e.data.liste)){   // Toplu kontrol › Firmalar: defter türü değişti → MuhaWin firma ayarına da yazılır
       for(const x of e.data.liste){const f=(S.firms||[]).find(y=>String(y.lucaId||'')===String(x.id));if(!f||(f.defter||'')===(x.defter||''))continue;
         const y={...f,defter:x.defter||'',defterOto:false};try{await Store.saveFirm(y);const i=S.firms.findIndex(z=>z.id===y.id);if(i>=0)S.firms[i]=y;}catch(err){}}
@@ -6157,6 +6166,9 @@ const FISL=(()=>{
     if(t.id==='flKapat'){st.sec=null;ciz();return;}
     if(t.id==='flLuca'){const sec=st.sec?st.fisler.find(x=>x.k===st.sec):null;if(!sec||!f||!f.lucaId)return;
       try{await LucaBag.bekle();const yil=String(sec.tarih||'').slice(0,4)||String(new Date().getFullYear());
+        try{await mwBusy.run('Luca\'da fiş açılıyor…',f.name+' · '+yil+' · Fiş '+sec.no,()=>window.__mwApi.luca.fisGoster({lucaId:f.lucaId,year:yil,fisNo:String(sec.no)}));
+          toast(`Luca'da Fiş Listesi ${sec.no} numaralı fişle açıldı.`);return;}
+        catch(x){toast(clean(x));}                      // süzgeç açılamadıysa eski yol: firma / dönem seçilir, numara panoya
         await mwBusy.run('Luca\'da firma ve dönem seçiliyor…',f.name+' · '+yil,()=>window.__mwApi.luca.prepareFis({lucaId:f.lucaId,year:yil}));
         try{await navigator.clipboard.writeText(String(sec.no));}catch(x){}
         await window.__mwApi.luca.open();toast(`Luca penceresi açıldı (${f.name} · ${yil}). Fiş İşlemleri › Fiş Ara'da ${sec.no} numaralı fişi açın — numara panoya kopyalandı. Luca'nın fiş sayfası doğrudan adreslenemediği için aramayı siz yaparsınız.`);}

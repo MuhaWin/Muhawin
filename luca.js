@@ -519,6 +519,63 @@ async function calis() {
   return { ok: true, giris: true };
 }
 
+// ---------- Rapordaki fişi Luca'da göster (Görev 37) ----------
+// Kullanıcı "Luca'da aç"a basınca: çalışma penceresinde (calismaW; yoksa açılır) firma / dönem seçilir, Fiş Listesi
+// (YMFrameAction.do?modul=10) açılır ve süzgeç formu (listFisParametreForm) yalnız o fiş numarasıyla gönderilir.
+// Yalnız okuma: fişte ve Luca kayıtlarında hiçbir değişiklik yapılmaz; kullanıcı fişi kendisi açar.
+// Fiş no Luca biçiminde: rakamsa en az 4 hane (baştaki sıfırlar, ör. 143 → 0143).
+const fisNoBicim = n => { const t = String(n == null ? '' : n).trim(); return /^\d+$/.test(t) ? t.padStart(4, '0') : t; };
+const FIS_GOSTER_JS = `(async (o) => {
+  const bekle = ms => new Promise(r => setTimeout(r, ms));
+  const kok = location.origin + '/Luca/';
+  const hazir = async (cerceve, kosul, ms) => { const t0 = Date.now();
+    while (Date.now() - t0 < (ms || 20000)) { try { if (cerceve.document.readyState === 'complete' && kosul(cerceve)) return true; } catch (e) {} await bekle(200); }
+    return false; };
+  const formBul = (w, d) => { try {
+      const f = w.document.querySelector('form[name=listFisParametreForm]'); if (f) return f;
+      for (let i = 0; i < w.frames.length && (d || 0) < 3; i++) { const x = formBul(w.frames[i], (d || 0) + 1); if (x) return x; }
+    } catch (e) {} return null; };
+  const f3 = window.frames['frm3'], f4 = window.frames['frm4'];
+  if (!f3) return { ok: false, hata: 'CERCEVE' };
+  if (f4 && o.firma) {                       // firma / dönem çubuğu (frm4) seçilen firmaya geçer
+    f4.location.href = kok + o.firma;
+    await hazir(f4, w => /TopFrameAction/i.test(w.location.href));
+  }
+  f3.location.href = kok + 'YMFrameAction.do?modul=10';
+  await hazir(f3, w => /YMFrameAction/i.test(w.location.href));
+  let form = null; for (let i = 0; i < 30 && !(form = formBul(f3)); i++) await bekle(200);
+  if (!form && o.uye) {                      // modül çerçevesi formu kendisi yüklemediyse süzgeç sayfası doğrudan
+    f3.location.href = kok + 'getFisParametreJSPAction.do?c_musteri_id=' + encodeURIComponent(o.uye);
+    await hazir(f3, w => !!formBul(w));
+    form = formBul(f3);
+  }
+  if (!form) return { ok: false, hata: 'FORM' };
+  const ata = (ad, deger) => { const e = form.elements.namedItem(ad); if (e && 'value' in e) e.value = deger; };
+  ata('ilkFisNo', o.fisNo); ata('sonFisNo', o.fisNo); ata('ilkFisTarihi', ''); ata('sonFisTarihi', '');
+  HTMLFormElement.prototype.submit.call(form);
+  return { ok: true };
+})`;
+async function fisGoster({ lucaId, year, fisNo } = {}) {
+  const no = fisNoBicim(fisNo);
+  if (!no) fail('ARG', 'Bu satırın Luca fişi yok.');
+  if (!/^\d{4}$/.test(String(year || ''))) fail('ARG', 'Fişin yılı bilinmiyor.');
+  const p = await IS.prepareFis({ lucaId, year });                  // firma ve dönem Luca'da var mı (iş kilidiyle)
+  const secim = donemFirma.get(String(p.donemId)) || { lucaId: String(lucaId), year: String(year), donemId: String(p.donemId) };
+  if (!(calismaW && !calismaW.isDestroyed())) {
+    const r = await calis();
+    if (r && r.ok === false) fail('UYE', r.error || 'Luca çalışma penceresi açılamadı.');
+    for (let i = 0; i < 75 && !(calismaW && !calismaW.isDestroyed()); i++) await new Promise(z => setTimeout(z, 200));
+  }
+  const w = calismaW && !calismaW.isDestroyed() ? calismaW : null;
+  if (!w) fail('CALISMA', 'Luca çalışma penceresi açılamadı. "Luca\'da Çalış" ile açıp yeniden deneyin.');
+  for (let i = 0; i < 75 && w.webContents.isLoading(); i++) await new Promise(z => setTimeout(z, 200));
+  const uye = await sessionUye(w);
+  const r = await w.webContents.executeJavaScript(FIS_GOSTER_JS + '(' + JSON.stringify({ firma: firmaSecAdresi(secim), uye, fisNo: no }) + ')', true);
+  oneGetir(w);
+  if (!r || !r.ok) fail('LUCA', 'Luca\'da Fiş Listesi açılamadı' + (r && r.hata === 'FORM' ? ' (süzgeç formu bulunamadı)' : '') + '. Fişi Luca\'da elle arayın: ' + no);
+  return { ok: true, fisNo: no, firma: p.firmLabel, yil: p.year };
+}
+
 // Açık Luca oturumunun üye numarası (menü/çalışma alanı çerçevelerindeki c_musteri_id)
 const uyeCache = new WeakMap();
 async function sessionUye(w) {
@@ -1106,6 +1163,6 @@ const IS = {
   isletmeListeleri: o => isle(fk(o), () => isletmeListeleri(o), true),
   dovizKodlari: () => isle(null, dovizKodlari),
 };
-module.exports = { calis, captchaGir, captchaYenile, girisGoster, oturumCerezleri, hesapPlaniExcelOku, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status,
+module.exports = { calis, fisGoster, _fisNoBicim: fisNoBicim, captchaGir, captchaYenile, girisGoster, oturumCerezleri, hesapPlaniExcelOku, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status,
   logout, recheck, LOGIN_URL, ...IS, sayfaBilgisi, _normUye: normUye, _zamanAsimiGec: zamanAsimiGec,
   _sayfaAyar: o => { if (o.kiraMs != null) KIRA_MS = o.kiraMs; if (o.ekBosMs != null) EK_BOS_MS = o.ekBosMs; if (o.bekleMs != null) BEKLE_EN_COK_MS = o.bekleMs; } };
