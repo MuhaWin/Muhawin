@@ -1,6 +1,6 @@
 # Rapor 45 – Kod tanımlarında / fiş kaydetmede "firma bulunamadı"
 
-**Oturum:** Yazılımcı (`session_01HKMyx49yrftMV598oVTfLH`) · **Taban:** `main` `0f22a96` · **Dal:** `claude/awesome-ritchie-ftviuk`
+**Oturum:** Yazılımcı (`session_01HKMyx49yrftMV598oVTfLH`) · **Taban:** `main` `c6afe38` · **Dal:** `claude/awesome-ritchie-ftviuk`
 Derleme yapılmadı. Gerçek Luca'ya istek yapılmadı; sahte Luca ile sınandı.
 
 ## Belirti (2.9.14 deneme sürümü)
@@ -42,8 +42,8 @@ Aynı firmada mizan ve muavin çekme çalışıyor (yönetici kullanıcıyla do�
 | Test | Sonuç |
 |---|---|
 | `test/luca/firma-listede-yok.js` (yeni) | **12/12** · eski `luca.js` ile 2. senaryoda kullanıcının hatası çıkıyor |
-| `test/luca/*.js` (14 dosya; Görev 29 sayfa yönetimi dahil) | hepsi geçti |
-| `xvfb-run -a node test/e2e.js` | **360 geçti, 0 başarısız** |
+| `test/luca/*.js` (15 dosya; Görev 29 sayfa yönetimi dahil) | hepsi geçti |
+| `xvfb-run -a node test/e2e.js` (main `c6afe38` ile birleşik) | **363 geçti, 0 başarısız** |
 | `node test/mobil.js` | 45/45 |
 
 `firma-listede-yok.js` (sahte Luca):
