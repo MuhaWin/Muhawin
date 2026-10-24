@@ -751,7 +751,7 @@ def fatura_goruntu(id: str, belge: str):
 
 
 @app.get("/api/rapor/cikti", response_class=HTMLResponse)
-def rapor_cikti(id: str, cevap: str | None = None, tutar: str | None = None):
+def rapor_cikti(id: str, cevap: str | None = None, tutar: str | None = None, sorumlu: str | None = None):
     """Dosyaya konulacak rapor: kontrol özeti + açıklamalı muavin dökümü + KDV beyannamesi örneği.
     Bir kopyası dönem klasörüne 'kdv_kontrol_raporu.html' olarak da kaydedilir."""
     from ..cikti import cikti_html
@@ -760,10 +760,10 @@ def rapor_cikti(id: str, cevap: str | None = None, tutar: str | None = None):
     if v is None or not k:
         raise HTTPException(404, "Rapor bulunamadı")
     from ..kontrol import muavin_dosyalari, muavinleri_oku
-    muavin = None
+    muavin, bilgi = None, {}
     if muavin_dosyalari(k):
         try:
-            muavin, _ = muavinleri_oku(muavin_dosyalari(k))
+            muavin, bilgi = muavinleri_oku(muavin_dosyalari(k))
         except Exception:
             muavin = None
     iade_yolu = k / "iade_talebi.json"           # "iade talebiniz olacak mı?" cevabı dönem klasöründe saklanır
@@ -790,7 +790,9 @@ def rapor_cikti(id: str, cevap: str | None = None, tutar: str | None = None):
             except ValueError:
                 pass
     v["tevkifatlar"] = list(v.get("tevkifatlar", [])) + ek
-    sayfa = cikti_html(v, muavin, ayarlar.oku(), firma_ad, iade)
+    from ..beyanname import _cevap
+    sor = _cevap(k / "sorumlu_odeme.json", {"cevap": sorumlu} if sorumlu else None, ("odendi", "odenmedi"))
+    sayfa = cikti_html(v, muavin, ayarlar.oku(), firma_ad, iade, sor, (bilgi.get("aralik") or (None,))[0])
     try:
         (k / "kdv_kontrol_raporu.html").write_text(sayfa, encoding="utf-8")
     except OSError:
@@ -1091,11 +1093,13 @@ def kayit_uygun(b: dict):
 
 
 @app.get("/api/beyanname")
-def beyanname_getir(id: str, cevap: str | None = None, tutar: str | None = None):
-    """Kontrolü yapılmış dönem için KDV 1 / KDV 2 beyannamesi (GİB yeni biçim kutuları). cevap/tutar: iade talebi."""
+def beyanname_getir(id: str, cevap: str | None = None, tutar: str | None = None, sorumlu: str | None = None):
+    """Kontrolü yapılmış dönem için KDV 1 / KDV 2 beyannamesi (GİB yeni biçim kutuları). cevap/tutar: iade talebi.
+    sorumlu: sorumlu sıfatıyla indirilen KDV ödendi mi (odendi / odenmedi)."""
     from ..beyanname import hazirla
     try:
-        return JSONResponse(hazirla(id, {"cevap": cevap, "tutar": tutar or ""} if cevap else None))
+        return JSONResponse(hazirla(id, {"cevap": cevap, "tutar": tutar or ""} if cevap else None,
+                                    {"cevap": sorumlu} if sorumlu else None))
     except FileNotFoundError as e:
         raise HTTPException(404, str(e))
 

@@ -9,6 +9,7 @@ katılmaz; varsa taslakla karşılaştırılır.
 """
 from __future__ import annotations
 
+import calendar
 import html
 import re
 from collections import defaultdict
@@ -95,6 +96,10 @@ class Beyan:
     iade_cevap: str | None = None               # "evet" / "hayir" / None (sorulmadı)
     iade_onerisi: Decimal | None = None         # muavindeki tahakkuk fişinde 136'ya alınan tutar
     kumulatif_bedel: Decimal = SIFIR
+    sorumlu_tutar: Decimal = SIFIR             # bu dönem sorumlu sıfatıyla indirilen KDV (KDV2 tahakkuku, 360 / 109)
+    sorumlu_cevap: str | None = None           # "odendi" / "odenmedi" / None (sorulmadı)
+    sorumlu_indirilmeyen: Decimal = SIFIR      # ödenmediği için indirimden çıkarılan tutar
+    tahakkuk_kontrol: dict | None = None       # önceki aylarda KDV tahakkuk fişi var mı (tahakkuk_ay_kontrolu)
     notlar: list[str] = field(default_factory=list)
 
     @property
@@ -123,7 +128,8 @@ class Beyan:
 
     @property
     def bu_donem_indirim(self) -> Decimal:
-        return sum((x.vergi or SIFIR for x in self.indirimler), SIFIR)
+        # sorumlu sıfatıyla beyan edilen KDV ödenmediyse indirilemez (ödendiği dönemde indirilir)
+        return sum((x.vergi or SIFIR for x in self.indirimler), SIFIR) - self.sorumlu_indirilmeyen
 
     @property
     def indirimler_toplami(self) -> Decimal:
@@ -180,9 +186,61 @@ def indirim_turu(kod: str, ad: str) -> str:
     return "108 - Yurtiçi Alımlara İlişkin KDV"
 
 
+_AY_ASCII = ["", "OCAK", "SUBAT", "MART", "NISAN", "MAYIS", "HAZIRAN", "TEMMUZ", "AGUSTOS", "EYLUL", "EKIM", "KASIM", "ARALIK"]
+
+
+def _ascii(x: str) -> str:
+    t = str.maketrans("ÇĞİIÖŞÜ", "CGIIOSU")
+    return re.sub(r"[^A-Z0-9/.\- ]+", " ", _buyuk(x).translate(t))
+
+
+def tahakkuk_ay_kontrolu(muavin: list[MuavinSatiri], bas: date, kapsam_bas: date | None = None) -> dict:
+    """Beyanname ayından önceki aylar (aynı yılın Ocak'ından) için muavinde KDV tahakkuk fişi var mı?
+    Fiş, adından ("Ocak ayı KDV tahakkuku", "01/2026 KDV tahakkuk" …: KDV + TAHAKKUK ve ayın adı / numarası) ya da
+    yapısından (o ay tarihli, 190 geçen ya da 391 borç + 191 alacak) tanınır. Muavinin kapsamadığı aylar ayrı bildirilir.
+    Dönüş: {"bulunan": [{ay, ad, fis}], "eksik": [{ay, ad, hareket}], "kapsam_disi": [ay]}"""
+    out = {"bulunan": [], "eksik": [], "kapsam_disi": []}
+    yil, ay = bas.year, bas.month
+    if ay == 1 or not muavin:
+        return out
+    ilk = kapsam_bas or min(s.fis_tarihi for s in muavin)
+    adla: dict[int, str] = {}                     # ay → fiş (adından tanınan)
+    for s in muavin:
+        a = _ascii(s.aciklama)
+        if "KDV" not in a or not re.search(r"TAHAKK?UK", a):
+            continue
+        aylar = [i for i in range(1, 13) if re.search(rf"\b{_AY_ASCII[i]}\b", a)]
+        for m in re.finditer(r"\b(0?[1-9]|1[0-2])\s*[./-]\s*(20\d\d)\b", a):
+            if int(m.group(2)) == yil:
+                aylar.append(int(m.group(1)))
+        for m in aylar:
+            # ad yılı söylemiyorsa fişin tarihi belirler (Aralık tahakkuku Ocak'ta kesilmiş olabilir)
+            y = s.fis_tarihi.year - (1 if m > s.fis_tarihi.month else 0)
+            if y == yil and m < ay:
+                adla.setdefault(m, f"{s.fis_no} ({s.fis_tarihi:%d.%m.%Y})")
+    for m in range(1, ay):
+        m_bas = date(yil, m, 1)
+        m_bit = date(yil, m, calendar.monthrange(yil, m)[1])
+        if m_bit < ilk:                          # ayın hiçbir günü muavinde yok
+            out["kapsam_disi"].append(m)
+            continue
+        fis = adla.get(m)
+        if not fis:
+            t = tahakkuk_fisleri(muavin, m_bas, m_bit)
+            fis = ", ".join(sorted(f"{n} ({d:%d.%m.%Y})" for n, d in t)) if t else None
+        if fis:
+            out["bulunan"].append({"ay": m, "ad": AYLAR[m], "fis": fis})
+        else:
+            hareket = any(m_bas <= s.fis_tarihi <= m_bit and s.ana_hesap in ("190", "191", "391") for s in muavin)
+            out["eksik"].append({"ay": m, "ad": AYLAR[m], "hareket": hareket})
+    return out
+
+
 def kdv_beyani(muavin: list[MuavinSatiri], bas: date, bit: date, faturalar: list[dict] | None = None,
-               iade: dict | None = None) -> Beyan:
-    """iade: kullanıcının cevabı {'cevap': 'evet'|'hayir', 'tutar': '388962.53'}; yoksa muavindeki 136 kullanılır."""
+               iade: dict | None = None, sorumlu: dict | None = None, kapsam_bas: date | None = None) -> Beyan:
+    """iade: kullanıcının cevabı {'cevap': 'evet'|'hayir', 'tutar': '388962.53'}; yoksa muavindeki 136 kullanılır.
+    sorumlu: sorumlu sıfatıyla indirilen KDV ödendi mi {'cevap': 'odendi'|'odenmedi'}; ödenmediyse indirimden çıkarılır.
+    kapsam_bas: muavinin kapsadığı ilk gün (önceki ayların tahakkuk fişi denetimi için; yoksa ilk hareket)."""
     b = Beyan()
     tahakkuk = tahakkuk_fisleri(muavin, bas, bit)
     donem = [s for s in muavin if bas <= s.fis_tarihi <= bit]
@@ -289,6 +347,24 @@ def kdv_beyani(muavin: list[MuavinSatiri], bas: date, bit: date, faturalar: list
     elif b.iade_onerisi:
         b.iade_edilebilir = b.iade_onerisi          # tahakkuk fişinde iade alacağı kaydedilmiş
     b.kumulatif_bedel = _teslim_bedeli(muavin, date(bit.year, 1, 1), bit)
+
+    # Sorumlu sıfatıyla indirilen KDV: dönemin KDV2 tahakkuku (360); yoksa 109'a giden 191 satırları
+    b.sorumlu_tutar = b.kdv2 or sum((x.vergi or SIFIR for x in b.indirimler if x.ad.startswith("109")), SIFIR)
+    sc = (sorumlu or {}).get("cevap")
+    if b.sorumlu_tutar > 0 and sc in ("odendi", "odenmedi"):
+        b.sorumlu_cevap = sc
+        if sc == "odenmedi":
+            b.sorumlu_indirilmeyen = min(b.sorumlu_tutar, sum((x.vergi or SIFIR for x in b.indirimler), SIFIR))
+            b.notlar.append(f"Sorumlu sıfatıyla beyan edilen KDV ({tl(b.sorumlu_indirilmeyen)} TL) ödenmediği için bu dönem "
+                            "indirimden çıkarıldı; ödendiği dönemde indirilebilir.")
+    b.tahakkuk_kontrol = tahakkuk_ay_kontrolu(muavin, bas, kapsam_bas)
+    for x in b.tahakkuk_kontrol["eksik"]:
+        b.notlar.append(f"{x['ad']} ayına ait KDV tahakkuk fişi muavinde bulunamadı"
+                        + ("" if x["hareket"] else " (o ayda KDV hesabı hareketi de yok)")
+                        + ": önceki dönemden devreden KDV bu nedenle yanlış gelebilir, kontrol edin.")
+    if b.tahakkuk_kontrol["kapsam_disi"]:
+        b.notlar.append("Muavin " + ", ".join(AYLAR[m] for m in b.tahakkuk_kontrol["kapsam_disi"])
+                        + " ayını kapsamıyor; bu ayların KDV tahakkuk fişi denetlenemedi (yıllık muavini çekin).")
 
     if not tahakkuk:
         b.notlar.append("Muavinde bu döneme ait KDV tahakkuk fişi henüz yok; taslak dönem kayıtlarından hesaplandı.")
@@ -592,7 +668,7 @@ def _tablo(basliklar: list[str], satirlar: list[list], sag: set[int] = frozenset
 
 
 def cikti_html(rapor: dict, muavin: list[MuavinSatiri] | None, buro: dict, firma_klasor_adi: str = "",
-               iade: dict | None = None) -> str:
+               iade: dict | None = None, sorumlu: dict | None = None, kapsam_bas: date | None = None) -> str:
     d = rapor.get("donem", {})
     bas_s, bit_s = d.get("Alış") or d.get("Satış") or [None, None]
     bas = datetime.strptime(bas_s, "%Y-%m-%d").date() if bas_s else date.today().replace(day=1)
@@ -710,7 +786,8 @@ def cikti_html(rapor: dict, muavin: list[MuavinSatiri] | None, buro: dict, firma
                          f"<td class=s>{tl(s.alacak, '')}</td><td class='kucuk {k_cls}'>{_e(kontrol)}</td></tr>")
         if onceki is not None:
             parca.append("</tbody></table>")
-        parca.append(_beyan_html(kdv_beyani(muavin, bas, bit, rapor.get("faturalar"), iade), firma, rapor.get("vkn"), donem_ad, buro))
+        parca.append(_beyan_html(kdv_beyani(muavin, bas, bit, rapor.get("faturalar"), iade, sorumlu, kapsam_bas),
+                                 firma, rapor.get("vkn"), donem_ad, buro))
         k2 = kdv2_beyani(muavin, bas, bit, rapor.get("tevkifatlar"))
         if k2.satirlar or k2.muavinde_yok:
             parca.append(_kdv2_html(k2, firma, rapor.get("vkn"), donem_ad))
@@ -750,7 +827,7 @@ def _beyan_html(b: Beyan, firma: str, vkn: str | None, donem_ad: str, buro: dict
 <b>{_e(firma)}</b><div class=kucuk>VKN {_e(vkn or '')} · Dönem: {_e(donem_ad)}
 {(' · Düzenleyen: ' + _e(buro.get('ad_soyad') or buro.get('buro_unvan'))) if (buro.get('ad_soyad') or buro.get('buro_unvan')) else ''}</div></div>
 <span class=taslak>TASLAK · muavin kayıtlarından</span></div>
-{_iade_sorusu(b)}
+{_tahakkuk_uyarisi(b)}{_sorumlu_sorusu(b)}{_iade_sorusu(b)}
 <div class=kpi>
  <div><span>Toplam KDV</span><b>{tl(b.toplam_hesaplanan, '0,00')}</b></div>
  <div><span>İndirimler toplamı</span><b>{tl(b.indirimler_toplami, '0,00')}</b></div>
@@ -770,6 +847,8 @@ def _beyan_html(b: Beyan, firma: str, vkn: str | None, donem_ad: str, buro: dict
     p.append(_kart("İndirimler", _satirlar(
         [("Önceki dönemden devreden KDV <span class=kucuk>(190 bakiyesi)</span>", tl(b.devreden, "0,00"))] +
         [(k, tl(v, "0,00")) for k, v in _grupla(b.indirimler).items()] +
+        ([("Sorumlu sıfatıyla KDV – ödenmedi, indirimden çıkarıldı", "-" + tl(b.sorumlu_indirilmeyen, "0,00"))]
+         if b.sorumlu_indirilmeyen else []) +
         [("İndirimler toplamı", tl(b.indirimler_toplami, "0,00"), True)])))
     p.append(_kart("İstisnalar – iade hakkı doğuran işlemler", _satirlar(
         [(_e(x.ad), tl(x.matrah, "0,00")) for x in b.istisnalar] or [("İstisna kapsamında işlem yok", "0,00")]) +
@@ -853,6 +932,35 @@ def _iade_sorusu(b: Beyan) -> str:
 <button type=submit>Uygula</button>
 <script>document.currentScript.parentElement.querySelector('[name=id]').value = new URLSearchParams(location.search).get('id') || '';</script>
 </form>"""
+
+
+def _sorumlu_sorusu(b: Beyan) -> str:
+    """Ekranda (yazdırılmaz): sorumlu sıfatıyla indirilen KDV ödendi mi? Ödenmediyse indirimden çıkarılır."""
+    if not b.sorumlu_tutar:
+        return ""
+    durum = {"odendi": "Cevap: <b>Ödendi</b> – indirim olarak alındı",
+             "odenmedi": f"Cevap: <b>Ödenmedi</b> – {tl(b.sorumlu_indirilmeyen)} TL indirimden çıkarıldı"}.get(
+        b.sorumlu_cevap, "<b>Bu soruyu cevaplayın</b> – cevaplanmadıkça ödendi kabul edilir")
+    return f"""<form class="iade-soru ekran" method=get>
+<input type=hidden name=id value="">
+<div><b>Sorumlu sıfatıyla indirilen KDV ({tl(b.sorumlu_tutar)} TL) ödendi mi?</b> <span class=kucuk>(KDV2 – tevkifat)</span>
+<div class=kucuk>{durum}</div></div>
+<label><input type=radio name=sorumlu value=odendi {'checked' if b.sorumlu_cevap == 'odendi' else ''}> Ödendi</label>
+<label><input type=radio name=sorumlu value=odenmedi {'checked' if b.sorumlu_cevap == 'odenmedi' else ''}> Ödenmedi</label>
+<button type=submit>Uygula</button>
+<script>document.currentScript.parentElement.querySelector('[name=id]').value = new URLSearchParams(location.search).get('id') || '';</script>
+</form>"""
+
+
+def _tahakkuk_uyarisi(b: Beyan) -> str:
+    """Önceki aylarda KDV tahakkuk fişi bulunamadıysa belirgin uyarı (devreden KDV yanlış gelebilir)."""
+    t = b.tahakkuk_kontrol or {}
+    if not t.get("eksik"):
+        return ""
+    aylar = ", ".join(x["ad"] for x in t["eksik"])
+    return (f"<div class=uyari-kutu style='border:1px solid #c0392b;background:#fdecea;color:#7a1c12;padding:8px 12px;"
+            f"border-radius:8px;margin:8px 0'><b>KDV tahakkuk fişi bulunamadı: {_e(aylar)}.</b> Bu aylara ait KDV tahakkuk fişi "
+            "muavinde yok; önceki dönemden devreden KDV bu nedenle yanlış gelebilir. Fişlerin kesilip kesilmediğini kontrol edin.</div>")
 
 
 def _grupla(satirlar: list[BeyanSatiri]) -> dict[str, Decimal]:

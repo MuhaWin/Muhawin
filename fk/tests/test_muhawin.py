@@ -257,6 +257,11 @@ def test_beyanname_api(monkeypatch, tmp_path):
     assert abs(k1["matrah"]["toplam_kdv"] - k1["indirimler"]["toplam"] - k1["sonuc"]["odenecek"] + k1["sonuc"]["sonraki_doneme_devreden"] + k1["sonuc"]["iade_edilecek"]) < 0.02
     assert "vergi_bildirimi" in b["kdv2"] and "kesintiler" in b["kdv2"]
     assert (k / "beyanname.json").exists()
+    # sorumlu sıfatıyla KDV cevabı dönem klasöründe saklanır; muavin tüm yılı kapsıyor, Ocak–Ağustos tahakkuk fişi yok → 8 ay uyarı
+    b2 = c.get("/api/beyanname", params={"id": v["id"], "sorumlu": "odenmedi"}).json()
+    assert (k / "sorumlu_odeme.json").exists() and "sorumlu" in b2["kdv1"]
+    assert [x["ay"] for x in b2["kdv1"]["tahakkuk_kontrol"]["eksik"]] == list(range(1, 9))
+    assert c.get("/api/beyanname", params={"id": v["id"]}).json()["kdv1"]["tahakkuk_kontrol"] == b2["kdv1"]["tahakkuk_kontrol"]
     x = c.get("/api/beyanname/excel", params={"id": v["id"], "tur": "kdv1"})
     assert x.status_code == 200 and x.content[:2] == b"PK"
     x2 = c.get("/api/beyanname/excel", params={"id": v["id"], "tur": "kdv2"})

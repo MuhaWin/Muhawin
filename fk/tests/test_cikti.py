@@ -102,3 +102,50 @@ def test_kdv2_beyani():
     rapor = {"firma": "UKİ", "donem": {"Alış": ["2026-08-01", "2026-08-31"]}, "tevkifatlar": tev}
     h = cikti_html(rapor, m, {})
     assert "KDV2 beyannamesi örneği" in h and "22.461,73" in h and "XYZ2026000000001" in h
+
+
+def test_sorumlu_sifatiyla_kdv_odenmedi():
+    """Sorumlu sıfatıyla indirilen KDV ödenmediyse indirimden çıkarılır; ödendiyse (ya da cevapsız) aynı kalır."""
+    m = muavin()
+    temel = kdv_beyani(m, date(2026, 8, 1), date(2026, 8, 31))
+    assert temel.sorumlu_tutar == D("22461.73") and temel.sorumlu_cevap is None
+    odendi = kdv_beyani(m, date(2026, 8, 1), date(2026, 8, 31), sorumlu={"cevap": "odendi"})
+    assert odendi.indirimler_toplami == temel.indirimler_toplami == D("2134191.88")
+    yok = kdv_beyani(m, date(2026, 8, 1), date(2026, 8, 31), sorumlu={"cevap": "odenmedi"})
+    assert yok.sorumlu_indirilmeyen == D("22461.73") and yok.indirimler_toplami == D("2134191.88") - D("22461.73")
+    assert yok.sonraki_doneme == temel.sonraki_doneme - D("22461.73") and any("ödenmediği için" in n for n in yok.notlar)
+    rapor = {"firma": "X", "donem": {"Alış": ["2026-08-01", "2026-08-31"]}}
+    h = cikti_html(rapor, m, {}, sorumlu={"cevap": "odenmedi"})
+    assert "Sorumlu sıfatıyla indirilen KDV (22.461,73 TL) ödendi mi?" in h and "indirimden çıkarıldı" in h
+    # sorumlu sıfatıyla KDV olmayan dönemde soru yok
+    sade = [x for x in m if not x.hesap_kodu.startswith(("191.02", "360"))]
+    assert "ödendi mi" not in cikti_html(rapor, sade, {})
+
+
+def test_onceki_aylarda_kdv_tahakkuk_fisi():
+    """Eylül beyannamesinde Ocak–Ağustos taranır: tahakkuk fişi adından ya da yapısından tanınır; Temmuz yoksa uyarılır."""
+    from fatura_kontrol.cikti import tahakkuk_ay_kontrolu
+    m = [s("100.01", "Kasa", 1, 0, "0", date(2026, 1, 2))]
+    adlar = {1: "OCAK AYI KDV TAHAKKUKU", 2: "Şubat ayı KDV tahakkuku", 4: "04/2026 KDV TAHAKKUK FİŞİ",
+             5: "mayıs ayı kdv tahakkuku", 6: "HAZİRAN 2026 KDV TAHAKKUK", 8: "AĞUSTOS AYI KDV TAHAKKUKU"}
+    for ay, ad in adlar.items():          # adıyla tanınan fişler (hesap yapısı aranmaz)
+        m.append(s("360.01", "Ödenecek KDV", 0, 10, f"T{ay}", date(2026, ay, 28), acik=ad))
+    # Mart: adı yok, yapısından (391 borç + 191 alacak)
+    m += [s("391.01.20", "%20 Hesaplanan KDV", 50, 0, "T3", date(2026, 3, 31)), s("191.01.20", "%20 İndirilecek KDV", 0, 50, "T3", date(2026, 3, 31))]
+    # Temmuz: KDV hareketi var, tahakkuk fişi yok
+    m.append(s("191.01.20", "%20 İndirilecek KDV", 20, 0, "77", date(2026, 7, 10), acik="ALIŞ FATURASI"))
+    t = tahakkuk_ay_kontrolu(m, date(2026, 9, 1))
+    assert [x["ay"] for x in t["bulunan"]] == [1, 2, 3, 4, 5, 6, 8]
+    assert t["eksik"] == [{"ay": 7, "ad": "Temmuz", "hareket": True}] and t["kapsam_disi"] == []
+    b = kdv_beyani(m, date(2026, 9, 1), date(2026, 9, 30))
+    assert any(n.startswith("Temmuz ayına ait KDV tahakkuk fişi muavinde bulunamadı") for n in b.notlar)
+    h = cikti_html({"firma": "X", "donem": {"Alış": ["2026-09-01", "2026-09-30"]}}, m, {})
+    assert "KDV tahakkuk fişi bulunamadı: Temmuz." in h
+    # muavin Mart'tan başlıyorsa Ocak / Şubat denetlenemez (eksik sayılmaz, ayrıca bildirilir)
+    t2 = tahakkuk_ay_kontrolu(m, date(2026, 9, 1), date(2026, 3, 1))   # Mart 1 kapsamda
+    assert t2["kapsam_disi"] == [1, 2] and [x["ay"] for x in t2["eksik"]] == [7]
+    # Ocak beyannamesinde önceki ay (geçen yıl) aranmaz
+    assert tahakkuk_ay_kontrolu(m, date(2026, 1, 1)) == {"bulunan": [], "eksik": [], "kapsam_disi": []}
+    # adında ay geçen ama sonraki ay tarihli fiş (Ağustos tahakkuku 05.09'da kesilmiş) o aya sayılır
+    gec = [x for x in m if x.fis_no != "T8"] + [s("360.01", "Ödenecek KDV", 0, 1, "T8b", date(2026, 9, 5), acik="AĞUSTOS AYI KDV TAHAKKUKU")]
+    assert 8 in [x["ay"] for x in tahakkuk_ay_kontrolu(gec, date(2026, 10, 1))["bulunan"]]

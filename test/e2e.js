@@ -292,6 +292,24 @@ wb.save(${JSON.stringify(ex)})`]);
       const fark = Object.entries(bek).filter(([k, v]) => kutular[k] !== v).map(([k]) => k + '=' + kutular[k]);
       check(!/^HATA/.test(metin) && satirBirlesik, 'KDV beyannamesi PDF metni pdf.js 5 ile çıkarıldı; etiket ve tutar aynı satırda (' + metin.split('\n').length + ' satır)');
       check(!fark.length && kutular._vkn === '1111111114' && /2026/.test(kutular._donem || ''), 'GİB PDF\'inden KDV1 kutuları okundu (matrah, hesaplanan, indirim, ödenecek, devreden, dönem, VKN)' + (fark.length ? ' · farklı: ' + fark.join(', ') : '')); }
+    // KDV Beyannamesi: sorumlu sıfatıyla KDV ödendi mi sorusu; önceki aylarda KDV tahakkuk fişi yoksa uyarı
+    { const kf = await fkFrame();
+      const g = await kf.evaluate(async () => {
+        const k1 = { donem: { yil: 2026, ay: 9, ay_adi: 'Eylül', tip: 'AYLIK' }, matrah: { toplam_matrah: 1000, hesaplanan_kdv: 200, ilave_kdv: 0, toplam_kdv: 200 },
+          indirimler: { toplam: 150, onceki_donemden_devreden: 50, bu_donem: 100, satirlar: [], kdv2_odenen: 0 }, istisnalar: { teslim_toplami: 0, iade_edilebilir: 0, satirlar: [] },
+          sonuc: { tecil: 0, odenecek: 50, iade_edilecek: 0, sonraki_doneme_devreden: 0 }, diger: { teslim_bedeli_aylik: 0, teslim_bedeli_kumulatif: 0, kredi_karti: 0 },
+          teslimler: [], kismi_tevkifat: [], ilave: [], notlar: [], sorumlu: { tutar: 300, cevap: 'odenmedi', indirilmeyen: 300 },
+          tahakkuk_kontrol: { bulunan: [], eksik: [{ ay: 7, ad: 'Temmuz', hareket: true }], kapsam_disi: [] } };
+        veri = { id: 'X/2026/09', mukellef: {}, uygunluk: { fatura_sayisi: 1 }, kdv1: k1, kdv2: { donem: {}, vergi_bildirimi: {}, kesintiler: [] }, hazirlandi: '' }; kaynak = 'kontrol'; secili = 'X/2026/09'; ciz();
+        const sonuc = { kart: !$('#sorumluKart').hidden, tutar: $('#sorumluTutar').textContent, cevap: $('#sorumluCevap').value, uyari: $('#tahakkukUyari').hidden ? '' : $('#tahakkukUyari').textContent,
+          satir: /ödenmedi, indirimden çıkarıldı/.test($('#kagit').textContent) };
+        const eski = window.fetch; let url = ''; window.fetch = async u => { url = String(u); return { ok: false, json: async () => ({ detail: 'test' }) }; };
+        $('#sorumluCevap').value = 'odendi'; $('#sorumluUygula').click(); await new Promise(r => setTimeout(r, 100)); window.fetch = eski;
+        sonuc.istek = url; return sonuc; });
+      check(g.kart && g.tutar === '300,00' && g.cevap === 'odenmedi' && g.satir, 'KDV Beyannamesi: "sorumlu sıfatıyla indirilen KDV ödendi mi?" sorusu ve ödenmediyse indirimden çıkarılan satır (' + JSON.stringify(g) + ')');
+      check(/sorumlu=odendi/.test(g.istek), 'cevap beyanname isteğine gidiyor (sorumlu=odendi)');
+      check(/Temmuz ayına ait KDV tahakkuk fişi bulunamamıştır/.test(g.uyari), 'önceki aylarda KDV tahakkuk fişi yoksa ekranda uyarı (Temmuz)');
+      await w.screenshot({ path: OUT + '/7c-kdv-sorumlu-tahakkuk.png' }); }
     await w.click('#fkNav [data-fksayfa=toplu]');
     fr = await fkFrame(); await fr.waitForSelector('#sekmeler', { timeout: 20000 });
     // firmalar: MuhaWin'den eşitleme
@@ -1060,7 +1078,7 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     const vakalar = await w.evaluate(() => {
       const F = window.__fkayit; const st = F._st;
       st.acc.set('191.10.20', '%20 İndirilecek KDV'); st.acc.set('391.10.20', '%20 Hesaplanan KDV'); st.acc.set('360.01', 'KDV TEVKİFATI'); st.acc.set('191.20.20', '%20 TEVKİFATLI İNDİRİLECEK KDV'); st.acc.set('689.01', 'ÖZEL İLETİŞİM VERGİSİ'); st.acc.set('770.90', 'İNDİRİLEMEYEN BİNEK ARAÇ KDV'); st.acc.set('770.91', 'KKEG BİNEK ARAÇ GİDERLERİ');
-      st.leaf.add('391.10.20'); st.leaf.add('360.01'); st.leaf.add('191.20.20'); st.leaf.add('689.01'); st.leaf.add('770.90'); st.leaf.add('770.91'); st.data.kdv_hesaplari = { ALIS: { '20': '191.10.20' }, SATIS: { '20': '391.10.20' } }; st.data.tevkifat_hesabi = '360.01';
+      st.leaf.add('391.10.20'); st.leaf.add('360.01'); st.leaf.add('191.20.20'); st.leaf.add('689.01'); st.leaf.add('770.90'); st.leaf.add('770.91'); st.acc.set('950.09', 'ÖİV Nazım Hesabı'); st.acc.set('951.09', 'Özel İletişim Vergisi Nazım'); st.leaf.add('950.09'); st.leaf.add('951.09'); st.data.kdv_hesaplari = { ALIS: { '20': '191.10.20' }, SATIS: { '20': '391.10.20' } }; st.data.tevkifat_hesabi = '360.01';
       const f = (o) => ({ yon: 'ALIS', tip: 'SATIS', matrah: 1000, kdv: 200, odenecek: 1200, tevkifat: 0, oranlar: [{ oran: '20', matrah: 1000, kdv: 200 }], diger_vergiler: {}, kalemler: [], ...o });
       const L = (fa, h, c) => F._satirlar({ f: fa, hesap: h, cari: c }).L.map(x => x.acc + ':' + (x.b ? 'B' + x.b : 'A' + x.c)).join(' ');
       return {
@@ -1080,8 +1098,8 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     console.log('VAKA', JSON.stringify(vakalar));
     check(vakalar.alisTevk === '770.01:B1000 191.20.20:B100 191.10.20:B100 360.01:A100 320.01:A1100', 'alış tevkifatı: tevkif edilen KDV 191 tevkifatlı hesaba, kalan normal 191\'e; 360 alacak, cari net');
     check(vakalar.binek === '770.01:B700 770.91:B300 770.90:B60 191.10.20:B140 320.01:A1200', 'binek araç: gider %30 KKEG, KDV %30 indirilemeyen binek KDV (' + vakalar.binek + ')');
-    check(/^770\.01 689\.01 191\.99 320\.01\|0$/.test(vakalar.elle), 'fiş satırında elle yazılan hesap (KDV) kullanıldı (' + vakalar.elle + ')');
-    check(vakalar.oiv === '770.01:B1000 689.01:B75 191.10.20:B200 320.01:A1275', 'telefon faturası: ÖİV 689\'a');
+    check(/^770\.01 689\.01 950\.09 951\.09 191\.99 320\.01\|0$/.test(vakalar.elle), 'fiş satırında elle yazılan hesap (KDV) kullanıldı (' + vakalar.elle + ')');
+    check(vakalar.oiv === '770.01:B1000 689.01:B75 950.09:B75 951.09:A75 191.10.20:B200 320.01:A1275', 'telefon faturası: ÖİV 689\'a ve 950 / 951 nazım (' + vakalar.oiv + ')');
     check(vakalar.gecmis302 === '320.01', 'geçmişte cari diye 302 öğrenilmişse kullanılmaz, ünvandan 320 bulunur');
     check(vakalar.satis === '600.01:A1000 391.10.20:A200 120.01:B1200', 'satış: gelir ve 391 alacak, cari borç');
     check(vakalar.satisTevk === '600.01:A1000 391.10.20:A100 120.01:B1100', 'satış tevkifatı: 391 tahsil edilen kısım');
@@ -1089,6 +1107,96 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     check(vakalar.satisIadesi === '610.01:B1000 391.10.20:B200 120.01:A1200', 'satış iadesi: 610 ve 391 borç');
     check(vakalar.fark === '770.01:B1000 191.10.20:B200 689.01:B1 320.01:A1201', 'ödenecek farkı seçilen hesaba, cari = ödenecek');
     check(vakalar.ihracKayitli === '601.01:A1000 120.01:B1000', 'ihraç kayıtlı: KDV kayda alınmaz');
+    // ---- Görev 38: ÖİV'li fatura fişi (UBL 4080 → 689, 950 / 951 nazım, KDV, cari; fark ayrı satırda hesapsız; ÖİV hesabı yok / iki tane)
+    { const ubl = JSON.parse(require('child_process').execFileSync('python3', ['-c', `import sys, json; sys.path.insert(0, ${JSON.stringify(path.join(APP, 'fk', 'tests'))}); sys.path.insert(0, ${JSON.stringify(path.join(APP, 'fk'))})
+from test_oiv_fis import oiv_ubl
+from fatura_kontrol.fatura_okuyucu import xml_oku
+def aday(f):
+    return {"yon": "ALIS", "tip": f.tip.upper(), "belge_no": f.belge_no, "tarih": f.tarih.isoformat(), "karsi_unvan": f.karsi_unvan, "karsi_vkn": f.karsi_vkn, "kalemler": [],
+            "matrah": float(f.matrah), "kdv": float(f.kdv_toplam), "odenecek": float(f.odenecek), "tevkifat": 0,
+            "oranlar": [{"oran": str(int(o)), "matrah": 0, "kdv": float(v)} for o, v in f.kdv_oranlari.items()],
+            "diger_vergiler": {a: float(v) for a, v in f.diger_vergiler.items()}, "masraflar": [], "gecmis": {}}
+print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku(oiv_ubl("TEL2026000000002", "1290.03", "öiv"), "b.xml"))}))`]).toString());
+      const g = await w.evaluate((u) => { const F = window.__fkayit, st = F._st;
+        for (const [k, v] of [['950.09', 'ÖİV Nazım Hesabı'], ['951.09', 'Özel İletişim Vergisi Nazım'], ['679.01', 'DİĞER OLAĞANDIŞI GELİR VE KARLAR']]) { st.acc.set(k, v); st.leaf.add(k); }
+        const S = r => { const x = F._satirlar(r); const b = x.L.reduce((t, y) => t + y.b, 0), c = x.L.reduce((t, y) => t + y.c, 0);
+          return { L: x.L.map(y => (y.acc || '∅') + ':' + (y.b ? 'B' + y.b : 'A' + y.c)).join(' '), n: x.L.length, denge: Math.abs(b - c) < 0.005, err: x.err, secim: x.secim || [] }; };
+        const r = (f, o) => ({ f, hesap: '770.01', cari: '320.01', ...o });
+        const out = { tam: S(r(u.tam)), fark: S(r(u.fark)), farkYazildi: S(r(u.fark, { satirElle: { 'fark (ödenecek ile)#1': '679.01' } })) };
+        // ÖİV gider hesabı yok
+        const ad = st.acc.get('689.01'); st.acc.delete('689.01'); st.leaf.delete('689.01'); out.yok = S(r(u.tam));
+        // iki ÖİV hesabı (biri küçük harfli): seçim istenir
+        st.acc.set('689.01', ad); st.leaf.add('689.01'); st.acc.set('689.06', 'öiv gideri (telefon)'); st.leaf.add('689.06'); out.iki = S(r(u.tam));
+        return out; }, ubl);
+      console.log('G38', JSON.stringify(g));
+      check(g.tam.L === '770.01:B1000 689.01:B75 950.09:B75 951.09:A75 191.10.20:B215 320.01:A1290' && g.tam.n === 6 && g.tam.denge && !g.tam.err.length,
+        'ÖİV\'li UBL (4080): 6 satır — gider, ÖİV 689, 950 / 951 nazım, KDV, cari = ödenecek; fiş dengede (' + g.tam.L + ')');
+      check(g.fark.n === 7 && /^∅:B0\.03$/.test(g.fark.L.split(' ').pop()) && g.fark.L.includes('320.01:A1290.03') && g.fark.denge && /hesap kodu boş/.test(g.fark.err[0]) && !/770\.\d+:B0\.03/.test(g.fark.L),
+        'yuvarlama farkı (0,03): ayrı satır, hesap kodu boş, borç tarafında; cari = ödenecek; 770\'e atılmadı; gönderim hatası ilk sırada (' + g.fark.L + ')');
+      check(!g.farkYazildi.err.length && g.farkYazildi.L.includes('679.01:B0.03'), 'fark satırına hesap yazılınca fiş gönderilebilir');
+      check(g.yok.L.includes('∅:B75') && g.yok.err.some(e => /689/.test(e) && /hesap yok/.test(e)), 'ÖİV gider hesabı yok: açık uyarı, hesap uydurulmadı (' + g.yok.err.join(' | ') + ')');
+      check(g.iki.err.some(e => /birden fazla/.test(e) && /689\.01/.test(e) && /689\.06/.test(e)) && g.iki.secim.length === 1 && g.iki.secim[0].adaylar.join() === '689.01,689.06',
+        'iki ÖİV hesabı (biri küçük harfle "öiv"): uyarı ve seçim istendi');
+      // ekranda: boş hesaplı satır varken "Luca'ya kaydet" kapalı; ÖİV hesabı seçimi firmada hatırlanır; fark hesabı yazılınca açılır
+      await w.evaluate((u) => { const st = window.__fkayit._st; st._g38 = st.rows.map(r => r.sec);
+        for (const r of st.rows) r.sec = false;
+        st.rows.push({ f: { ...u.fark, anahtar: 'g38', tip: 'SATIS' }, hesap: '770.01', cari: '320.01', kaynak: 'elle', elle: true, cariElle: true, sec: true, acik: true, logged: null, diger: '', fark: '' }); }, ubl);
+      await w.click('[data-fkf=tumu]'); await w.waitForTimeout(200);
+      const gi = await w.evaluate(() => window.__fkayit._st.rows.length - 1);
+      const ilk = { kapali: await w.$eval('#fkkGo', x => x.disabled), dugme: await w.$$eval(`[data-oivsec="${gi}"]`, l => l.map(x => x.dataset.v)) };
+      await w.$eval(`#fkkTable tr[data-i="${gi}"]`, e => e.scrollIntoView({ block: 'start' })); await w.waitForTimeout(150);
+      await w.screenshot({ path: OUT + '/10d-oiv-fis.png' });
+      await w.click(`[data-oivsec="${gi}"][data-v="689.06"]`); await w.waitForTimeout(200);
+      const hat = await w.evaluate(() => window.__fkayit._st.firm.fkOivHesap);
+      await w.fill(`[data-fel="${gi}"][data-key="fark (ödenecek ile)#1"]`, '679.01'); await w.press(`[data-fel="${gi}"][data-key="fark (ödenecek ile)#1"]`, 'Tab'); await w.waitForTimeout(500);
+      if (await w.isVisible('#hsSor')) await w.click('#hsHayir');   // test hesabı (679.01) listede yok: "Luca'ya eklensin mi?" sorusu kapatılır
+      const acik = !(await w.$eval('#fkkGo', x => x.disabled));
+      check(ilk.kapali && ilk.dugme.join() === '689.01,689.06', 'ekranda: hesapsız fark ve seçilmemiş ÖİV hesabı varken "Luca\'ya kaydet" kapalı, ÖİV hesabı için seçim düğmeleri var');
+      check(hat === '689.06' && acik, 'ÖİV hesabı seçimi firmada hatırlandı; fark hesabı yazılınca kayıt açıldı');
+      await w.evaluate(async () => { const st = window.__fkayit._st; const { Store } = window.__app; st.rows.pop(); st.rows.forEach((r, i) => { r.sec = st._g38[i]; }); delete st._g38;
+        st.acc.delete('689.06'); st.leaf.delete('689.06'); const f = { ...st.firm }; delete f.fkOivHesap; st.firm = f; await Store.saveFirm(f); });
+      await w.click('[data-fkf=kayitsiz]'); await w.waitForTimeout(200); }
+    // ---- Görev 35: cari eşleştirme — VKN / TCKN kesin, ünvan, fatura no ön eki; geçersiz VKN kullanılmaz; çakışmada VKN esas + uyarı
+    { const g = await w.evaluate(async () => { const F = window.__fkayit, st = F._st; const eskiF = st.firm;
+        for (const [k, v] of [['320.01.101', 'SATICI ALFA TİCARET'], ['320.01.102', 'BETA YAPI MALZEME']]) { st.acc.set(k, v); st.leaf.add(k); }
+        const f = o => ({ yon: 'ALIS', tip: 'SATIS', karsi_unvan: 'GAMA DELTA', karsi_vkn: '', gecmis: null, onek: null, ...o });
+        const k = x => ({ cari: x.cari, kaynak: x.kaynak, uyari: x.uyari });
+        const out = {};
+        try {
+          st.firm = { ...eskiF, cariVkn: {} };
+          out.vkn = k(F._cariSec(f({ karsi_vkn: '1234567890', karsi_unvan: 'BETA YAPI MALZEME', gecmis: { cari: '320.01.101', eslesme: 'vkn' } })));
+          out.gecersiz = k(F._cariSec(f({ karsi_vkn: '1234567891', gecmis: { cari: '320.01.101', eslesme: 'vkn' } })));
+          out.dokuz = F._vknOk('381046361') === false && F._vknOk('10000000146') && !F._vknOk('10000000147');
+          st.firm = { ...eskiF, cariVkn: { '1234567890': '320.01.102' } };
+          out.yerel = k(F._cariSec(f({ karsi_vkn: '1234567890', karsi_unvan: 'SATICI ALFA TİCARET' })));
+          out.unvan = k(F._cariSec(f({ karsi_vkn: '1234567891', karsi_unvan: 'SATICI ALFA TİCARET' })));
+          out.onek = k(F._cariSec(f({ onek: { ek: 'ABC', firma: 1, genel: false, cari: '320.01.101' } })));
+          out.onekDestek = k(F._cariSec(f({ karsi_unvan: 'SATICI ALFA TİCARET', onek: { ek: 'ABC', firma: 1, genel: false, cari: '320.01.101' } })));
+          out.onekCelisir = k(F._cariSec(f({ karsi_unvan: 'SATICI ALFA TİCARET', onek: { ek: 'ABC', firma: 1, genel: false, cari: '320.01.102' } })));
+          out.genel = k(F._cariSec(f({ onek: { ek: 'GIB', firma: 1, genel: true, cari: '320.01.101' } })));
+          st.firm = { ...eskiF, cariVkn: {} };
+          F._cariVknHatirla([{ f: { karsi_vkn: '10000000146' }, cari: '320.01.102' }, { f: { karsi_vkn: '1234567891' }, cari: '320.01.101' }, { f: { karsi_vkn: '1234567890' }, cari: '770.01' }]);
+          out.hatirla = st.firm.cariVkn;
+        } finally { st.firm = eskiF; await window.__app.Store.saveFirm(eskiF); }
+        // ekranda: VKN çipi ve çakışma uyarısı
+        st.rows.push({ f: { yon: 'ALIS', tip: 'SATIS', anahtar: 'g35', belge_no: 'ABC2026000000099', tarih: '2026-09-20', karsi_unvan: 'BETA YAPI MALZEME', karsi_vkn: '1234567890', matrah: 100, kdv: 20, odenecek: 120, tevkifat: 0, oranlar: [{ oran: '20', matrah: 100, kdv: 20 }], diger_vergiler: {}, kalemler: [], gecmis: { cari: '320.01.101', eslesme: 'vkn' } },
+          hesap: '770.01', kaynak: 'elle', elle: true, sec: false, acik: false, logged: null, diger: '', fark: '', ...(() => { const c = F._cariSec({ yon: 'ALIS', tip: 'SATIS', karsi_unvan: 'BETA YAPI MALZEME', karsi_vkn: '1234567890', gecmis: { cari: '320.01.101', eslesme: 'vkn' } }); return { cari: c.cari, cariKaynak: c.kaynak, cariUyari: c.uyari }; })() });
+        return out; });
+      console.log('G35', JSON.stringify(g));
+      check(g.vkn.cari === '320.01.101' && g.vkn.kaynak === 'VKN' && /VKN esas alındı/.test(g.vkn.uyari) && /320\.01\.102/.test(g.vkn.uyari), 'VKN ile bulunan cari ünvanla bulunandan farklı: VKN esas alındı, uyarı verildi');
+      check(!g.gecersiz.cari && /geçersiz/.test(g.gecersiz.uyari) && g.dokuz, 'sağlaması tutmayan VKN eşleştirmede kullanılmadı, uyarı verildi; TCKN sağlaması doğru');
+      check(g.yerel.cari === '320.01.102' && g.yerel.kaynak === 'VKN', 'firmada hatırlanan VKN → cari kesin eşleşme (ünvan başka cariyi gösterse de)');
+      check(g.unvan.cari === '320.01.101' && g.unvan.kaynak === 'ünvan', 'VKN geçersizse ünvanla eşleşti');
+      check(g.onek.cari === '320.01.101' && g.onek.kaynak === 'ön ek' && /kontrol edin/.test(g.onek.uyari), 'yalnız tek firmanın kullandığı ön ekle bulundu, uyarıyla');
+      check(g.onekDestek.kaynak === 'ünvan + ön ek' && !g.onekDestek.uyari && /kontrol edin/.test(g.onekCelisir.uyari) && g.onekCelisir.cari === '320.01.101', 'ön ek destekleyici: ünvanla aynıysa güçlendirir, farklıysa uyarır (ünvan geçerli)');
+      check(!g.genel.cari, 'genel ön ek (GIB) tek başına cari göstermez');
+      check(JSON.stringify(g.hatirla) === JSON.stringify({ '10000000146': '320.01.102' }), 'Luca\'ya kaydedilen cari firmada geçerli VKN / TCKN ile hatırlanır (geçersiz VKN ve cari olmayan hesap hatırlanmaz)');
+      await w.click('[data-fkf=tumu]'); await w.waitForTimeout(200);
+      const ui = await w.evaluate(() => { const st = window.__fkayit._st; const i = st.rows.length - 1; const tr = document.querySelector(`#fkkTable tr[data-i="${i}"]`);
+        const t = tr ? tr.textContent : ''; return { cip: /VKN/.test(t), uyari: !!(tr && tr.querySelector('.fkk-cariuyari')), cari: tr && tr.querySelector('[data-c]').value }; });
+      await w.screenshot({ path: OUT + '/10e-cari-vkn.png' });
+      check(ui.cip && ui.uyari && ui.cari === '320.01.101', 'ekranda carinin VKN ile bulunduğu ve çakışma uyarısı görünüyor');
+      await w.evaluate(() => { window.__fkayit._st.rows.pop(); }); await w.click('[data-fkf=kayitsiz]'); await w.waitForTimeout(200); }
     // 2.9.4: binek araç ve 689 farkında 950 / 951 nazım kaydı; ödenecek farkı yönüne göre 679 / 689; tutar düzeltme, satır ekleme
     const v4 = await w.evaluate(() => {
       const F = window.__fkayit; const st = F._st;
