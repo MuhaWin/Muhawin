@@ -307,8 +307,6 @@ body.form-gizli #formGizle,body.gomulu #formGizle,body.gomulu #formAc{display:no
 <style>
 .fisbtn{white-space:nowrap;border:1px solid var(--line,#ddd);background:var(--panel);color:var(--brand-2,#1f4aa8);border-radius:5px;padding:0 5px;font:inherit;font-size:11px;cursor:pointer;margin:1px 2px 0 0}
 .fisbtn:hover{background:var(--accent,#e7eefb)}
-.lucabtn{white-space:nowrap;border:1px solid var(--line,#ddd);background:var(--panel);color:inherit;border-radius:6px;padding:2px 7px;font:inherit;font-size:11.5px;cursor:pointer}
-.lucabtn:hover:not([disabled]){background:var(--accent,#e7eefb)}.lucabtn[disabled]{opacity:.45;cursor:default}
 #fisPen table{width:100%;border-collapse:collapse;font-size:12.5px}#fisPen th,#fisPen td{border-bottom:1px solid var(--line,#ddd);padding:5px 8px;text-align:left;vertical-align:top}
 #fisPen td.n,#fisPen th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}#fisPen tfoot td{font-weight:700}
 </style>
@@ -330,16 +328,8 @@ function fisDugmeleri(fisler) {
     return m ? `<button type="button" class="fisbtn" data-fis="${esc(m[1])}" data-tarih="${esc(m[2])}" title="Fişi aç">🧾 ${esc(m[1])} (${esc(m[2])})</button>` : esc(x);
   }).join(" ");
 }
-// "Luca'da aç" (Görev 37): Luca'da Fiş Listesi o fişin numarasıyla süzülmüş açılır; fişe dokunulmaz. Yalnız MuhaWin içinde.
-const ilkFis = r => { if (r.fis_no) return {no: String(r.fis_no), tarih: tarih(r.fis_tarihi)};
-  const m = String(r.fisler || "").match(/^\s*(.*?)\s*\((\d{2}\.\d{2}\.\d{4})\)/); return m ? {no: m[1], tarih: m[2]} : null; };
-const lucaBtn = r => {
-  const f = ilkFis(r);
-  const neden = !f ? "Luca fişi yok (fatura muavinde kayıtlı değil)" : !MW ? "Yalnız MuhaWin programı içinde çalışır"
-    : !(veri && veri.luca_id) ? "Firmanın Luca karşılığı yok (Ayarlar › Firmalar › Luca'dan firma ekle)" : "";
-  return neden ? `<button type="button" class="lucabtn" disabled title="${esc(neden)}">Luca'da aç</button>`
-    : `<button type="button" class="lucabtn" data-lucafis="${esc(f.no)}" data-lucatarih="${esc(f.tarih)}" title="Luca'da Fiş Listesi ${esc(f.no)} numaralı fişle açılır${r.fisler && r.fisler.includes(",") ? " (satırın ilk fişi; diğerleri için fiş numarasına tıklayın)" : ""}">Luca'da aç</button>`;
-};
+// "Luca'da aç" (Görev 37): fiş penceresindeki düğmeyle Luca'da Fiş Listesi o fişin numarasıyla süzülmüş açılır; fişe
+// dokunulmaz. Yalnız MuhaWin içinde. (Rapor listesindeki satır sonu sütunu kullanıcı isteğiyle kaldırıldı.)
 function lucaFisAc(no, t) {
   if (!no || !MW || !veri || !veri.luca_id) return;
   window.top.postMessage({fk: true, tip: "lucaFisAc", lucaId: veri.luca_id, yil: String(t || "").slice(-4), fisNo: no}, "*");
@@ -657,12 +647,12 @@ const KOLON = {
     ["Fatura tipi / döviz", r => esc(r.fatura_tipi) + (r.doviz ? `<small class="yazi">${esc(r.doviz)}</small>` : ""), "tip ikinci"],
     ["Fatura KDV", "fatura_tutari", "para"], ["Muavin", "muavin_tutari", "para"], ["Fark", "fark", "para"],
     ["Hesap / fiş", r => esc(r.hesaplar) + (r.fisler ? `<small class="yazi">${fisDugmeleri(r.fisler)}</small>` : ""), "ikinci hesap"],
-    ["Açıklama", "aciklama", "aciklama"], ["", uygunBtn, "dar karar"], ["", lucaBtn, "dar"]],
+    ["Açıklama", "aciklama", "aciklama"], ["", uygunBtn, "dar karar"]],
   faturasiz: [["", r => uygunBtn(r, true), "dar karar"], ["Hesap", "hesap", "mono"], ["Hesap adı", "hesap_adi"], ["Fiş tarihi", r => tarih(r.fis_tarihi), "dar"], ["Fiş no", fisNoBtn, "dar"],
     ["Belge tarihi", r => tarih(r.belge_tarihi), "dar"], ["Belge no", "belge_no", "mono"], ["Ünvan", "unvan"], ["Tutar", "tutar", "para"],
-    ["Kullanıcı kararı", r => r.uygun != null ? `<span class="durum d-ok">Uygun</span> <small class="yazi">${esc(r.uygun)}</small>` : "", "aciklama"], ["", lucaBtn, "dar"]],
+    ["Kullanıcı kararı", r => r.uygun != null ? `<span class="durum d-ok">Uygun</span> <small class="yazi">${esc(r.uygun)}</small>` : "", "aciklama"]],
   disi: [["Hesap", "hesap", "mono"], ["Hesap adı", "hesap_adi"], ["Fiş tarihi", r => tarih(r.fis_tarihi), "dar"], ["Fiş no", fisNoBtn, "dar"],
-    ["Tutar", "tutar", "para"], ["Açıklama", "aciklama", "aciklama"], ["", lucaBtn, "dar"]],
+    ["Tutar", "tutar", "para"], ["Açıklama", "aciklama", "aciklama"]],
   tevkifat: [["Yön", "yon", "dar"], ["Tarih", r => tarih(r.tarih), "dar"], ["Belge no", "belge_no", "mono"],
     ["Karşı taraf / VKN", KT, "genis ikinci"], ["Matrah", "matrah", "para"], ["KDV", "kdv", "para"],
     ["Kod", "kod", "mono"], ["Tevkifat türü", "tur"], ["Oran", "oran", "dar"], ["KDV2", "tutar", "para"],
@@ -672,7 +662,7 @@ const KOLON = {
     ["Matrah", "matrah", "para"], ["KDV", "kdv", "para"], ["Yekün", "yekun", "para"], ["Döviz", "doviz", "dar"],
     ["e-Fatura dosyalarında", r => r.faturada ? "var" : "yok", "dar"],
     ["Hesap / fiş", r => esc(r.hesaplar) + (r.fisler ? `<small class="yazi">${fisDugmeleri(r.fisler)}</small>` : ""), "ikinci hesap"],
-    ["Liste durumu", r => esc(r.durum) + (r.dosya ? `<small class="yazi">${esc(r.dosya)}</small>` : ""), "aciklama ikinci"], ["", lucaBtn, "dar"]],
+    ["Liste durumu", r => esc(r.durum) + (r.dosya ? `<small class="yazi">${esc(r.dosya)}</small>` : ""), "aciklama ikinci"]],
   faturalar: [["Yön", "yon", "dar"], ["Belge no", "belge_no", "mono"], ["Tarih", r => tarih(r.tarih), "dar"], ["Senaryo", "senaryo", "dar"], ["Fatura tipi / istisna", "fatura_tipi", "tip"],
     ["Karşı taraf / VKN", KT, "genis ikinci"], ["Matrah", "matrah", "para"], ["KDV", "kdv", "para"],
     ["Tevkifat", "tevkifat", "para"], ["Vergiler dahil", "vergiler_dahil", "para"], ["Ödenecek", "odenecek", "para"]],
@@ -850,8 +840,6 @@ async function fisAc(fis, ftarih) {
       <tfoot><tr><td colspan="5">Toplam${j.dengeli ? "" : " — fiş dengesiz"}</td>${tb(j.borc, j.alacak)}</tr></tfoot></table>`;
   } catch (e) { $("#fisGovde").innerHTML = `<p class="hata" style="padding:20px">${esc(e.message)}</p>`; }
 }
-document.addEventListener("click", e => { const l = e.target.closest && e.target.closest("[data-lucafis]");
-  if (l) { e.preventDefault(); e.stopPropagation(); lucaFisAc(l.dataset.lucafis, l.dataset.lucatarih); } }, true);
 document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-fis]"); if (b) { e.preventDefault(); e.stopPropagation(); fisAc(b.dataset.fis, b.dataset.tarih); } });
 $("#fisLuca").onclick = () => acikFis && lucaFisAc(acikFis.fis, acikFis.tarih);
 $("#fisYazdir").onclick = async () => {
