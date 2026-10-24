@@ -49,4 +49,4 @@ Banka, Belgeden Fiş, Ofisinize Özel ve Yönetim zaten sayfa sütununun içinde
 
 ## Notlar
 - Görev 34 (Yazılımcı, FK tarafı) ile çakışma riski düşük. `tema.css`'e yalnız `html.mw` ile başlayan üç satır eklendi; `index.html` ve `toplu.html` değişmedi.
-- Dal: ortam yalnız `claude/affectionate-darwin-effcgp` dalına push izni veriyor; bu dal açık #61'in (G32) başı. Push yöntemi yöneticiyle konuşuldu (aşağıdaki PR açıklamasına bakın).
+- Dal: ortam yalnız `claude/affectionate-darwin-effcgp` dalına push izni veriyor. #61 (G32) kapatıldıktan sonra G32 kodu dalda **geri alma commit'iyle** kaldırıldı; zorla push yapılmadı. Bu PR'ın farkı yalnız G33. G32'yi site yayınında yeniden açmak için iki geri alma commit'i ("Görev 32 kodu dalda geri alındı", "rapor-32 dalda kaldırıldı") `git revert` ile geri alınır. G32 dalın geçmişinde duruyor (son G32 commit'i f92e9f2).
