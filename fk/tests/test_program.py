@@ -71,6 +71,10 @@ def test_program_akisi(istemci):
     kdv2 = c.get(f"/api/toplu/calisma/{k}/kdv2").json()["firmalar"]
     assert [f["ad"] for f in kdv2] == ["EXPO İNŞ"] and kdv2[0]["toplam"] == 560 and len(kdv2[0]["satirlar"]) == 1
     assert c.get(f"/api/toplu/calisma/{k}/kdv2.xlsx").status_code == 200
+    # Görev 56: KDV2 PDF (yazdırılabilir HTML): seçili firma; seçim boşsa 400
+    h = c.post(f"/api/toplu/calisma/{k}/kdv2.html", json={"firmalar": [kdv2[0]["rapor_id"]]})
+    assert h.status_code == 200 and "EXPO İNŞ" in h.text and h.text.count('class=firma') == 1 and "Hazırlayan" in h.text
+    assert c.post(f"/api/toplu/calisma/{k}/kdv2.html", json={"firmalar": []}).status_code == 400
     durumlar = {r["ad"]: r["durum"] for r in d["sonuclar"]}
     assert durumlar == {"EXPO İNŞ": "Sorun var", "RAKİKOM": "Sorun var"}
     from openpyxl import load_workbook

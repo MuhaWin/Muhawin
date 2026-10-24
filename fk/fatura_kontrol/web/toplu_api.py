@@ -447,6 +447,18 @@ def calisma_kdv2(ad: str):
             "firmalar": T.kdv2_raporu(oz.get("sonuclar", []), oz.get("bas"), oz.get("bit"))}
 
 
+@router.post("/calisma/{ad}/kdv2.html")
+def calisma_kdv2_html(ad: str, b: dict | None = None):
+    """KDV2 raporu, PDF için (Görev 56): {"firmalar": [rapor_id, ...]} seçilenler; verilmezse tümü. Her firma yeni sayfada."""
+    from fastapi.responses import HTMLResponse
+    k = _klasor(ad)
+    oz = _json(k / "ozet.json")
+    sec = (b or {}).get("firmalar")
+    if sec is not None and (not isinstance(sec, list) or not sec):
+        raise HTTPException(400, "En az bir firma seçin.")
+    return HTMLResponse(T.kdv2_html(oz.get("sonuclar", []), oz.get("bas"), oz.get("bit"), [str(x) for x in sec] if sec else None))
+
+
 @router.get("/calisma/{ad}/kdv2.xlsx")
 def calisma_kdv2_excel(ad: str):
     from openpyxl import Workbook
