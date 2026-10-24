@@ -900,6 +900,28 @@ async function hesapEkle({ lucaId, year, hesaplar }) {
   return sonuc;
 }
 
+// ---------- KDV kod tablosu (Görev 36): Luca'nın "Muhasebeleştir" penceresindeki KDV oranı × işlem türü → hesap kodu.
+// Kullanıcının istek kaydında görülen istek (yalnız okuma): POST kdv/kdv_hesap_listesi.jq {map:1, oranlar, islemler}
+// → {"KDV_<oran>_<işlem>": {hesap_kodu, hesap_adi, hesap_id}}. Yalnız anlamı doğrulanmış işlem kodları istenir.
+const KDV_ISLEMLER = { 0: 'Yurtiçi satışlar', 1: 'İndirilecek KDV', 2: 'Alınan malların iadesi KDV', 3: 'Hesaplanan KDV', 4: 'Satıştan iade KDV', 11: 'Ticari mal alışı', 20: 'Alıştan iade (mal)', 50: 'Satıştan iadeler' };
+const KDV_ORANLARI = [0, 1, 8, 10, 18, 20];
+function kdvTablosuCoz(j) {
+  const out = {};
+  if (!j || typeof j !== 'object' || Array.isArray(j)) fail('FORMAT', 'Luca KDV kod tablosu beklenen biçimde değil.');
+  for (const [k, v] of Object.entries(j)) {
+    const m = /^KDV_(\d+(?:\.\d+)?)_(\d+)$/.exec(k);
+    if (!m || !v || !v.hesap_kodu) continue;
+    const kod = String(v.hesap_kodu).trim(); if (!/^\d{3}([.\-][0-9A-Za-z]+)*$/.test(kod)) continue;
+    ((out[m[2]] = out[m[2]] || {}))[String(+m[1])] = { kod, ad: String(v.hesap_adi || '').trim() };
+  }
+  return out;                                   // {islem: {oran: {kod, ad}}}
+}
+async function kdvHesaplari({ lucaId, year }) {
+  await prepareFis({ lucaId, year });            // firma / dönem etkin olur (tablo firmaya özel)
+  const j = await request('kdv/kdv_hesap_listesi.jq', { method: 'POST', json: { map: 1, oranlar: KDV_ORANLARI.join(','), islemler: Object.keys(KDV_ISLEMLER).join(',') } });
+  return { tablo: kdvTablosuCoz(j), islemler: KDV_ISLEMLER };
+}
+
 // ---------- Döviz kodları: Luca'nın fiş ekranlarındaki döviz listesinden (TL = 0). Yalnız okuma: açık Luca çerçeveleri
 // taranır; bulunamazsa menüdeki fiş giriş ekranları (GET) okunur. Silme / kaydetme / kesme adresleri açılmaz.
 // İşletme / serbest meslek defteri fiş ekranındaki açılır listeler (kayıt alt türü, KDV istisnası, stopaj kodu, vergi dairesi…).
@@ -1105,7 +1127,8 @@ const IS = {
   isletmeListesiIndir: o => isle(fk(o), () => isletmeListesiIndir(o), true),
   isletmeListeleri: o => isle(fk(o), () => isletmeListeleri(o), true),
   dovizKodlari: () => isle(null, dovizKodlari),
+  kdvHesaplari: o => isle(fk(o), () => kdvHesaplari(o)),
 };
 module.exports = { calis, captchaGir, captchaYenile, girisGoster, oturumCerezleri, hesapPlaniExcelOku, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status,
   logout, recheck, LOGIN_URL, ...IS, sayfaBilgisi, _normUye: normUye, _zamanAsimiGec: zamanAsimiGec,
-  _sayfaAyar: o => { if (o.kiraMs != null) KIRA_MS = o.kiraMs; if (o.ekBosMs != null) EK_BOS_MS = o.ekBosMs; if (o.bekleMs != null) BEKLE_EN_COK_MS = o.bekleMs; } };
+  _kdvTablosuCoz: kdvTablosuCoz, _sayfaAyar: o => { if (o.kiraMs != null) KIRA_MS = o.kiraMs; if (o.ekBosMs != null) EK_BOS_MS = o.ekBosMs; if (o.bekleMs != null) BEKLE_EN_COK_MS = o.bekleMs; } };

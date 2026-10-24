@@ -1074,6 +1074,74 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     check(v4.ekSatir === '770.01:B1000 191.10.20:B200 770.05:B1 320.01:A1201', 'fişe elle satır eklendi, fark kalmadı (' + v4.ekSatir + ')');
     check(v4.tutar === '770.01:B1010 191.10.20:B200 320.01:A1210', 'fiş tutarı elle değiştirildi, cari yeniden dengelendi (' + v4.tutar + ')');
     check(/HATA Fiş dengesiz/.test(v4.dengesiz), 'elle tutar fişi dengesiz bırakırsa kayıt engellenir');
+    // ---- Görev 36: kod tanımları (KDV oranı × işlem → hesap), doldurma kaynağı, satırda [Kod] [Geçmiş] [Kural], kuralda ana hesap
+    { await app.evaluate(({ ipcMain }) => { ipcMain.removeHandler('luca-kdv-hesaplari'); global.__kdvCek = 0;
+        ipcMain.handle('luca-kdv-hesaplari', () => { global.__kdvCek++; return { tablo: { '11': { '1': { kod: '153.01.01' }, '20': { kod: '153.01.20' } }, '1': { '20': { kod: '191.01.20' } }, '0': { '20': { kod: '600.01.20' } } } }; }); });
+      await w.evaluate(() => { const st = window.__fkayit._st;
+        for (const [k, v] of [['153.01.01', '%1 TİCARİ MAL'], ['153.01.10', '%10 TİCARİ MAL'], ['153.01.20', '%20 TİCARİ MAL'], ['153.01.99', 'DİĞER TİCARİ MAL'], ['191.01.20', '%20 İNDİRİLECEK KDV']]) { st.acc.set(k, v); st.leaf.add(k); } });
+      const i0 = await w.$eval('#fkkTable tbody tr[data-i]', t => +t.dataset.i);
+      await w.click('#fkkKodA'); await w.waitForSelector('#fkkModal:not([hidden]) #fkkKodTablo');
+      const baslik = await w.textContent('#fkkModalT');
+      await w.fill('[data-kodh="11|10"]', '153.01.10'); await w.press('[data-kodh="11|10"]', 'Tab');
+      await w.fill('[data-kodh="11|20"]', '153.01.99'); await w.press('[data-kodh="11|20"]', 'Tab');
+      await w.click('#kodCek'); await w.waitForSelector('#askModal:not([hidden])');
+      const soru = await w.textContent('#askText'); await w.click('#askNo'); await w.waitForTimeout(200);
+      const hucre = await w.evaluate(() => { const v = s => document.querySelector(`[data-kodh="${s}"]`); return { e20: v('11|20').value, e20elle: /elle/.test(v('11|20').parentElement.textContent), e1: v('11|1').value, e10: v('11|10').value, k20: v('1|20').value, satis: !!document.querySelector('[data-kodh="0|20"]') }; });
+      check(/Alış kod tanımları/i.test(baslik) && !hucre.satis, 'Alış kod tanımları: alış tablosu (satış işlemleri yok)');
+      check(/153\.01\.99/.test(soru) && /153\.01\.20/.test(soru), 'Luca\'dan çek: elle hücre Luca\'dakinden farklı → gösterip sordu (' + soru.slice(0, 80) + ')');
+      check(hucre.e20 === '153.01.99' && hucre.e20elle && hucre.e1 === '153.01.01' && hucre.e10 === '153.01.10' && hucre.k20 === '191.01.20', 'elle hücre korundu (153.01.99), boş hücreler Luca\'dan doldu (' + JSON.stringify(hucre) + ')');
+      await w.fill('[data-kodh="11|8"]', '999.99'); await w.press('[data-kodh="11|8"]', 'Tab'); await w.click('#kodKaydet'); await w.waitForTimeout(200);
+      check(!(await w.isHidden('#fkkModal')) && /999\.99/.test(await w.textContent('#kodDurum')), 'planda olmayan hesap kaydedilmedi, uyarı verildi');
+      await w.fill('[data-kodh="11|8"]', ''); await w.press('[data-kodh="11|8"]', 'Tab'); await w.click('#kodKaydet'); await w.waitForTimeout(300);
+      const kayit = await w.evaluate(() => window.__fkayit._st.firm.fkKod);
+      check(await w.isHidden('#fkkModal') && kayit.ALIS['11']['20'].elle && kayit.ALIS['11']['20'].kod === '153.01.99' && !kayit.ALIS['11']['1'].elle && !kayit.ALIS['11']['8'], 'kod tablosu firmaya kaydedildi (elle işaretiyle)');
+      // ikinci çekiş: elle hücre yine ezilmez; "Luca'dakini kullan" denirse değişir
+      await w.click('#fkkKodA'); await w.waitForSelector('#fkkKodTablo'); await w.click('#kodCek'); await w.waitForSelector('#askModal:not([hidden])'); await w.click('#askYes'); await w.waitForTimeout(200);
+      const e20b = await w.$eval('[data-kodh="11|20"]', x => x.value); await w.click('#fkkModal [data-kx]');
+      check(e20b === '153.01.20' && (await app.evaluate(() => global.__kdvCek)) === 2, 'farkta "Luca\'dakini kullan" denince hücre Luca\'daki oldu (kaydetmeden kapatıldı)');
+      // kural penceresi: ana hesap açıklaması
+      await w.click(`[data-kural="${i0}"]`); await w.waitForSelector('#fkkModal:not([hidden]) #kAnaNot');
+      check((await w.textContent('#kAnaNot')).trim() === 'Ana hesap yazarsanız detay hesap kod tablosundan seçilir; detay hesap yazarsanız sizin yazdığınız geçerli olur.', 'kural penceresinde ana / detay hesap açıklaması');
+      await w.click('#fkkModal [data-kx]');
+      // mantık: ana hesap + KDV oranı → detay; detay öncelikli; boş oran uyarısı; kod tablosuna göre doldurma; KDV kod tablosundan
+      const m = await w.evaluate(() => { const F = window.__fkayit, st = F._st; const eskiK = st.kural; const eskiF = st.firm;
+        const f = (o) => ({ yon: 'ALIS', tip: 'SATIS', karsi_unvan: 'ANA TEST A.Ş.', karsi_vkn: '9990001112', matrah: 1000, kdv: 200, odenecek: 1200, tevkifat: 0, oranlar: [{ oran: '20', matrah: 1000, kdv: 200 }], diger_vergiler: {}, kalemler: [], ...o });
+        const o10 = { oranlar: [{ oran: '10', matrah: 1000, kdv: 100 }], kdv: 100, odenecek: 1100 }, o18 = { oranlar: [{ oran: '18', matrah: 1000, kdv: 180 }], kdv: 180, odenecek: 1180 };
+        const sonuc = {};
+        try {
+          st.kural = { a: { id: 'a', alan: 'unvan', deger: 'ANA TEST', yon: 'ALIS', hesap: '153', cari: '320.01' } };
+          sonuc.ana20 = F._oner(f({})); sonuc.ana10 = F._oner(f(o10)); sonuc.ana18 = F._oner(f(o18));
+          const r18 = { f: f(o18), ...sonuc.ana18 }; sonuc.err18 = F._satirlar(r18).err;
+          st.kural = { a: { id: 'a', alan: 'unvan', deger: 'ANA TEST', yon: 'ALIS', hesap: '153.01.99', cari: '320.01' } };
+          sonuc.detay = F._oner(f(o10));
+          st.kural = {};
+          st.firm = { ...eskiF, fkKaynak: '' }; sonuc.oto = F._oner(f({ gecmis: { hesap: '770.01' } }));
+          st.firm = { ...eskiF, fkKaynak: 'kod' }; sonuc.kodSira = F._oner(f({ gecmis: { hesap: '770.01' } })); sonuc.kodBos = F._oner(f(o18));
+          const rk = { f: f({}), ...sonuc.kodSira, cari: '320.01' }; sonuc.fisKod = F._satirlar(rk).L.map(x => x.acc).join(' ');
+        } finally { st.kural = eskiK; st.firm = eskiF; }
+        const k = x => ({ hesap: x.hesap, kaynak: x.kaynak, uyari: x.kodUyari || '', ana: x.kuralAna || '' });
+        return { ana20: k(sonuc.ana20), ana10: k(sonuc.ana10), ana18: k(sonuc.ana18), err18: sonuc.err18, detay: k(sonuc.detay), oto: k(sonuc.oto), kodSira: k(sonuc.kodSira), kodBos: k(sonuc.kodBos), fisKod: sonuc.fisKod }; });
+      console.log('G36', JSON.stringify(m));
+      check(m.ana20.hesap === '153.01.99' && m.ana10.hesap === '153.01.10' && m.ana20.kaynak === 'kural' && m.ana10.ana === '153', 'kuralda ana hesap 153: detay faturanın KDV oranına göre kod tablosundan (%20 → 153.01.99, %10 → 153.01.10)');
+      check(m.detay.hesap === '153.01.99' && !m.detay.ana, 'kuralda detay hesap yazılınca o kullanıldı (kod tablosu %10 olsa da)');
+      check(!m.ana18.hesap && /%18/.test(m.ana18.uyari) && m.err18.some(e => /%18/.test(e) && /kod tanımlarında/i.test(e)), 'kod tablosunda oran boş: açık uyarı, hesap uydurulmadı (' + m.ana18.uyari + ')');
+      check(m.oto.hesap === '770.01' && m.oto.kaynak === 'geçmiş' && m.kodSira.hesap === '153.01.99' && m.kodSira.kaynak === 'kod tablosu', 'doldurma: varsayılan sırada geçmiş, "kod tablosuna göre"de kod tablosu');
+      check(!m.kodBos.hesap && /%18/.test(m.kodBos.uyari), '"kod tablosuna göre"de oran boşsa uyarı');
+      check(m.fisKod === '153.01.99 191.01.20 320.01', 'kod tablosuyla doldurulan faturada KDV hesabı da kod tablosundan (' + m.fisKod + ')');
+      // satırdaki [Kod] [Geçmiş] [Kural] düğmeleri
+      const once = await w.evaluate(i => { const r = window.__fkayit._st.rows[i]; return { hesap: r.hesap, kaynak: r.kaynak }; }, i0);
+      await w.click(`[data-ks="${i0}"][data-v="kod"]`); await w.waitForTimeout(150);
+      const kodR = await w.evaluate(i => { const r = window.__fkayit._st.rows[i]; const tr = document.querySelector(`#fkkTable tr[data-i="${i}"]`);
+        return { hesap: r.hesap, kaynak: r.kaynak, basili: tr.querySelector('[data-ks][aria-pressed="true"]').dataset.v, chip: /kod tablosu/.test(tr.textContent), gecmisKapali: tr.querySelector('[data-ks][data-v="gecmis"]').disabled }; }, i0);
+      await w.click(`[data-ks="${i0}"][data-v="kural"]`); await w.waitForTimeout(150);
+      const kuralR = await w.evaluate(i => { const r = window.__fkayit._st.rows[i]; return { hesap: r.hesap, kaynak: r.kaynak, basili: document.querySelector(`#fkkTable tr[data-i="${i}"] [data-ks][aria-pressed="true"]`).dataset.v }; }, i0);
+      check(once.kaynak === 'kural' && kodR.kaynak === 'kod tablosu' && kodR.basili === 'kod' && kodR.chip && kodR.hesap === '153.01.99', '[Kod] düğmesi: hesap kod tablosundan, satırda kaynak "kod tablosu" (' + JSON.stringify(kodR) + ')');
+      check(kodR.gecmisKapali, '[Geçmiş] düğmesi geçmiş kayıt yokken kapalı');
+      check(kuralR.hesap === once.hesap && kuralR.kaynak === 'kural' && kuralR.basili === 'kural', '[Kural] düğmesi: kuralın hesabına döndü');
+      await w.screenshot({ path: OUT + '/10c-kod-tanimlari.png' });
+      // temizlik: sonraki testler kod tablosuz firmayla sürer
+      await w.evaluate(async () => { const st = window.__fkayit._st; const { Store } = window.__app; const f = { ...st.firm }; delete f.fkKod; delete f.fkKaynak; st.firm = f; await Store.saveFirm(f);
+        for (const r of st.rows) delete r.kaynakSec; }); }
     // komisyoncu (HKS) faturası: mal sahibinin satışı + komisyoncu masrafları
     const kom = await w.evaluate(() => { const F = window.__fkayit; const st = F._st;
       for (const [k, v] of [['600.01', '% 1 Lik Hasılat'], ['391.01.01', '%1 lik Hesaplanan KDV'], ['760.05', 'Kom.Giderleri'], ['760.08', 'Navlun Giderleri'], ['120.K.002', 'Kazım Akbulut Yaş Sebze Meyve Kom. Ltd.Şti']]) { st.acc.set(k, v); st.leaf.add(k); }

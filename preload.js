@@ -100,6 +100,7 @@ contextBridge.exposeInMainWorld('desktop', {
     hesapPlani: a => ipcRenderer.invoke('luca-hesap-plani', a),
     muavinIndir: a => ipcRenderer.invoke('luca-muavin-indir', a),
     hesapEkle: a => ipcRenderer.invoke('luca-hesap-ekle', a),
+    kdvHesaplari: a => ipcRenderer.invoke('luca-kdv-hesaplari', a),
     defterTuru: a => ipcRenderer.invoke('luca-defter-turu', a), hesapAraVkn: a => ipcRenderer.invoke('luca-hesap-ara-vkn', a),
     kayitBaslat: () => ipcRenderer.invoke('luca-kayit-baslat'),
     kayitDurum: () => ipcRenderer.invoke('luca-kayit-durum'),

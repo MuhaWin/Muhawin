@@ -512,6 +512,11 @@ h1::before{background:url(gorsel/simge_lacivert.svg) center/contain no-repeat!im
 #fkKayit tr.haric td{opacity:.55}#fkKayit tr.haric td:first-child,#fkKayit tr.haric td:last-child{opacity:1}
 #fkKayit tr.haric td .hk{text-decoration:line-through}
 #fkKayit .farkkutu{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 2px;padding:8px 10px;border:1px dashed var(--warn,#c80);border-radius:8px;background:var(--surface)}
+/* Görev 36: satırda hesap kaynağı [Kod] [Geçmiş] [Kural]; basılı olan kullanılan kaynak */
+#fkKayit .fkk-ksl{display:flex;gap:2px;margin-top:3px}
+#fkKayit .fkk-ks{padding:1px 6px;font-size:11px;min-height:0;line-height:1.5}
+#fkKayit .fkk-ks[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+#fkKayit .fkk-ks:disabled{opacity:.4}
 #okcPanel .mmtop{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--surface);flex-wrap:wrap}
 #okcPanel .mmtop h2{margin:0;font-family:var(--f-display);font-size:19px}
 #okcPanel .mmbar{display:flex;align-items:center;gap:10px;padding:10px 18px;flex-wrap:wrap}
