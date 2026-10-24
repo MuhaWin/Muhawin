@@ -502,7 +502,6 @@ h1::before{background:url(gorsel/simge_lacivert.svg) center/contain no-repeat!im
 #fkKayit td.n,#fkKayit th.n{text-align:right;font-family:var(--f-mono);white-space:nowrap}
 #fkKayit td input{height:30px;padding:2px 6px;font-size:12.5px}
 #fkKayit tr.fisdetay td{background:var(--surface-2)}
-.fkk-hatir{margin:8px 0 0;padding:10px 12px;border:1px solid color-mix(in srgb,var(--aski-fg,#a15c00) 40%,var(--line));background:color-mix(in srgb,var(--aski-fg,#a15c00) 8%,var(--surface));border-radius:10px;font-size:13px}
 .binekkutu{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 12px;margin:0 0 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .binekkutu .binekres{font-size:22px;line-height:1}.binekkutu .note{flex:1;min-width:200px}
 #fkKayit table.mini{width:auto;min-width:560px;margin:2px 0 6px;font-size:12.5px}#fkKayit table.mini th{position:static}

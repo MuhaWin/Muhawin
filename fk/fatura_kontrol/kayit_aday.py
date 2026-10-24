@@ -8,6 +8,7 @@ oran bazında) ve tevkifat hesabı (360) muavindeki hesap adlarından bulunur.
 from __future__ import annotations
 
 import json
+import re
 import warnings
 from collections import Counter, defaultdict
 from decimal import Decimal
@@ -228,6 +229,29 @@ def kelime_onerisi(kelime: dict, yon: str, kalemler) -> str | None:
     return h if n >= max(1.0, len(ts) * 0.3) else None
 
 
+def fis_no_norm(x) -> str:
+    """Fiş numarası karşılaştırması: boşluk, sondaki ".0" ve baştaki sıfırlar atılır (Luca "000123" / 123.0 / "123")."""
+    s = re.sub(r"\s+", "", str(x or "")).upper()
+    s = re.sub(r"\.0+$", "", s)
+    return re.sub(r"^0+(?=\d)", "", s)
+
+
+def muavin_ozeti(muavinler, muavin, bilgi) -> dict | None:
+    """Programdan Luca'ya kaydedilen fişin Luca'dan silinip silinmediğine karar vermek için (Görev 34): muavinin kapsadığı
+    tarih aralığı (Luca'daki "Tarih Aralığı"; yoksa satırların ilk / son tarihi), dosyanın indirilme zamanı ve
+    muavindeki fişler [tarih, fiş no]. İşletme defterinde (fiş numarası yok) None."""
+    if not muavinler or any(m.suffix == ".json" for m in muavinler) or not muavin:
+        return None
+    from datetime import datetime, timezone
+    aralik = (bilgi or {}).get("aralik")
+    tarihler = [s.fis_tarihi for s in muavin if s.fis_tarihi]
+    bas, bit = aralik if aralik else (min(tarihler), max(tarihler))
+    zaman = max(m.stat().st_mtime for m in muavinler)
+    fisler = sorted({(s.fis_tarihi.isoformat(), fis_no_norm(s.fis_no)) for s in muavin if s.fis_tarihi and fis_no_norm(s.fis_no)})
+    return {"bas": bas.isoformat(), "bit": bit.isoformat(), "aralik_kaynak": "luca" if aralik else "satirlar",
+            "zaman": datetime.fromtimestamp(zaman, tz=timezone.utc).isoformat(), "fisler": [list(x) for x in fisler]}
+
+
 def adaylar(rapor_id: str) -> dict:
     warnings.filterwarnings("ignore", module="openpyxl")
     k = depo.rapor_klasoru(rapor_id)
@@ -302,4 +326,5 @@ def adaylar(rapor_id: str) -> dict:
     return {"id": rapor_id, "firma": rapor_json.get("firma") or bilgi.get("firma") or firma_k.name, "klasor_ad": firma_k.name,
             "luca_id": bilgi_f.get("luca_id"), "vkn": vkn, "donem": [bas.isoformat() if bas else None, bit.isoformat() if bit else None],
             "muavin_var": bool(muavinler), "isletme": any(m.suffix == ".json" for m in muavinler), "kdv_hesaplari": kdv_h, "tevkifat_hesabi": tevk_h,
+            "muavin": muavin_ozeti(muavinler, muavin, bilgi),
             "hesaplar": adlar, "faturalar": faturalar, "uyarilar": uyarilar[:20]}

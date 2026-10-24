@@ -115,3 +115,13 @@ def test_birden_cok_sayfa(tmp_path):
     s, _ = muavin_oku(y)
     assert [(x.hesap_kodu, x.fis_no) for x in s] == [("100.01", "1"), ("100.01", "2"), ("600.01", "3")]
     assert len({x.satir for x in s}) == 3
+
+
+def test_tarih_araligi_okunur(tmp_path):
+    """Görev 34: muavinin kapsadığı dönem ("Tarih Aralığı") silinen fiş kararında kullanılır."""
+    y = yaz(tmp_path / "m.xlsx", [("MUAVİN DEFTER",), ("ÖRNEK",), ("Dönem :", "01/01/2026-31/12/2026"),
+                                  ("Tarih Aralığı :", "01/01/2026-30/09/2026"), ("100.01 KASA",), BAS,
+                                  (datetime(2026, 3, 1), "Tahsil", "1", "A", 10, None)])
+    assert muavin_oku(y)[1]["aralik"] == (date(2026, 1, 1), date(2026, 9, 30))
+    y2 = yaz(tmp_path / "m2.xlsx", UST + [("100.01 KASA",), BAS, (datetime(2026, 3, 1), "Tahsil", "1", "A", 10, None)])
+    assert "aralik" not in muavin_oku(y2)[1]

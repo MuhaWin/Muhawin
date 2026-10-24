@@ -28,12 +28,15 @@ def muavin_dosyalari(klasor: Path) -> list[Path]:
 def muavinleri_oku(yollar: list[Path], program: str | None = None):
     """Muavin dosyalarını okur; program verilmezse dönem klasöründeki kayda göre (yoksa Luca)."""
     from . import muavin_programlari as MP
-    satirlar, firma = [], ""
+    satirlar, firma, aralik = [], "", None
     for y in yollar:
         s, bilgi = MP.oku(y, program)
         satirlar.extend(s)
         firma = firma or bilgi.get("firma", "")
-    return satirlar, {"firma": firma}
+        if bilgi.get("aralik"):             # dökümlerin kapsadığı tarih aralığı (birden çok dosyada birleşim)
+            b, e = bilgi["aralik"]
+            aralik = (min(aralik[0], b), max(aralik[1], e)) if aralik else (b, e)
+    return satirlar, {"firma": firma, "aralik": aralik}
 
 
 def kimlik_sec(zipler: list[Path], vkn: str | None):
