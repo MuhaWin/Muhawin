@@ -504,7 +504,8 @@ ipcMain.handle('luca-fis-kes', (e, args) => luca.fisKes(args));
 ipcMain.handle('luca-fis-goster', (e, a) => { const o = a || {};
   const lucaId = String(o.lucaId || ''), year = String(o.year || ''), fisNo = String(o.fisNo || '').trim();
   if (!/^\d{1,12}$/.test(lucaId) || !/^20\d\d$/.test(year) || !fisNo || fisNo.length > 20 || /[^0-9A-Za-z\-\/]/.test(fisNo)) throw new Error('Geçersiz fiş bilgisi.');
-  return luca.fisGoster({ lucaId, year, fisNo }); });
+  // adım süreleri (ms) hata günlüğüne "ölçüm" satırı olarak yazılır (Görev 48: yavaşlık bildirildiğinde günlükten görülür)
+  return luca.fisGoster({ lucaId, year, fisNo }).then(r => { try { hataYaz('olcum', "Luca'da aç " + JSON.stringify((r && r.sure) || {})); } catch (x) {} return r; }); });
 ipcMain.handle('luca-hesap-plani', (e, a) => luca.hesapPlani(a || {}));
 // muavin: açık Luca oturumuyla indirilir, Fatura Kontrol'ün firma / dönem klasörüne yazılır (ayrı tarayıcı açılmaz)
 ipcMain.handle('luca-muavin-indir', async (e, a) => { fkLicensed(); const o = a || {};

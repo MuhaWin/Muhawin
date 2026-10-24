@@ -586,54 +586,92 @@ async function calis() {
 // Fiş no Luca biçiminde: rakamsa en az 4 hane (baştaki sıfırlar, ör. 143 → 0143).
 const fisNoBicim = n => { const t = String(n == null ? '' : n).trim(); return /^\d+$/.test(t) ? t.padStart(4, '0') : t; };
 const FIS_GOSTER_JS = `(async (o) => {
+  // Görev 48: gereksiz yükleme yok — firma / dönem çubuğu zaten bu firmadaysa yeniden seçilmez, Fiş Listesi formu açıksa
+  // modül yeniden açılmadan doğrudan gönderilir; çerçeve yüklemesi belgenin değişmesiyle (eski belge değil) beklenir.
+  const t0 = Date.now(), sure = {}; let ts = t0; const adim = ad => { const n = Date.now(); sure[ad] = n - ts; ts = n; };
   const bekle = ms => new Promise(r => setTimeout(r, ms));
   const kok = location.origin + '/Luca/';
-  const hazir = async (cerceve, kosul, ms) => { const t0 = Date.now();
-    while (Date.now() - t0 < (ms || 20000)) { try { if (cerceve.document.readyState === 'complete' && kosul(cerceve)) return true; } catch (e) {} await bekle(200); }
+  const hazir = async (cerceve, kosul, ms) => { const t1 = Date.now();
+    while (Date.now() - t1 < (ms || 20000)) { try { if (cerceve.document.readyState === 'complete' && kosul(cerceve)) return true; } catch (e) {} await bekle(50); }
     return false; };
+  const yeniBelge = (eski, kosul) => w => w.document !== eski && kosul(w);
   const formBul = (w, d) => { try {
       const f = w.document.querySelector('form[name=listFisParametreForm]'); if (f) return f;
       for (let i = 0; i < w.frames.length && (d || 0) < 3; i++) { const x = formBul(w.frames[i], (d || 0) + 1); if (x) return x; }
     } catch (e) {} return null; };
+  const secili = w => { try { const u = new URL(w.location.href); const c = w.document.querySelector('#SirketCombo');
+      return { sirket: (c && c.value) || u.searchParams.get('SIRKET_ID') || '', donem: u.searchParams.get('DONEM_ID') || '' }; } catch (e) { return { sirket: '', donem: '' }; } };
   const f3 = window.frames['frm3'], f4 = window.frames['frm4'];
   if (!f3) return { ok: false, hata: 'CERCEVE' };
-  if (f4 && o.firma) {                       // firma / dönem çubuğu (frm4) seçilen firmaya geçer
-    f4.location.href = kok + o.firma;
-    await hazir(f4, w => /TopFrameAction/i.test(w.location.href));
+  let degisti = false;
+  if (f4 && o.firma) {                       // firma / dönem çubuğu (frm4): yalnız başka firma / dönemdeyse seçilir
+    const s = secili(f4);
+    if (!(o.sirket && s.sirket === String(o.sirket) && s.donem === String(o.donem))) {
+      const eski = f4.document; f4.location.href = kok + o.firma; degisti = true;
+      await hazir(f4, yeniBelge(eski, w => /TopFrameAction/i.test(w.location.href)));
+      const s2 = secili(f4);
+      if (o.sirket && s2.sirket && s2.sirket !== String(o.sirket)) return { ok: false, hata: 'FIRMA', sure };
+    }
   }
-  f3.location.href = kok + 'YMFrameAction.do?modul=10';
-  await hazir(f3, w => /YMFrameAction/i.test(w.location.href));
-  let form = null; for (let i = 0; i < 30 && !(form = formBul(f3)); i++) await bekle(200);
-  if (!form && o.uye) {                      // modül çerçevesi formu kendisi yüklemediyse süzgeç sayfası doğrudan
-    f3.location.href = kok + 'getFisParametreJSPAction.do?c_musteri_id=' + encodeURIComponent(o.uye);
-    await hazir(f3, w => !!formBul(w));
-    form = formBul(f3);
-  }
-  if (!form) return { ok: false, hata: 'FORM' };
+  adim('firma');
+  let form = degisti ? null : formBul(f3);   // Fiş Listesi zaten açık ve firma aynı: doğrudan gönder
+  if (!form) {
+    const eski = f3.document; f3.location.href = kok + 'YMFrameAction.do?modul=10';
+    await hazir(f3, yeniBelge(eski, w => /YMFrameAction/i.test(w.location.href)));
+    for (let i = 0; i < 60 && !(form = formBul(f3)); i++) await bekle(50);
+    if (!form && o.uye) {                    // modül çerçevesi formu kendisi yüklemediyse süzgeç sayfası doğrudan
+      const e2 = f3.document; f3.location.href = kok + 'getFisParametreJSPAction.do?c_musteri_id=' + encodeURIComponent(o.uye);
+      await hazir(f3, yeniBelge(e2, w => !!formBul(w)));
+      form = formBul(f3);
+    }
+    adim('modul');
+  } else sure.modul = 0;
+  if (!form) return { ok: false, hata: 'FORM', sure };
+  try { form.reset(); } catch (e) {}       // açık kalan formda elle değiştirilmiş süzgeçler Luca'nın varsayılanına döner
   const ata = (ad, deger) => { const e = form.elements.namedItem(ad); if (e && 'value' in e) e.value = deger; };
   ata('ilkFisNo', o.fisNo); ata('sonFisNo', o.fisNo); ata('ilkFisTarihi', ''); ata('sonFisTarihi', '');
   HTMLFormElement.prototype.submit.call(form);
-  return { ok: true };
+  adim('form'); sure.toplam = Date.now() - t0; sure.firmaSecildi = degisti;
+  return { ok: true, sure };
 })`;
+// "Luca'da aç" için firmanın dönem kimliği: önceki iş seçimlerinden (donemFirma) ya da firma seçmeden donem.jq ile (kilit beklemez).
+// Firma / dönemi ortak sayfada seçmeye gerek yok; seçim Luca'da Çalış penceresinin kendi çubuğunda yapılır (Görev 48).
+const donemOnbellek = new Map();
+async function fisDonemi(lucaId, year) {
+  const k = String(lucaId) + '|' + String(year);
+  for (const v of donemFirma.values()) if (String(v.lucaId) === String(lucaId) && String(v.year) === String(year)) return v;
+  if (donemOnbellek.has(k)) return donemOnbellek.get(k);
+  const donemler = await isle(null, () => request('genel/donem.jq?sirket_id=' + encodeURIComponent(lucaId) + '&_=' + Date.now()));
+  if (!Array.isArray(donemler) || !donemler.length) fail('NO_FIRM', 'Bu firma bağlı olduğunuz Luca hesabında bulunamadı (Luca firma no ' + lucaId + ').');
+  const d = donemler.find(x => String(x.label) === String(year));
+  if (!d) fail('NO_PERIOD', year + ' dönemi Luca\'da yok (var olanlar: ' + donemler.map(x => x.label).join(', ') + ').');
+  const v = { lucaId: String(lucaId), year: String(year), donemId: String(d.value) };
+  donemOnbellek.set(k, v); return v;
+}
 async function fisGoster({ lucaId, year, fisNo } = {}) {
   const no = fisNoBicim(fisNo);
   if (!no) fail('ARG', 'Bu satırın Luca fişi yok.');
   if (!/^\d{4}$/.test(String(year || ''))) fail('ARG', 'Fişin yılı bilinmiyor.');
-  const p = await IS.prepareFis({ lucaId, year });                  // firma ve dönem Luca'da var mı (iş kilidiyle)
-  const secim = donemFirma.get(String(p.donemId)) || { lucaId: String(lucaId), year: String(year), donemId: String(p.donemId) };
+  const t0 = Date.now(), sure = {};
+  const secim = await fisDonemi(lucaId, year);
+  sure.donem = Date.now() - t0;
+  let t1 = Date.now();
   if (!(calismaW && !calismaW.isDestroyed())) {
     const r = await calis();
     if (r && r.ok === false) fail('UYE', r.error || 'Luca çalışma penceresi açılamadı.');
-    for (let i = 0; i < 75 && !(calismaW && !calismaW.isDestroyed()); i++) await new Promise(z => setTimeout(z, 200));
+    for (let i = 0; i < 150 && !(calismaW && !calismaW.isDestroyed()); i++) await new Promise(z => setTimeout(z, 100));
   }
   const w = calismaW && !calismaW.isDestroyed() ? calismaW : null;
   if (!w) fail('CALISMA', 'Luca çalışma penceresi açılamadı. "Luca\'da Çalış" ile açıp yeniden deneyin.');
-  for (let i = 0; i < 75 && w.webContents.isLoading(); i++) await new Promise(z => setTimeout(z, 200));
+  for (let i = 0; i < 150 && w.webContents.isLoading(); i++) await new Promise(z => setTimeout(z, 100));
   const uye = await sessionUye(w);
-  const r = await w.webContents.executeJavaScript(FIS_GOSTER_JS + '(' + JSON.stringify({ firma: firmaSecAdresi(secim), uye, fisNo: no }) + ')', true);
+  sure.pencere = Date.now() - t1;
+  const r = await w.webContents.executeJavaScript(FIS_GOSTER_JS + '(' + JSON.stringify({ firma: firmaSecAdresi(secim), sirket: secim.lucaId, donem: secim.donemId, uye, fisNo: no }) + ')', true);
+  Object.assign(sure, (r && r.sure) || {}); sure.toplam = Date.now() - t0;
   oneGetir(w);
+  if (r && r.hata === 'FIRMA') fail('FIRMA_SECIM', 'Luca\'da Çalış penceresinde firma seçilemedi (Luca firma no ' + lucaId + '). Fiş Listesi açılmadı; pencerede firmayı elle seçip yeniden deneyin.');
   if (!r || !r.ok) fail('LUCA', 'Luca\'da Fiş Listesi açılamadı' + (r && r.hata === 'FORM' ? ' (süzgeç formu bulunamadı)' : '') + '. Fişi Luca\'da elle arayın: ' + no);
-  return { ok: true, fisNo: no, firma: p.firmLabel, yil: p.year };
+  return { ok: true, fisNo: no, yil: secim.year, sure };
 }
 
 // Açık Luca oturumunun üye numarası (menü/çalışma alanı çerçevelerindeki c_musteri_id)
@@ -1264,4 +1302,4 @@ const IS = {
 };
 module.exports = { _git: { GIT_JS, GIT_YEDEK_JS, KONUM_JS, GIT_ID, donDugmesiBagla }, calis, fisGoster, _fisNoBicim: fisNoBicim, captchaGir, captchaYenile, girisGoster, oturumCerezleri, hesapPlaniExcelOku, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status,
   logout, recheck, LOGIN_URL, ...IS, sayfaBilgisi, _normUye: normUye, _zamanAsimiGec: zamanAsimiGec,
-  _kdvTablosuCoz: kdvTablosuCoz, _sirketSecimi: sirketSecimi, _sayfaAyar: o => { if (o.kiraMs != null) KIRA_MS = o.kiraMs; if (o.ekBosMs != null) EK_BOS_MS = o.ekBosMs; if (o.bekleMs != null) BEKLE_EN_COK_MS = o.bekleMs; } };
+  _kdvTablosuCoz: kdvTablosuCoz, _sirketSecimi: sirketSecimi, _fisDonemi: fisDonemi, _sayfaAyar: o => { if (o.kiraMs != null) KIRA_MS = o.kiraMs; if (o.ekBosMs != null) EK_BOS_MS = o.ekBosMs; if (o.bekleMs != null) BEKLE_EN_COK_MS = o.bekleMs; } };
