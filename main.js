@@ -209,9 +209,23 @@ function fkEnv() {
   const c = readCreds();
   const env = (c.uyeno && c.kullanici && c.parola) ? { FK_LUCA_GIRIS: JSON.stringify({ uye_no: c.uyeno, kullanici: c.kullanici, parola: c.parola }) } : {};
   if (officeUye()) env.FK_LUCA_UYE = officeUye();          // Fatura Kontrol de yalnız ofisin üye numarasıyla çalışır
+  // Görev 51: raporlarda / toplu özette "kim sorguladı"; yapılan sorgulamalar işlem günlüğüne (FK_GUNLUK → ofis günlüğü)
+  try { const e = auth && auth.info().email; if (e) env.FK_KULLANICI = e; } catch (x) {}
+  if (acctDir) env.FK_GUNLUK = path.join(acctDir, 'gunluk-fk.jsonl');
   return env;
 }
-function fkConfigure() { if (fk) return fk.configure({ dir: acctDir ? path.join(acctDir, 'fatura_kontrol') : null, env: acctDir ? fkEnv() : {} }); }
+// Görev 51: fatura–muavin kontrol verilerinin klasörü (indirilen e-faturalar, muavinler, raporlar, toplu özetler).
+// Varsayılan hesap klasörü; kullanıcı büronun ortak klasörünü seçebilir: <seçilen>/MuhaWin-FaturaKontrol (bütün ofis aynı klasörde).
+// Kurallar ve firmalar bu klasörde değil, ofis deposunda (Supabase).
+const FK_ORTAK_ALT = 'MuhaWin-FaturaKontrol';
+function hesapAyar() { try { return JSON.parse(fs.readFileSync(path.join(acctDir, 'ayarlar.json'), 'utf8')); } catch (e) { return {}; } }
+function hesapAyarYaz(c) { fs.mkdirSync(acctDir, { recursive: true }); fs.writeFileSync(path.join(acctDir, 'ayarlar.json'), JSON.stringify(c, null, 1)); }
+function fkVeriKlasoru() {
+  if (!acctDir) return null;
+  const c = hesapAyar();
+  return c.fkVeriDir ? path.join(c.fkVeriDir, FK_ORTAK_ALT) : path.join(acctDir, 'fatura_kontrol');
+}
+function fkConfigure() { if (fk) return fk.configure({ dir: fkVeriKlasoru(), env: acctDir ? fkEnv() : {} }); }
 
 // --- program girişi ---
 // Hesabın veri deposu ve ofis ortak verisi eşitleyicisi (Görev 51). Firmalar / kurallar ortak klasörde (eski "sharedDir")
@@ -226,6 +240,14 @@ function veriBaslat(dir) {
   ds.watch(degisti);
   ov = makeOfisVeri({ dir, ds, rpc: (fn, a) => auth.ofis(fn, a), onChange: degisti, cihaz: os.hostname(), log: m => console.log('[ofis-veri] ' + m) });
   ov.baslat();
+  // Fatura Kontrol'ün (Python) yazdığı sorgulama kayıtları ofis işlem günlüğüne
+  clearInterval(veriBaslat.fkGunluk);
+  veriBaslat.fkGunluk = setInterval(() => {
+    const f = path.join(dir, 'gunluk-fk.jsonl'), al = f + '.alindi';
+    try { if (!fs.existsSync(f) || !fs.statSync(f).size) return; fs.renameSync(f, al); } catch (e) { return; }
+    try { for (const satir of fs.readFileSync(al, 'utf8').split('\n')) { if (!satir.trim()) continue; try { const k = JSON.parse(satir); if (ov && /^[a-z_]{2,30}$/.test(k.tur || '')) ov.gunlukEkle(k); } catch (e) {} } } catch (e) {}
+    try { fs.unlinkSync(al); } catch (e) {}
+  }, 5000);
 }
 // Her hesabın verisi ayrı klasörde: %APPDATA%/Ekstre Luca/hesaplar/<e-posta özeti>/
 const legacyFile = () => path.join(userDir(), 'veri.json');
@@ -436,6 +458,19 @@ ipcMain.handle('data-pick-shared', async () => {
   return { ok: true, dir: r.filePaths[0], ...ds.inspectShared(r.filePaths[0]) };
 });
 ipcMain.handle('data-use-shared', (e, dir, mode) => { const r = ds.useShared(dir, mode); ds.watch(); return r; });
+// Görev 51: fatura kontrol veri klasörü (kendi / büronun ortak klasörü)
+ipcMain.handle('fk-veri-klasoru', () => { const c = hesapAyar(); return { dir: fkVeriKlasoru(), ortak: !!c.fkVeriDir, secilen: c.fkVeriDir || null, varsayilan: acctDir ? path.join(acctDir, 'fatura_kontrol') : null }; });
+ipcMain.handle('fk-veri-klasoru-sec', async () => {
+  const r = await dialog.showOpenDialog(win, { title: 'Fatura kontrol verileri için büronun ortak klasörü', properties: ['openDirectory', 'createDirectory'] });
+  if (r.canceled || !r.filePaths[0]) return { ok: false };
+  const hedef = path.join(r.filePaths[0], FK_ORTAK_ALT);
+  fs.mkdirSync(hedef, { recursive: true });
+  const probe = path.join(hedef, '.yazma-denemesi-' + process.pid); fs.writeFileSync(probe, 'ok'); fs.unlinkSync(probe);   // yazma izni yoksa hata
+  const c = hesapAyar(); c.fkVeriDir = r.filePaths[0]; hesapAyarYaz(c);
+  await fkConfigure();
+  return { ok: true, dir: hedef };
+});
+ipcMain.handle('fk-veri-klasoru-kendi', async () => { const c = hesapAyar(); delete c.fkVeriDir; hesapAyarYaz(c); await fkConfigure(); return { ok: true, dir: fkVeriKlasoru() }; });
 ipcMain.handle('data-use-local', () => { const r = ds.useLocal(); ds.watch(); if (ov) ov.yerelDegisti(); return r; });
 
 // --- dosya kaydet ---

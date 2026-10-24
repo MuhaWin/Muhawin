@@ -2027,20 +2027,23 @@ const Desk=(()=>{
   api.data.info().then(setStoreState).catch(()=>{});
   async function renderData(){
     const i=await api.data.info();setStoreState(i);
+    // Görev 51: firmalar ve kurallar ofis deposunda (Supabase); bu bilgisayardaki veri önbellektir. Eski "ortak klasör" (firmalar /
+    // kurallar) kalktı: o klasördeki veri açılışta bu bilgisayara alınıp ofis deposuyla birleştirilir.
     $('#dataBody').innerHTML=`
-      <div class="banner" style="background:${i.shared?'var(--cari-bg)':'var(--surface-2)'};color:${i.shared?'var(--cari-fg)':'var(--ink)'}">
-        Veriler şu an <b>${i.shared?'ortak klasörde':'bu bilgisayarda'}</b> saklanıyor.<br><span class="mono" style="font-size:12px;overflow-wrap:anywhere">${esc(i.dir)}</span><br>
+      <div class="banner" style="background:var(--cari-bg);color:var(--cari-fg)">
+        Firmalar, kurallar ve büro bilgileri <b>ofisin ortak deposunda</b> tutulur; ofisteki herkes aynı veriyi görür. Bu bilgisayardaki kopya internetsiz çalışmak içindir.<br><span class="note" id="dvOvDurum">Eşitleme durumu alınıyor…</span><br>
+        <span class="mono" style="font-size:12px;overflow-wrap:anywhere">${esc(i.dir)}</span><br>
         <span class="note">${i.firms} firma · son kayıt ${esc(fmtTs(i.savedAt))}${i.savedBy?' · '+esc(i.savedBy):''}</span></div>
-      <section style="display:grid;gap:8px"><h3 style="margin:0;font-family:var(--f-display);font-size:16px">Ortak klasör · büro içinde paylaşım</h3>
-        <p class="note" style="margin:0">Büronuzun ortak ağ klasörünü ya da OneDrive / Google Drive / Dropbox klasörünü seçin. Aynı klasörü seçen bütün bilgisayarlar aynı firmaları, kuralları ve mizanları görür; birinin eklediği kural ötekilerde birkaç saniye içinde görünür. Her değişiklik ayrı kaydedildiği için iki kişinin aynı anda çalışması birbirinin kaydını silmez.</p>
-        <div class="actions"><button class="btn primary" data-dact="shared">${i.shared?'Başka ortak klasör seç…':'Ortak klasör seç…'}</button>${i.shared?'<button class="btn" data-dact="local">Bu bilgisayara dön</button>':''}<button class="btn ghost" data-dact="open">Klasörü aç</button></div></section>
       <section style="display:grid;gap:8px"><h3 style="margin:0;font-family:var(--f-display);font-size:16px">Yedek dosyası · taşıma</h3>
         <p class="note" style="margin:0">Tüm firmaları, kuralları ve mizanları tek dosyaya kaydedin; başka bir bilgisayarda “İçe aktar” ile yükleyin. Yedek almak için de kullanabilirsiniz.</p>
         <div class="actions"><button class="btn" data-dact="export">Dışa aktar…</button><button class="btn" data-dact="import">İçe aktar…</button></div></section>
       <section style="display:grid;gap:8px"><h3 style="margin:0;font-family:var(--f-display);font-size:16px">Fatura – Muavin Kontrol verileri</h3>
-        <p class="note" style="margin:0" id="fkStore">İndirilen e-belgeler, muavinler, kontrol raporları ve toplu özetler bu bilgisayarda, hesabınızın klasöründe tutulur.</p>
-        <div class="actions"><button class="btn ghost" data-dact="fkopen">Klasörü aç</button><button class="btn ghost danger ic-trash" data-dact="fkwipe">Tüm sorgu sonuçlarını ve indirilen belgeleri sil</button></div></section>`;
-    if(window.desktop.fk)window.desktop.fk.storage().then(d=>{const el=$('#fkStore');if(el)el.innerHTML=`İndirilen e-belgeler, muavinler, kontrol raporları ve toplu özetler: <span class="mono" style="font-size:12px;overflow-wrap:anywhere">${esc(d.klasor)}</span><br><span class="note">Firma belgeleri ${d.firmalar_mb} MB · toplu özetler ${d.toplu_mb} MB</span>`;}).catch(()=>{});
+        <p class="note" style="margin:0">İndirilen e-faturalar, muavinler, kontrol raporları ve toplu özetler. <b>Kendi klasörünüzde</b> ya da <b>büronun ortak klasöründe</b> tutulabilir: ortak klasörde bütün ofis aynı sonuçları görür (kim, ne zaman sorguladı bilgisiyle). Aynı firma ve dönemi aynı anda yalnız bir kişi sorgulayabilir; yeni sorgulama tam bitmeden eski belgeler silinmez.</p>
+        <p class="note" style="margin:0" id="fkStore"></p>
+        <div class="actions"><button class="btn primary" data-dact="fkortak">Büronun ortak klasörünü seç…</button><button class="btn" data-dact="fkkendi" id="fkKendiBtn" hidden>Kendi klasörüme dön</button><button class="btn ghost" data-dact="fkopen">Klasörü aç</button><button class="btn ghost danger ic-trash" data-dact="fkwipe">Tüm sorgu sonuçlarını ve indirilen belgeleri sil</button></div></section>`;
+    try{const d=await window.desktop.ofisVeri.durum();const el=$('#dvOvDurum');if(el)el.textContent=!d.etkin?'Ofis deposu kullanılamıyor; veriler bu bilgisayarda.':d.hata?`Bağlantı yok: ${d.bekleyen} değişiklik bu bilgisayarda bekliyor.`:d.bekleyen?`${d.bekleyen} değişiklik gönderiliyor…`:'✓ Ofis deposuyla eşit.';}catch(e){}
+    try{const k=await window.desktop.fkVeri.bilgi();const el=$('#fkStore');if(el)el.innerHTML=`${k.ortak?'<b>Büronun ortak klasörü</b>':'<b>Kendi klasörünüz</b> (bu bilgisayar)'}: <span class="mono" style="font-size:12px;overflow-wrap:anywhere">${esc(k.dir||'')}</span>`;const kb=$('#fkKendiBtn');if(kb)kb.hidden=!k.ortak;}catch(e){}
+    if(window.desktop.fk)window.desktop.fk.storage().then(d=>{const el=$('#fkStore');if(el)el.insertAdjacentHTML('beforeend',`<br><span class="note">Firma belgeleri ${d.firmalar_mb} MB · toplu özetler ${d.toplu_mb} MB</span>`);}).catch(()=>{});
   }
   /* ---------- Görev 51: ofis verisi eşitleme durumu ve işlem günlüğü (Ayarlar) ---------- */
   const GUNLUK=(()=>{
@@ -2095,6 +2098,8 @@ const Desk=(()=>{
     try{
       if(a==='open')await api.openDataFolder();
       else if(a==='fkopen')await api.fk.openFolder();
+      else if(a==='fkortak'){const r=await window.desktop.fkVeri.sec();if(r&&r.ok){toast('Fatura kontrol verileri artık büronun ortak klasöründe: '+r.dir);if(typeof FKUI!=='undefined')FKUI.reset();renderData();}}
+      else if(a==='fkkendi'){await window.desktop.fkVeri.kendi();toast('Fatura kontrol verileri yeniden kendi klasörünüzde.');if(typeof FKUI!=='undefined')FKUI.reset();renderData();}
       else if(a==='fkwipe'){
         if(!(await askConfirm('Fatura Kontrol verileri silinsin mi?','Tüm firmaların indirilen belgeleri, kontrol raporları ve toplu özetleri silinecek. Firma listesi ve seçimleriniz kalır.','Evet, sil')))return;
         await api.fk.wipe();toast('Fatura Kontrol verileri silindi.');if(typeof FKUI!=='undefined')FKUI.reset();renderData();

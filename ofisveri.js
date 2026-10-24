@@ -55,7 +55,7 @@ function makeOfisVeri({ dir, ds, rpc, onChange = () => {}, log = () => {}, cihaz
   }
   function gunlukEkle(k) {
     if (kapali || !k || !k.tur) return;
-    gunluk.push({ id: crypto.randomUUID(), zaman: new Date().toISOString(), cihaz, ...k });
+    gunluk.push({ id: crypto.randomUUID(), cihaz, ...k, zaman: (() => { try { return new Date(k.zaman || Date.now()).toISOString(); } catch (e) { return new Date().toISOString(); } })() });
     if (gunluk.length > 5000) gunluk = gunluk.slice(-5000);
     yaz(gunlukF, gunluk); simdi();
   }

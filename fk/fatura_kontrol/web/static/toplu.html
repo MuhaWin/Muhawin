@@ -631,7 +631,7 @@ function calismaGoster(c) {
   $("#sonucTablo").innerHTML = `<thead><tr><th class="sec"><input type="checkbox" id="sonucHepsi" title="Görünen firmaların tümünü seç / kaldır" aria-label="Tümünü seç"></th><th>Firma</th><th>VKN/TCKN</th><th>Durum</th><th style="text-align:right">Fatura</th>` +
     SUTUNLAR.map(([ad, k]) => `<th style="text-align:right" title="${esc(k.join(", "))}">${esc(ad)}</th>`).join("") +
     `<th style="text-align:right">KDV2</th><th>İndirme Hataları</th><th class="islem-b">İşlemler</th></tr></thead><tbody>` +
-    (satirlar.map(r => `<tr><td class="sec">${r.durum === "Çalışıyor" ? "" : `<input type="checkbox" class="sonucSec" data-k="${esc(anahtar(r))}" aria-label="${esc(r.ad)} seç" ${seciliSonuc.has(anahtar(r)) ? "checked" : ""}>`}</td><td><b>${esc(r.ad)}</b></td><td class="mono">${esc(r.vkn)}</td>
+    (satirlar.map(r => `<tr><td class="sec">${r.durum === "Çalışıyor" ? "" : `<input type="checkbox" class="sonucSec" data-k="${esc(anahtar(r))}" aria-label="${esc(r.ad)} seç" ${seciliSonuc.has(anahtar(r)) ? "checked" : ""}>`}</td><td><b>${esc(r.ad)}</b>${r.sorgulayan || r.zaman ? `<div class="ipucu sorgulayan" title="Sorgulayan ve zaman (ortak veri klasöründe bütün ofis görür)">${esc(r.sorgulayan || "")}${r.sorgulayan && r.zaman ? " · " : ""}${esc(String(r.zaman || "").slice(0, 16).replace("T", " "))}</div>` : ""}</td><td class="mono">${esc(r.vkn)}</td>
       <td><span class="durum ${r.durum === "Çalışıyor" ? "d-Bekliyor" : sinif(r.durum)}">${esc(r.durum)}</span></td>
       <td class="sayi">${r.fatura ?? ""}</td>` +
       SUTUNLAR.map(([, k]) => { const so = r.sorunlar || {}, n = k.reduce((t, x) => t + (so[x] || 0), 0);

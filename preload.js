@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('desktop', {
   // Görev 51: ofis ortak verisi (eşitleme durumu) ve işlem günlüğü
   ofisVeri: { durum: () => ipcRenderer.invoke('ofis-veri-durum'), esitle: () => ipcRenderer.invoke('ofis-veri-esitle'),
     gunlukEkle: k => ipcRenderer.invoke('ofis-gunluk-ekle', k), gunluk: (suzgec, once) => ipcRenderer.invoke('ofis-gunluk-liste', suzgec, once) },
+  fkVeri: { bilgi: () => ipcRenderer.invoke('fk-veri-klasoru'), sec: () => ipcRenderer.invoke('fk-veri-klasoru-sec'), kendi: () => ipcRenderer.invoke('fk-veri-klasoru-kendi') },
   getMizan: fid => ipcRenderer.invoke('store-mizan', fid),
   openDataFolder: () => ipcRenderer.invoke('open-data-folder'),
   openMail: url => ipcRenderer.invoke('open-mail', url),

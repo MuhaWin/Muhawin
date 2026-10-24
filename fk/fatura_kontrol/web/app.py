@@ -28,7 +28,7 @@ from ..rapor_kayit import _db, _sayi, _t, _tarih, defter_turu, rapor_oku, rapor_
 
 warnings.filterwarnings("ignore", module="openpyxl")
 
-from .. import arsiv, ayarlar, bildirim, depo
+from .. import arsiv, ayarlar, bildirim, depo, ortak
 
 VERI = depo.veri()
 VERI.mkdir(parents=True, exist_ok=True)
@@ -522,11 +522,14 @@ async def kontrol(
                                                             await _red_kaydet(red_iptal, tmp / "r"))
         except ValueError as e:
             raise HTTPException(400, str(e))
+        except ortak.KilitHatasi as e:            # aynı firma-dönemi başka kullanıcı o anda sorguluyor (Görev 51)
+            raise HTTPException(409, str(e))
         except Exception as e:
             raise HTTPException(400, f"Dosya okunamadı: {e}")
         veri = K.calistir(klasor, b, e, vkn, ad, tolerans=Decimal(tolerans or "0.05"))
         if veri is None:
             raise HTTPException(400, f"{b:%m.%Y} dönemine ait fatura bulunamadı. Kontrol dönemini faturaların ayına göre seçin.")
+    ortak.gunluk("rapor", ad, f"Tek firma kontrolü {b:%Y-%m} (dosyadan)", donem=f"{b:%Y-%m}")
     return JSONResponse(veri)
 
 
@@ -586,6 +589,8 @@ async def denetim_calistir(
                                                             await _red_kaydet(red_iptal, tmp / "r"))
         except ValueError as x:
             raise HTTPException(400, str(x))
+        except ortak.KilitHatasi as x:
+            raise HTTPException(409, str(x))
         except Exception as x:
             raise HTTPException(400, f"Dosya okunamadı: {x}")
         veri = K.calistir(klasor, b, e, vkn, ad)
@@ -715,7 +720,7 @@ def denetim_listesi():
                 continue
             out.append({"id": depo.rapor_id(y.parent), "firma": v.get("firma"), "vkn": v.get("vkn"), "bas": v.get("bas"), "bit": v.get("bit"),
                         "sorunlu": {k2: x["sorunlu"] for k2, x in (v.get("ozet") or {}).items()},
-                        "zaman": datetime.fromtimestamp(y.stat().st_mtime).isoformat(timespec="minutes")})
+                        "zaman": datetime.fromtimestamp(y.stat().st_mtime).isoformat(timespec="minutes"), "sorgulayan": v.get("sorgulayan")})
     out.sort(key=lambda x: x.get("zaman") or "", reverse=True)
     return {"liste": out}
 
