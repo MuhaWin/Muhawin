@@ -170,7 +170,7 @@ test('hatalar ve kapalı bölümler', async () => {
   assert.strictEqual(eksik.durum, 400);                              // muavin artık isteğe bağlı alan (Luca'dan da gelir)
   assert.match(json(eksik).detail, /e-fatura dosyalarını/);
 
-  for (const yol of ['/api/toplu/durum', '/api/kontrol/luca-faturalari', '/api/ayarlar']) {
+  for (const yol of ['/api/toplu/durum', '/api/kontrol/luca-faturalari', '/api/ayarlar', '/api/denetim/yz/istek', '/api/denetim/yz/bekleyen']) {
     assert.strictEqual((await istek('GET', yol)).durum, 404, yol);
   }
   assert.strictEqual(json(await istek('GET', '/api/saglik')).tarayici, true);

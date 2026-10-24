@@ -84,6 +84,15 @@ contextBridge.exposeInMainWorld('desktop', {
     wipe: () => ipcRenderer.invoke('fk-wipe'),
     openFolder: () => ipcRenderer.invoke('fk-open-folder')
   },
+  // Muhasebe Denetimi › yapay zekâ ile karşılaştırma (anahtar ana süreçte kalır; buradan yalnız durum ve sonuç gelir)
+  yz: {
+    durum: () => ipcRenderer.invoke('yz-durum'),
+    ayarla: a => ipcRenderer.invoke('yz-ayarla', a),
+    anahtarKaydet: k => ipcRenderer.invoke('yz-anahtar-kaydet', k),
+    anahtarSil: () => ipcRenderer.invoke('yz-anahtar-sil'),
+    gosterim: a => ipcRenderer.invoke('yz-gosterim', a),
+    degerlendir: a => ipcRenderer.invoke('yz-degerlendir', a),
+  },
   luca: {
     open: () => ipcRenderer.invoke('luca-open'),
     calis: () => ipcRenderer.invoke('luca-calis'),

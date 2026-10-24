@@ -2181,6 +2181,15 @@ const Desk=(()=>{
           <li>Meta → Webhook: Callback URL <code>https://&lt;proje&gt;.supabase.co/functions/v1/whatsapp-webhook</code>, verify token = WA_VERIFY_TOKEN, alan: <b>messages</b>.</li>
           <li>Yukarıya Phone number ID'yi yazıp “Ofise Bağla” deyin. Gelen fotoğraflar Meta tarafında ücretsizdir; otomatik “alındı” yanıtı servis mesajıdır (numara başına ayda 1.000 ücretsiz, sonrası ~0,01 $).</li></ol></details>
       </section>
+      <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px" id="yzSec">
+        <h3 style="margin:0;font-family:var(--f-display);font-size:16px">Yapay zekâ ile karşılaştırma <span class="note" style="font-weight:400">(Muhasebe Denetimi › Detay denetim)</span></h3>
+        <p class="note" style="margin:0">Kurallara ve geçmişe uymayan faturalar için Claude'dan (Anthropic) öneri alınır: uygun / şüpheli / uygun değil, kısa gerekçe ve önerilen hesap. Öneri yalnız yol gösterir; kesin kararı siz verirsiniz, yapay zekâ hiçbir kayıt yapmaz.</p>
+        <p class="note" style="margin:0;padding:8px 10px;border:1px solid #f0d49a;background:#fff6e5;color:#7a4d00;border-radius:8px"><b>Veri bilgisayardan çıkar:</b> açıkken her değerlendirmede faturanın özeti (tarih, tür, karşı tarafın unvanı, tutarlar, mal / hizmet kalemleri), firmanın hesap planı ve kaydın hesap satırları Anthropic'e gönderilir. VKN / TCKN, gerçek kişi adları, adres, IBAN, e-posta ve telefon gönderilmez; fatura dosyasının kendisi gönderilmez. Göndermeden önce “Gönderilecek veriyi göster” ile görebilirsiniz. Ücreti kendi Anthropic hesabınıza yansır.</p>
+        <div class="actions" style="margin:0"><label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="yzAcik"> Bu ofiste açık</label>
+          <label class="note">Model <select id="yzModel"></select></label><span class="note" id="yzOnay"></span></div>
+        <div class="actions" style="margin:0"><label class="note">Anthropic API anahtarı <input type="password" id="yzAnahtar" class="mono" style="width:260px" autocomplete="off" placeholder="sk-ant-…"></label>
+          <button class="btn small" type="button" id="yzAnahtarKaydet">Anahtarı kaydet</button><button class="btn small ghost danger" type="button" id="yzAnahtarSil">Anahtarı sil</button><span class="note" id="yzMsg"></span></div>
+      </section>
       <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px" id="yedekSec">
         <h3 style="margin:0;font-family:var(--f-display);font-size:16px">Yedekleme ve hata günlüğü</h3>
         <p class="note" style="margin:0">Yedek, bu bilgisayardaki tüm MuhaWin verilerini (firmalar, kurallar, mizan/muavin, fişler, ayarlar) seçtiğiniz klasöre <b>MuhaWin-yedek-tarih</b> adıyla kopyalar. Geri yükleme mevcut verilerin üzerine yazar (öncesinde otomatik iç yedek alınır). Hata günlüğü, programda oluşan beklenmedik hataları <code>Belgeler\MuhaWin Günlük\hatalar.log</code> dosyasına yazar; destek isterken bu dosyayı iletebilirsiniz. Günlükte parola ya da Luca verisi bulunmaz.</p>
@@ -2195,6 +2204,7 @@ const Desk=(()=>{
       </section>`;
     // Luca giriş alanlarını mevcut kayıttan doldur
     renderOffice();
+    yzAyarCiz();
     (async()=>{try{const n=await api.wa.numara();const m=$('#waMsg');if(m&&n&&n.length){m.textContent='Bağlı: '+n.map(x=>(x.display_phone||'')+' ('+x.phone_number_id+')').join(', ');const p=$('#waPid');if(p)p.value=n[0].phone_number_id;const d=$('#waDisp');if(d)d.value=n[0].display_phone||'';}}catch(e){}})();
     const wb=$('#waBagla');if(wb)wb.onclick=async()=>{const id=$('#waPid').value.trim();if(!/^\d{6,}$/.test(id)){$('#waMsg').textContent='Phone number ID yalnız rakamlardan oluşur.';return;}
       try{await api.wa.numaraBagla({id,display:$('#waDisp').value.trim()});$('#waMsg').textContent='Bağlandı. Mükellefler fiş gönderebilir.';toast('WhatsApp numarası ofise bağlandı.');}catch(x){$('#waMsg').textContent=cleanErr(x);}};
@@ -2205,6 +2215,23 @@ const Desk=(()=>{
       <div class="actions" style="margin:0"><span class="note" id="updDurum"></span><button class="btn small" id="updBtn">Güncellemeleri denetle</button></div></section>`);UPD.ciz();}).catch(()=>{});
     api.luca.credGet().then(c=>{if(!c)return;const u=$('#lg_uyeno'),k=$('#lg_kullanici'),pp=$('#lg_parola');if(u){u.value=c.uyeno||'';if(c.uyeKilitli){u.readOnly=true;u.style.opacity='.75';const n=$('#lg_uyenot');if(n)n.hidden=false;}}if(k)k.value=c.kullanici||'';if(pp&&c.hasParola)pp.placeholder='•••••• (kayıtlı · değiştirmek için yazın)';}).catch(()=>{});
   }
+  /* Yapay zekâ ile karşılaştırma ayarı (ofis bazında; anahtar ana süreçte şifreli, buraya hiç gelmez) */
+  async function yzAyarCiz(msg){const y=window.desktop&&window.desktop.yz,sec=$('#yzSec');if(!sec)return;if(!y){sec.hidden=true;return;}
+    let d;try{d=await y.durum();}catch(e){return;}
+    $('#yzModel').innerHTML=Object.entries(d.modeller).map(([k,m])=>`<option value="${k}"${k===d.model?' selected':''}>${esc(m.ad)} · $${m.girdi} / $${m.cikti} (1M token)</option>`).join('');
+    $('#yzAcik').checked=d.istenen;$('#yzAcik').disabled=!d.anahtarVar;
+    $('#yzOnay').textContent=d.onay?'Veri gönderimi onaylandı: '+new Date(d.onay).toLocaleString('tr-TR'):'';
+    $('#yzAnahtar').placeholder=d.anahtarVar?'•••••• (kayıtlı · değiştirmek için yazın)':'sk-ant-…';$('#yzAnahtarSil').hidden=!d.anahtarVar;
+    $('#yzMsg').textContent=msg||(!d.sifreVar?'Bu bilgisayarda güvenli saklama kullanılamıyor; anahtar kaydedilemez.':!d.anahtarVar?'Anahtar girilmedikçe özellik kapalıdır.':d.acik?'Açık.':'Kapalı.');
+    $('#yzModel').onchange=async()=>{try{await y.ayarla({model:$('#yzModel').value});yzAyarCiz('Model kaydedildi.');}catch(x){toast(cleanErr(x));}};
+    $('#yzAcik').onchange=async()=>{const ac=$('#yzAcik').checked;
+      if(ac&&!d.onay&&!(await askConfirm('Yapay zekâ ile karşılaştırma açılsın mı?','Açıkken Muhasebe Denetimi\'nde değerlendirdiğiniz faturaların özeti (tarih, tür, karşı tarafın unvanı, tutarlar, mal / hizmet kalemleri), firmanın hesap planı ve kaydın hesap satırları Anthropic\'e (Claude) gönderilir. VKN / TCKN, gerçek kişi adları, adres, IBAN, e-posta, telefon ve fatura dosyası gönderilmez. Öneri yalnız yol gösterir; kayıt yapılmaz. Bu ofis için bir kez onaylanır; istediğiniz zaman kapatabilirsiniz.','Onaylıyorum, aç'))){$('#yzAcik').checked=false;return;}
+      try{await y.ayarla(ac?{onay:true,acik:true}:{acik:false});yzAyarCiz();}catch(x){toast(cleanErr(x));yzAyarCiz();}};
+    $('#yzAnahtarKaydet').onclick=async()=>{const k=$('#yzAnahtar').value.trim();if(!k)return;
+      try{await y.anahtarKaydet(k);$('#yzAnahtar').value='';yzAyarCiz('Anahtar bu bilgisayara şifreli kaydedildi.');}catch(x){$('#yzMsg').textContent=cleanErr(x);}};
+    $('#yzAnahtarSil').onclick=async()=>{if(!(await askConfirm('API anahtarı silinsin mi?','Yapay zekâ ile karşılaştırma anahtar yeniden girilene kadar kapalı olur.','Evet, sil')))return;
+      try{await y.anahtarSil();yzAyarCiz('Anahtar silindi.');}catch(x){toast(cleanErr(x));}};}
+  window.__yzAyarAc=()=>{openReg();setTimeout(()=>{const s=$('#yzSec');if(s)s.scrollIntoView({block:'start'});},120);};
   function openReg(){const cb=document.querySelector('#regModal [data-rgclose]');if(cb)cb.hidden=setupMode;$('#regModal').hidden=false;document.documentElement.style.overflow='hidden';renderReg();setTimeout(()=>{const i=$('#rg_buro');if(i)i.focus();},40);}
   function closeReg(){if(setupMode){toast('Devam etmek için büro bilgilerini doldurup Kaydet\'e basın.');return;}$('#regModal').hidden=true;document.documentElement.style.overflow='';}
   function collectReg(){const r={...regData()};regAlanlar().forEach(([k])=>{const el=$('#rg_'+k);r[k]=el?el.value.trim():'';});
@@ -5769,8 +5796,17 @@ const MDENET=(()=>{
       fr().src=url+'/denetim';}
     $('#mdBekle').hidden=true;fr().hidden=false;firmaGonder();}
   function hide(){const P=$('#mdPanel');if(P)P.hidden=true;}
+  const yzYanit=m=>{const w=fr()&&fr().contentWindow;if(w)w.postMessage({muhawin:true,...m},'*');};
+  const yzHata=e=>String(e&&e.message||e).replace(/^Error invoking remote method '[^']+': (Error: )?/,'');
   window.addEventListener('message',e=>{if(!e.data||!e.data.fk||e.source!==(fr()&&fr().contentWindow))return;
     if(e.data.tip==='denetimHazir'){firmaGonder();return;}
+    // Yapay zekâ önerisi: çerçeve maskeli veriyi verir, ana süreç gönderir; anahtar çerçeveye hiç gelmez
+    const yz=window.desktop&&window.desktop.yz;
+    if(e.data.tip==='yzDurum'){(yz?yz.durum():Promise.resolve(null)).then(d=>yzYanit({tip:'yzDurum',durum:d})).catch(()=>yzYanit({tip:'yzDurum',durum:null}));return;}
+    if(e.data.tip==='yzAyar'){if(window.__yzAyarAc)window.__yzAyarAc();return;}
+    if(e.data.tip==='yzGoster'){yz.gosterim({baglam:e.data.baglam,istek:e.data.istek}).then(g=>yzYanit({tip:'yzGosterim',no:e.data.no,gosterim:g})).catch(x=>yzYanit({tip:'yzGosterim',no:e.data.no,hata:yzHata(x)}));return;}
+    if(e.data.tip==='yzDegerlendir'){if(!yz){yzYanit({tip:'yzSonuc',no:e.data.no,hata:'Bu sürümde yok.'});return;}
+      yz.degerlendir({baglam:e.data.baglam,istek:e.data.istek}).then(r=>yzYanit({tip:'yzSonuc',no:e.data.no,...r})).catch(x=>yzYanit({tip:'yzSonuc',no:e.data.no,hata:yzHata(x)}));return;}
     /* firmaSec ve esc mesajlarını Fatura Kontrol'ün dinleyicisi (aynı kaynaktan) işler */});
   firmaDinle(()=>{if(!$('#mdPanel').hidden)firmaGonder();});
   return {show,hide};

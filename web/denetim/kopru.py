@@ -24,8 +24,8 @@ from pathlib import Path
 
 ROTALAR: list[tuple[str, re.Pattern, object]] = []
 ISLEYICILER: dict[type, object] = {}   # @app.exception_handler(Hata): uygulamanın kendi hata yanıtları
-# Tarayıcıda kapalı: Luca'ya bağlanan ve bilgisayara özgü bölümler
-KAPALI = re.compile(r"^/api/(toplu|kontrol/luca-faturalari|isletme-fis|ayarlar|bildirim|verileri-sil)(/|$)")
+# Tarayıcıda kapalı: Luca'ya bağlanan ve bilgisayara özgü bölümler; yapay zekâ önerisi (anahtar tarayıcıya girmesin, Görev 43 Faz 4)
+KAPALI = re.compile(r"^/api/(toplu|kontrol/luca-faturalari|isletme-fis|ayarlar|bildirim|verileri-sil|denetim/yz)(/|$)")
 
 
 # ------------------------------------------------------------------ fastapi / pydantic taklidi
