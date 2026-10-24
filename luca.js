@@ -895,7 +895,9 @@ async function dovizKodlari() {
 // ---------- Luca istek kaydı (keşif): Luca'da elle yapılan bir işlemin hangi isteklerle yapıldığını öğrenmek için.
 // Yalnız *.luca.com.tr/Luca/ adreslerine giden isteklerin adresi, yöntemi, gönderilen alanlar ve .jq/.do yanıtları
 // (kısaltılmış) tutulur. Çerez / başlık / giriş sayfası kaydedilmez; parola geçen alanlar silinir.
-const kayit = { acik: false, olaylar: [], bekleyen: new Map(), bagli: new Set(), atlanan: new Map() };
+const kayit = { acik: false, olaylar: [], bekleyen: new Map(), bagli: new Set(), atlanan: new Map(), zaman: null, sureDoldu: false };
+// Kayıt fatura / muavin yanıtlarını düz metin tutar (rapor-02 D16): en çok 30 dakika açık kalır, sonra kendiliğinden durur
+const KAYIT_SURE_MS = 30 * 60 * 1000;
 // Luca'nın tüm uygulamaları (bilanço /Luca/, işletme defteri ve diğer modüller farklı yollarda olabilir)
 const KAYIT_URL = /^https:\/\/[a-z0-9.-]+\.luca\.com\.tr\//i;
 const KAYIT_HARIC = /\.(js|css|png|gif|jpe?g|svg|ico|woff2?|ttf|map)(\?|$)|LUCASSO|giris\.(do|erp)/i;
@@ -932,18 +934,26 @@ function kayitBagla(w) {
   w.on('closed', () => kayit.bagli.delete(w));
 }
 function kayitBaslat() {
-  kayit.acik = true; kayit.olaylar = []; kayit.bekleyen.clear(); kayit.atlanan.clear();
+  kayit.acik = true; kayit.sureDoldu = false; kayit.olaylar = []; kayit.bekleyen.clear(); kayit.atlanan.clear();
   for (const w of windows) kayitBagla(w);
-  return { acik: true, pencere: windows.size };
+  clearTimeout(kayit.zaman);
+  kayit.zaman = setTimeout(() => { kayit.sureDoldu = true; kayitKapat(); }, KAYIT_SURE_MS);
+  if (kayit.zaman.unref) kayit.zaman.unref();
+  return { acik: true, pencere: windows.size, sureDk: KAYIT_SURE_MS / 60000,
+    uyari: 'Kayıt, Luca\'dan gelen fatura ve muavin içeriklerini düz metin olarak tutar; en çok 30 dakika açık kalır.' };
 }
-function kayitDurdur() {
-  kayit.acik = false;
+// dinlemeyi bırakır; toplanan olaylar "Kaydı Durdur"a kadar saklanır
+function kayitKapat() {
+  kayit.acik = false; clearTimeout(kayit.zaman);
   for (const w of kayit.bagli) { try { if (!w.isDestroyed()) { w.webContents.debugger.sendCommand('Network.disable').catch(() => {}); w.webContents.debugger.detach(); } } catch (e) {} }
   kayit.bagli.clear();
+}
+function kayitDurdur() {
+  kayitKapat();
   const olaylar = kayit.olaylar; kayit.olaylar = [];
   olaylar.atlanan = Object.fromEntries(kayit.atlanan); olaylar.pencere = windows.size;
   return olaylar;
 }
-function kayitDurumu() { return { acik: kayit.acik, adet: kayit.olaylar.length }; }
+function kayitDurumu() { return { acik: kayit.acik, adet: kayit.olaylar.length, sureDoldu: kayit.sureDoldu }; }
 
 module.exports = { calis, captchaGir, captchaYenile, girisGoster, oturumCerezleri, isletmeListeleri, isletmeListesiIndir, muavinIndir, hesapPlaniExcelOku, hesapPlaniRapor, dovizKodlari, defterTuru, hesapPlani, hesapEkle, hesapAraVkn, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status, listFirms, fetchMizan, prepareFis, fisKes, logout, recheck, LOGIN_URL, _normUye: normUye, _zamanAsimiGec: zamanAsimiGec };

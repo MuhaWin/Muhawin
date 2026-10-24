@@ -517,8 +517,39 @@ def esmm_oku(root, kaynak: str) -> Fatura | None:
 
 ZIP_UYARILARI: list[str] = []      # bozuk paketlerden kurtarma notları (rapora uyarı olarak eklenir)
 
+# Belge girdisi sınırları (rapor-02 G-F, Görev 26). Gerçek arşivleri reddetmeyecek, açma bombasını durduracak eşikler:
+# GİB / Luca paketleri en çok 2 düzey iç içe (dönem paketi → fatura paketi); tek fatura XML'i ekli PDF'le bile birkaç MB.
+MB = 1024 * 1024
+ZIP_DERINLIK = 4                  # iç içe ZIP düzeyi (dış dosya 1)
+ZIP_GIRDI_EN_COK = 256 * MB       # tek XML / iç ZIP'in açılmış boyutu
+ZIP_TOPLAM_EN_COK = 4096 * MB     # bir dosyadan açılan toplam boyut (200 MB'lık XML arşivi ≈ 2-3 GB açılır)
+ZIP_ORAN_EN_COK = 500             # 10 MB üstü girdide açılmış / sıkışmış oranı (XML en çok ~50-100 kat sıkışır)
+ZIP_GIRDI_SAYISI = 500_000        # bir dosyadaki toplam girdi
 
-def _kurtar(veri: bytes) -> Iterator[tuple[str, bytes]]:
+
+class GirdiSiniri(ValueError):
+    """Belge girdisi sınırı aşıldı; mesaj kullanıcıya gösterilir."""
+
+
+class _Sayac:
+    def __init__(self, kaynak: str):
+        self.kaynak, self.toplam, self.adet = kaynak, 0, 0
+
+    def ekle(self, ad: str, boyut: int, sikismis: int | None = None):
+        self.adet += 1
+        if self.adet > ZIP_GIRDI_SAYISI:
+            raise GirdiSiniri(f"{self.kaynak}: arşivde çok fazla dosya var (en çok {ZIP_GIRDI_SAYISI:,}).".replace(",", "."))
+        if boyut > ZIP_GIRDI_EN_COK:
+            raise GirdiSiniri(f"{ad}: açılınca {boyut // MB} MB oluyor; tek dosya en çok {ZIP_GIRDI_EN_COK // MB} MB olabilir.")
+        if sikismis is not None and boyut > 10 * MB and boyut > ZIP_ORAN_EN_COK * max(sikismis, 1):
+            raise GirdiSiniri(f"{ad}: olağan dışı sıkıştırılmış (açılınca {boyut // MB} MB); bozuk ya da zararlı arşiv olabilir, açılmadı.")
+        self.toplam += boyut
+        if self.toplam > ZIP_TOPLAM_EN_COK:
+            raise GirdiSiniri(f"{self.kaynak}: arşivin açılmış boyutu {ZIP_TOPLAM_EN_COK // MB // 1024} GB sınırını aşıyor; "
+                              "arşivi dönemlere bölüp ayrı ayrı yükleyin.")
+
+
+def _kurtar(veri: bytes, sayac: "_Sayac | None" = None) -> Iterator[tuple[str, bytes]]:
     """İçindekiler listesi (central directory) olmayan / sonu bozuk ZIP'ten girdileri yerel başlıklardan okur.
     Luca bazen paketin sonuna hata mesajı yazıp paketi yarım bırakıyor."""
     import struct
@@ -534,7 +565,9 @@ def _kurtar(veri: bytes) -> Iterator[tuple[str, bytes]]:
             bas = i + 30 + ad_uz + ek_uz
             if yontem == 8:
                 d = zlib.decompressobj(-15)
-                icerik = d.decompress(veri[bas:bas + boyut] if boyut and not bayrak & 8 else veri[bas:])
+                icerik = d.decompress(veri[bas:bas + boyut] if boyut and not bayrak & 8 else veri[bas:], ZIP_GIRDI_EN_COK + 1)
+                if len(icerik) > ZIP_GIRDI_EN_COK:
+                    raise GirdiSiniri(f"{ad}: açılınca {ZIP_GIRDI_EN_COK // MB} MB'ı aşıyor; tek dosya en çok bu kadar olabilir.")
                 if not d.eof:
                     raise ValueError("eksik")
                 son = len(veri) - len(d.unused_data) if not (boyut and not bayrak & 8) else bas + boyut
@@ -543,16 +576,36 @@ def _kurtar(veri: bytes) -> Iterator[tuple[str, bytes]]:
             else:
                 i += 4
                 continue
+            if sayac:
+                sayac.ekle(ad, len(icerik), (son - bas) if yontem == 8 else None)
             yield ad, icerik
             i = max(son, i + 4)
+        except GirdiSiniri:
+            raise
         except (struct.error, zlib.error, ValueError):
             i += 4
 
 
-def _zipten(veri: bytes, kaynak: str) -> Iterator[tuple[bytes, str]]:
+def _zipten(veri: bytes, kaynak: str, derinlik: int = 1, sayac: "_Sayac | None" = None) -> Iterator[tuple[bytes, str]]:
+    sayac = sayac or _Sayac(kaynak)
+    if derinlik > ZIP_DERINLIK:
+        raise GirdiSiniri(f"{kaynak}: iç içe {ZIP_DERINLIK} düzeyden derin ZIP açılmaz.")
+
+    def _oku(z: zipfile.ZipFile):
+        for bilgi in z.infolist():
+            if bilgi.is_dir() or not bilgi.filename.lower().endswith((".xml", ".zip")):
+                continue
+            # bildirilen boyut önce denetlenir; okuma da en çok bildirilen boyut kadardır (zipfile CRC ile doğrular)
+            sayac.ekle(bilgi.filename, bilgi.file_size, bilgi.compress_size)
+            with z.open(bilgi) as f:
+                icerik = f.read(ZIP_GIRDI_EN_COK + 1)
+            if len(icerik) > ZIP_GIRDI_EN_COK:
+                raise GirdiSiniri(f"{bilgi.filename}: tek dosya en çok {ZIP_GIRDI_EN_COK // MB} MB olabilir.")
+            yield bilgi.filename, icerik
+
     try:
         z = zipfile.ZipFile(io.BytesIO(veri))
-        girdiler = ((ad, z.read(ad)) for ad in z.namelist())
+        girdiler = _oku(z)
     except zipfile.BadZipFile:
         hata = ""
         j = veri.rfind(b'{"')
@@ -560,11 +613,13 @@ def _zipten(veri: bytes, kaynak: str) -> Iterator[tuple[bytes, str]]:
             hata = veri[j:].decode("utf-8", "replace")[:300]
         ZIP_UYARILARI.append(f"{kaynak}: paket yarım inmiş, içindeki faturalar tek tek kurtarıldı"
                              + (f" (Luca'nın mesajı: {hata})" if hata else ""))
-        girdiler = _kurtar(veri)
+        girdiler = _kurtar(veri, sayac)
     for ad, alt in girdiler:
         if ad.lower().endswith(".zip"):
             try:
-                yield from _zipten(alt, f"{kaynak}/{ad}")
+                yield from _zipten(alt, f"{kaynak}/{ad}", derinlik + 1, sayac)
+            except GirdiSiniri:
+                raise
             except Exception:
                 ZIP_UYARILARI.append(f"{kaynak}/{ad}: okunamadı")
         elif ad.lower().endswith(".xml"):

@@ -1,7 +1,8 @@
 """Kullanıcı / büro bilgileri ve isteğe bağlı Luca giriş bilgileri (veri/ayarlar.json).
 
 Luca parolası düz metin olarak saklanmaz: Windows'ta DPAPI ile, yalnız bu Windows kullanıcısının
-çözebileceği şekilde şifrelenir. Parola hiçbir zaman ekrana / API yanıtına geri gönderilmez.
+çözebileceği şekilde şifrelenir. Windows dışında (geliştirme / test) diske hiç yazılmaz, yalnız süreç açıkken
+bellekte tutulur (rapor-02 D11). Parola hiçbir zaman ekrana / API yanıtına geri gönderilmez.
 """
 from __future__ import annotations
 
@@ -65,12 +66,33 @@ if sys.platform == "win32":
             return ctypes.string_at(cikis.pbData, cikis.cbData).decode("utf-8")
         finally:
             ctypes.windll.kernel32.LocalFree(cikis.pbData)
-else:                                   # geliştirme / test ortamı (Windows dışı)
+else:                                   # geliştirme / test ortamı (Windows dışı): diske yazılmaz, yalnız bellekte
+    _BELLEK: dict[str, str] = {}
+
     def _sifrele(metin: str) -> str:
-        return "b64:" + base64.b64encode(metin.encode("utf-8")).decode()
+        import secrets
+        k = secrets.token_hex(8)
+        _BELLEK[k] = metin
+        return "bellek:" + k
 
     def _coz(deger: str) -> str:
-        return base64.b64decode(deger.split(":", 1)[1]).decode("utf-8")
+        tur, _, v = deger.partition(":")
+        if tur == "b64":                    # eski sürümün kaydı (yalnız base64): okunur, ilk yazışta silinir
+            return base64.b64decode(v).decode("utf-8")
+        if tur == "bellek" and v in _BELLEK:
+            return _BELLEK[v]
+        raise OSError("Parola bu oturumda girilmedi (Windows dışında diske kaydedilmez)")
+
+
+def _parola_var(d: dict) -> bool:
+    """Kayıtlı parola bu süreçte çözülebiliyor mu?"""
+    if not d.get("luca_parola"):
+        return False
+    try:
+        _coz(d["luca_parola"])
+        return True
+    except Exception:
+        return False
 
 
 # ---------------------------------------------------------------- dışa açık işlevler
@@ -78,7 +100,7 @@ def oku() -> dict:
     """Ekranda gösterilecek ayarlar (parola hariç; yalnız kayıtlı olup olmadığı)."""
     d = _ham()
     cikti = {k: d.get(k, "") for k in KULLANICI_ALANLARI + LUCA_ALANLARI}
-    cikti["luca_parola_kayitli"] = bool(d.get("luca_parola"))
+    cikti["luca_parola_kayitli"] = _parola_var(d)
     cikti["otomatik_giris"] = bool(d.get("otomatik_giris"))
     cikti["kurulum_tamam"] = bool(d.get("ad_soyad") or d.get("buro_unvan"))
     import os
@@ -100,6 +122,11 @@ def kaydet(yeni: dict):
         d.pop("luca_parola", None)
     elif yeni.get("luca_parola"):
         d["luca_parola"] = _sifrele(str(yeni["luca_parola"]))
+    elif str(d.get("luca_parola", "")).startswith("b64:"):   # eski sürümün düz (base64) kaydı diskte bırakılmaz
+        try:
+            d["luca_parola"] = _sifrele(_coz(d["luca_parola"]))
+        except Exception:
+            d.pop("luca_parola", None)
     _yaz(d)
 
 

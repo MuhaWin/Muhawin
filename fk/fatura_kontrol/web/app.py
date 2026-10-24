@@ -22,7 +22,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
 from ..eslestirme import fatura_anahtari
-from ..fatura_okuyucu import faturalari_oku, vkn_tespit
+from ..fatura_okuyucu import GirdiSiniri, faturalari_oku, vkn_tespit
 from ..muavin_okuyucu import muavin_oku
 from ..rapor_kayit import _db, _sayi, _t, _tarih, defter_turu, rapor_oku, rapor_yenile  # rapor kaydı web sunucusundan ayrı (Görev 08)
 
@@ -42,16 +42,58 @@ app = FastAPI(title="Fatura–Muavin Kontrol")
 @app.middleware("http")
 async def _muhawin_kapisi(request, call_next):
     anahtar = os.environ.get("FK_ANAHTAR") or ""
-    if anahtar and request.url.path != "/api/saglik" and request.headers.get("x-muhawin") != anahtar:
-        return JSONResponse({"detail": "Bu sayfa yalnız MuhaWin içinden açılır."}, status_code=403)
+    if anahtar and request.url.path != "/api/saglik":
+        import hmac
+        esit = lambda x: hmac.compare_digest(str(x or "").encode(), anahtar.encode())
+        # MuhaWin: X-MuhaWin başlığı. Bağımsız çalıştırma (python -m fatura_kontrol.web): açılış adresindeki
+        # ?anahtar= bir kez çereze alınır (yalnız bu site, JavaScript'e kapalı); sonraki istekler çerezle gelir.
+        if not (esit(request.headers.get("x-muhawin")) or esit(request.cookies.get("fk_anahtar"))):
+            if request.method == "GET" and esit(request.query_params.get("anahtar")):
+                from fastapi.responses import RedirectResponse
+                r = RedirectResponse(request.url.path, status_code=303)
+                r.set_cookie("fk_anahtar", anahtar, httponly=True, samesite="strict")
+                return r
+            return JSONResponse({"detail": "Bu sayfa yalnız MuhaWin içinden açılır."}, status_code=403)
     return await call_next(request)
+
+
+# Yükleme üst sınırı (rapor-02 G-F, Görev 26): bir istekte en çok 2 GB (yıllık GİB arşivleri birkaç yüz MB)
+YUKLEME_EN_COK = int(os.environ.get("FK_YUKLEME_SINIR_MB") or 2048) * 1024 * 1024
+_YUKLEME_MESAJI = (f"Yüklenen dosyalar çok büyük (en çok {YUKLEME_EN_COK // 1024 // 1024} MB). "
+                   "Dosyaları dönemlere bölüp ayrı ayrı yükleyin.")
+
+
+@app.middleware("http")
+async def _yukleme_siniri(request, call_next):
+    try:
+        boyut = int(request.headers.get("content-length") or 0)
+    except ValueError:
+        boyut = 0
+    if boyut > YUKLEME_EN_COK:
+        return JSONResponse({"detail": _YUKLEME_MESAJI}, status_code=413)
+    return await call_next(request)
+
+
+@app.exception_handler(GirdiSiniri)
+async def _girdi_siniri(request, e: GirdiSiniri):
+    return JSONResponse({"detail": str(e)}, status_code=400)
+
+
+def _kopyala(kaynak, hedef: Path, sayac: list[int]):
+    """Yüklenen dosyayı diske yazar; istek başına toplam boyut sınırı (Content-Length gelmeyen istekler için de)."""
+    with hedef.open("wb") as out:
+        while parca := kaynak.read(1024 * 1024):
+            sayac[0] += len(parca)
+            if sayac[0] > YUKLEME_EN_COK:
+                raise HTTPException(413, _YUKLEME_MESAJI)
+            out.write(parca)
 
 
 async def _red_kaydet(dosyalar: list[UploadFile] | None, hedef: Path) -> list[Path]:
     """Red / iptal listeleri: dosya adı korunur (adındaki 'alış' / 'satış' yönü gösterir)."""
     from ..red_iptal import UZANTILAR
     hedef.mkdir(parents=True, exist_ok=True)
-    yollar = []
+    yollar, sayac = [], [0]
     for i, d in enumerate(dosyalar or []):
         if not d.filename:
             continue
@@ -60,14 +102,13 @@ async def _red_kaydet(dosyalar: list[UploadFile] | None, hedef: Path) -> list[Pa
             raise HTTPException(400, f"Red / iptal listesi Excel olmalı (xls / xlsx): {ad}")
         ad = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", ad)[-80:]
         y = hedef / f"{i:02d}_{ad}"
-        with y.open("wb") as out:
-            shutil.copyfileobj(d.file, out)
+        _kopyala(d.file, y, sayac)
         yollar.append(y)
     return yollar
 
 
 async def _kaydet(dosyalar: list[UploadFile], hedef: Path, uzantilar: set[str]) -> list[Path]:
-    yollar = []
+    yollar, sayac = [], [0]
     for i, d in enumerate(dosyalar):
         if not d.filename:
             continue
@@ -75,8 +116,7 @@ async def _kaydet(dosyalar: list[UploadFile], hedef: Path, uzantilar: set[str]) 
         if uz not in uzantilar:
             raise HTTPException(400, f"Desteklenmeyen dosya: {d.filename} (beklenen: {', '.join(sorted(uzantilar))})")
         y = hedef / f"{i:03d}{uz}"
-        with y.open("wb") as out:
-            shutil.copyfileobj(d.file, out)
+        _kopyala(d.file, y, sayac)
         yollar.append(y)
     return yollar
 
