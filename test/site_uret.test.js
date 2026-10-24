@@ -28,6 +28,7 @@ test('gerçek dosyalarla: sürüm package.json ile aynı, indirme bağlantısı 
   const pkg = require('../package.json');
   assert.strictEqual(v.surum, pkg.version);
   assert.strictEqual(v.notlar[0].surum, pkg.version);
+  assert.strictEqual(v.notlar.length, 1);                  // yalnız son sürüm (kullanıcı kararı)
   assert.ok(v.indir.endsWith(`/releases/download/v${pkg.version}/MuhaWin-Kurulum-${pkg.version}.exe`));
 });
 
@@ -60,4 +61,48 @@ test('sitede modül adı Muhasebe Denetimi', () => {
   const html = '<title>Mikro Denetim</title><link rel="stylesheet" href="/tema.css"><h1 style="x">Mikro Denetim</h1><script>\nx()</script>';
   const d = sayfaUyarla(html);
   assert.ok(d.includes('<title>Muhasebe Denetimi</title>') && d.includes('<h1 style="x">Muhasebe Denetimi</h1>'));
+});
+
+test('sitede yalnız son sürümün notları: önceki sürüm listesi ve "Tüm sürümler" bağlantısı yok', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const SITE = path.join(__dirname, '..', 'web', 'site');
+  const index = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8'), js = fs.readFileSync(path.join(SITE, 'site.js'), 'utf8');
+  assert.ok(!/Tüm sürümler|tumSurumler/.test(index + js));
+  assert.ok(!/<details/.test(js) && /notlar\[0\]/.test(js));
+  const kayitli = JSON.parse(fs.readFileSync(path.join(SITE, 'surum.json'), 'utf8'));
+  assert.strictEqual(kayitli.notlar.length, 1);
+});
+
+test('önceki sürümün listesine gönderme yapan madde sitede çıkarılır', () => {
+  const { sitedeGoster } = require('../tools/site_uret');
+  const n = sitedeGoster({ surum: '2.9.14', maddeler: [{ metin: 'Yeni özellik', alt: [] },
+    { metin: "2.9.13 ayrıca yayınlanmadı; 2.9.12'den güncelleyenler için aşağıdaki 2.9.13 yenilikleri de geçerlidir.", alt: [] }] });
+  assert.deepStrictEqual(n.maddeler.map(m => m.metin), ['Yeni özellik']);
+});
+
+test('Kurulum adımları: dosya adı yazmaz, "Bilgilerinizi girin" adımında Luca geçmez', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const SITE = path.join(__dirname, '..', 'web', 'site');
+  const index = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8'), js = fs.readFileSync(path.join(SITE, 'site.js'), 'utf8');
+  const kurulum = index.slice(index.indexOf('<section id="kurulum"'), index.indexOf('</section>', index.indexOf('<section id="kurulum"')));
+  assert.ok(kurulum.includes('Yukarıdaki düğmeyle dosyayı indirin.') && !/Kurulum[-\w.]*\.exe|dosyaAdi/.test(kurulum));
+  assert.ok(kurulum.includes('<b>Bilgilerinizi girin</b>') && !/Luca/.test(kurulum));
+  assert.ok(!/dosyaAdi/.test(js));                       // kaldırılan öğeye yazılmıyor
+});
+
+test('ana sayfada program görüntüleri: 1x PNG + 2x WebP, Türkçe alt metin, kahraman dışında tembel yükleme; eski çizim yok', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const SITE = path.join(__dirname, '..', 'web', 'site');
+  const index = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8'), css = fs.readFileSync(path.join(SITE, 'style.css'), 'utf8');
+  const imgs = [...index.matchAll(/<img\b[^>]*gorsel\/program-[^>]*>/g)].map(m => m[0]);
+  const adlar = imgs.map(i => /program-(\w+)\.png/.exec(i)[1]);
+  assert.deepStrictEqual(adlar, ['anasayfa', 'banka', 'toplu', 'mizan', 'kaydet']);
+  for (const [k, i] of imgs.entries()) {
+    const ad = adlar[k];
+    assert.ok(i.includes(`gorsel/program-${ad}@2x.webp 2x`) && /width="1440" height="900"/.test(i), i);
+    assert.ok(/alt="[^"]{20,}"/.test(i) && /ı|ş|ğ|ü|ö|ç/.test(/alt="([^"]*)"/.exec(i)[1]), i);
+    assert.strictEqual(/loading="lazy"/.test(i), k > 0, i);      // kahraman görseli hemen, diğerleri tembel
+    for (const d of [`program-${ad}.png`, `program-${ad}@2x.webp`]) assert.ok(fs.existsSync(path.join(SITE, 'gorsel', d)), d);
+  }
+  assert.ok(!/mini-kart|pencere-ic/.test(index + css));            // eski çizilmiş "ekran" kaldırıldı
 });

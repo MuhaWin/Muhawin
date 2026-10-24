@@ -22,6 +22,7 @@
     </a>
     <nav class="menu" aria-label="Ana menü">
       <a href="#moduller">Modüller</a>
+      <a href="#ekranlar">Ekranlar</a>
       <a href="#ozellikler">Özellikler</a>
       <a href="#kurulum">Kurulum</a>
       <a href="#surumler">Sürüm notları</a>
@@ -48,17 +49,14 @@
         <p class="indir-bilgi ikincil">Her modül ilk açılışta 7 gün ücretsiz denenir. Yeni sürüm çıkınca program size sorar; “Şimdi kur” ile tek tıkla güncellenir.</p>
       </div>
     </div>
-    <div class="ekran" aria-hidden="true">
+    <figure class="ekran">
       <div class="pencere">
-        <div class="pencere-ust"><i></i><i></i><i></i><span>MuhaWin</span></div>
-        <div class="pencere-ic">
-          <div class="mini-kart"><b>Banka İşlemleri</b><span>Ekstre → Luca fişi</span><em class="ok">Lisanslı</em></div>
-          <div class="mini-kart"><b>Muhasebe İşlemleri</b><span>Fatura – muavin kontrolü</span><em class="ok">Lisanslı</em></div>
-          <div class="mini-kart"><b>Belgeden Fiş</b><span>ÖKC · Z raporu · yurt dışı</span><em class="den">Deneme · 7 gün</em></div>
-          <div class="mini-kart"><b>Ofisinize Özel</b><span>Size özel çözümler</span><em class="ok">Aç</em></div>
-        </div>
+        <div class="pencere-ust" aria-hidden="true"><i></i><i></i><i></i><span>MuhaWin</span></div>
+        <img src="gorsel/program-anasayfa.png" srcset="gorsel/program-anasayfa.png 1x, gorsel/program-anasayfa@2x.webp 2x"
+             width="1440" height="900" fetchpriority="high" decoding="async"
+             alt="MuhaWin programının ana ekranı: Muhasebe İşlemleri, Banka İşlemleri ve Belgeden Fiş modülleri, Luca bağlantı durumu">
       </div>
-    </div>
+    </figure>
   </div>
 </section>
 
@@ -92,6 +90,43 @@
   </div>
 </section>
 
+<section id="ekranlar" class="bolum acik-zemin">
+  <div class="kap">
+    <h2>Programdan ekranlar</h2>
+    <p class="bolum-giris">Görüntüler örnek (uydurma) firma verisiyle hazırlandı. Büyütmek için görüntüye tıklayın.</p>
+    <div class="ekranlar">
+      <figure>
+        <a class="pencere" href="gorsel/program-banka@2x.webp" target="_blank" rel="noopener">
+          <img src="gorsel/program-banka.png" srcset="gorsel/program-banka.png 1x, gorsel/program-banka@2x.webp 2x" width="1440" height="900" loading="lazy" decoding="async"
+               alt="Banka İşlemleri: banka ekstresi satırları, karşı hesap önerileri ve kurallarla Luca fişi hazırlığı">
+        </a>
+        <figcaption><b>Banka ekstresi → Luca fişi</b><span>Ekstre satırları kurallarınızla karşı hesaplara eşleşir; fiş Luca'ya aktarılır.</span></figcaption>
+      </figure>
+      <figure>
+        <a class="pencere" href="gorsel/program-toplu@2x.webp" target="_blank" rel="noopener">
+          <img src="gorsel/program-toplu.png" srcset="gorsel/program-toplu.png 1x, gorsel/program-toplu@2x.webp 2x" width="1440" height="900" loading="lazy" decoding="async"
+               alt="Toplu kontrol: bütün firmaların e-faturaları muavinle karşılaştırılmış, firma bazında sorunlu ve temiz sonuçlar">
+        </a>
+        <figcaption><b>Toplu kontrol</b><span>Bütün firmaların faturaları tek seferde muavinle karşılaştırılır; sorunlu firmalar öne çıkar.</span></figcaption>
+      </figure>
+      <figure>
+        <a class="pencere" href="gorsel/program-mizan@2x.webp" target="_blank" rel="noopener">
+          <img src="gorsel/program-mizan.png" srcset="gorsel/program-mizan.png 1x, gorsel/program-mizan@2x.webp 2x" width="1440" height="900" loading="lazy" decoding="async"
+               alt="Mizan, muavin ve hesap planı ekranı: Luca'dan çekilen muavin hareketleri, süzgeçler ve toplamlar">
+        </a>
+        <figcaption><b>Mizan / Muavin / Hesap Planı</b><span>Luca'dan tek düğmeyle çekilir; süzülür, Excel'e ya da PDF'e aktarılır.</span></figcaption>
+      </figure>
+      <figure>
+        <a class="pencere" href="gorsel/program-kaydet@2x.webp" target="_blank" rel="noopener">
+          <img src="gorsel/program-kaydet.png" srcset="gorsel/program-kaydet.png 1x, gorsel/program-kaydet@2x.webp 2x" width="1440" height="900" loading="lazy" decoding="async"
+               alt="Faturaları Luca'ya kaydet: kayıtsız faturalar, önerilen matrah ve cari hesapları, kurallar">
+        </a>
+        <figcaption><b>Faturaları Luca'ya kaydet</b><span>Muavinde olmayan faturalar için hesaplar kurallardan ve geçmişten önerilir.</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <section id="denetim" class="bolum">
   <div class="kap iletisim">
     <div>
@@ -120,10 +155,10 @@
   <div class="kap">
     <h2>Kurulum</h2>
     <ol class="adimlar">
-      <li><b>İndirin</b><span>Yukarıdaki düğmeyle <code id="dosyaAdi">MuhaWin-Kurulum.exe</code> dosyasını indirin.</span></li>
+      <li><b>İndirin</b><span>Yukarıdaki düğmeyle dosyayı indirin.</span></li>
       <li><b>Kurun</b><span>Dosyayı çalıştırın. Windows "bilinmeyen yayımcı" uyarısı verirse <i>Ek bilgi → Yine de çalıştır</i>'ı seçin.</span></li>
       <li><b>Üye olun</b><span>Programı açıp e-posta adresinizle üye olun ya da ofisinizin davetini kabul edin.</span></li>
-      <li><b>Luca bilgilerinizi girin</b><span>Ayarlar'a Luca üye no ve kullanıcı bilgilerinizi yazın; parola Windows şifrelemesiyle saklanır.</span></li>
+      <li><b>Bilgilerinizi girin</b><span>Ayarlar'a bilgilerinizi girin ve programı kullanmaya başlayın; parolanız Windows şifrelemesiyle saklanır.</span></li>
     </ol>
   </div>
 </section>
@@ -132,7 +167,6 @@
   <div class="kap">
     <h2>Sürüm notları</h2>
     <div id="notlar" class="notlar"><p class="not">Sürüm notları yükleniyor…</p></div>
-    <p class="not"><a id="tumSurumler" href="https://github.com/muhawin/muhawin-surumler/releases" rel="noopener">Tüm sürümler →</a></p>
   </div>
 </section>
 

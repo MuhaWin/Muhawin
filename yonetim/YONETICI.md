@@ -89,7 +89,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 
 8. **Muhasebe Denetimi siteye geçiş** (plan: `belgeler/denetim-gecis-plani.md`). **Kullanıcı kararları (24.10.2026):** eski denetim kayıtları siteye **taşınmaz** (seçenek A); geçiş sürecinde **program ve site birlikte durur** (en az bir sürüm). Site yayına girince masaüstündeki karta "Sitede aç" bağlantısı eklenecek (Menü Düzenleme); programdan kaldırma ayrı kararla sonra.
 
-9. **İleride hatırlatılacaklar (kullanıcı: "çok ileride sor", 24.10.2026):** (a) Red/iptal faturalarını Luca'dan getirme — Luca'da böyle bir ekran şimdilik yok; (b) Google İşletme Profili ek doğrulaması (video vb. istiyor) — sonra yapılacak. Bunları kısa vadede sorma.
+9. **İleride hatırlatılacaklar (kullanıcı: "çok ileride sor", 24.10.2026):** (a) Red/iptal faturalarını Luca'dan getirme — Luca'da böyle bir ekran şimdilik yok; (b) Google İşletme Profili ek doğrulaması (video vb. istiyor) — sonra yapılacak. (c) Muhasebe Denetimi yapay zekâ önerisi (Görev 43 Faz 4) kullanıcı isteğiyle şimdilik kapatıldı (Görev 49); ileride yeniden açmayı hatırlat. Bunları kısa vadede sorma.
 10. **Hesap planına VKN/TCKN (Görev 42):** Program yeni hesapları Luca'ya Excel ile değil `addHesapPlaniAction.do` ile tek tek açıyor; Luca'dan hesap planı Excel'i yalnız okunuyor. Kullanıcı şablonu daha önce verdiğini söylüyor; depoda bulunamadı. VKN alanının adı için Luca'da VKN girilerek hesap eklerken alınmış İstek Kaydı ya da boş Excel şablonu gerekli.
 
 ## Önerilen eklentiler

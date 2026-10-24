@@ -67,5 +67,13 @@ const hata = async f => { try { await f(); return null; } catch (e) { return e; 
   liste = [{ label: 'ALFA', value: '1' }];
   t('listedeki firma: doğrulanamasa da eskisi gibi sürer', (await L.prepareFis({ lucaId: '1', year: '2026' })).donemId === 'A26');
   t('üst çubuk ayrıştırma: seçili değer ve ad; liste yoksa null', JSON.stringify(L._sirketSecimi('<SELECT id=SirketCombo class=x><option value=1>A<option value="77" selected>INNOCAP</select>')) === JSON.stringify({ secili: '77', ad: 'INNOCAP' }) && L._sirketSecimi('<p>').secili === null);
+  // Görev 48: "Luca'da aç" için dönem — ortak sayfa başka firmanın işindeyken (kira) beklemeden, firma seçmeden; ikinci kez önbellekten
+  ust = 'combo'; L._sayfaAyar({ kiraMs: 5000 }); await L.prepareFis({ lucaId: '1', year: '2026' });   // ortak sayfa ALFA'nın kirasında
+  donemler[88] = [{ label: '2026', value: 'G26' }]; let say = 0; const eskiDon = donemler[88]; Object.defineProperty(donemler, 88, { get: () => { say++; return eskiDon; }, configurable: true });
+  const t0 = Date.now(); const fd = await L._fisDonemi('88', '2026'); const sure = Date.now() - t0;
+  const fd2 = await L._fisDonemi('88', '2026');
+  t('Luca\'da aç dönemi kilit beklemeden (' + sure + ' ms), firma seçmeden; ikincisi önbellekten', fd.donemId === 'G26' && sure < 1000 && fd2.donemId === 'G26' && say === 1);
+  const fd3 = await L._fisDonemi('1', '2026');
+  t('daha önce seçilmiş firma / dönem (iş seçimlerinden) istek yapmadan', fd3.donemId === 'A26');
   process.exit(ok ? 0 : 1);
 })().catch(e => { console.log('HATA', e); process.exit(1); });
