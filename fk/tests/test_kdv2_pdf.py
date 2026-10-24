@@ -20,7 +20,7 @@ def test_secilen_firmalar_ayri_sayfada(monkeypatch):
     assert "B FİRMA" not in h and "A FİRMA" in h and "C FİRMA" in h
     assert "page-break-before:always" in h and ".firma:first-child" in h   # her firma yeni sayfadan
     a = h.split('data-rapor="A/2026/09"')[1].split("</section>")[0]
-    assert "01.09.2026 – 30.09.2026" in a and "240,00 TL" in a and "3.000,00" in a and "Hazırlayan" in a   # dönem, toplam, matrah, imza
+    assert "01.09.2026 – 30.09.2026" in a and "240,00 TL" in a and "3.000,00" in a and all(x in a for x in ("Hazırlayan", "Kontrol Eden", "Onaylayan")) and "fisimza" in a   # dönem, toplam, matrah, ortak imza alanı
     assert "@page{size:A4 landscape" in h
 
 

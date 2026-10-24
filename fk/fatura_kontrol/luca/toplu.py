@@ -368,8 +368,8 @@ def kdv2_html(sonuclar: list[dict], bas: str | None = None, bit: str | None = No
     """KDV2 raporu, yazdırılabilir / PDF (Görev 56): secili (rapor_id) verilirse yalnız o firmalar. Her firma yeni sayfadan
     başlar; başta firma, VKN, dönem ve toplam; sonda imza alanı. Tek dosya (programın htmlPdf'i ya da tarayıcıda yazdır)."""
     import html as H
+    from ..fis_cikti import FIS_EK_CSS, fis_ek_html, tl              # Görev 53 ortak çıktı: tutar biçimi ve imza alanları
     e = lambda x: H.escape(str(x if x is not None else ""))
-    tl = lambda x: f"{float(x or 0):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     tr = lambda d: ".".join(reversed(str(d or "").split("-"))) if d else ""
     rapor = kdv2_raporu(sonuclar, bas, bit)
     if secili is not None:
@@ -388,8 +388,7 @@ def kdv2_html(sonuclar: list[dict], bas: str | None = None, bit: str | None = No
 <td>KDV</td><td><b>{tl(sum(t['kdv'] for t in f['satirlar']))}</b></td><td>KDV2 (tevkif edilen)</td><td><b>{tl(f['toplam'])} TL</b></td></tr></table>
 <table><thead><tr><th>Tarih</th><th>Belge no</th><th>Satıcı</th><th>VKN</th><th class=n>Matrah</th><th class=n>KDV</th><th>Kod</th><th>Tevkifat türü</th><th>Oran</th><th class=n>KDV2</th></tr></thead>
 <tbody>{sat}</tbody><tfoot><tr><td colspan=9>Firma toplamı</td><td class=n>{tl(f['toplam'])}</td></tr></tfoot></table>
-<table class=imza><tr><td><b>Hazırlayan</b><div class=cizgi></div><span>Ad Soyad · İmza · Tarih</span></td>
-<td><b>Kontrol eden</b><div class=cizgi></div><span>Ad Soyad · İmza · Tarih</span></td></tr></table></section>""")
+{fis_ek_html({"goster": False})}</section>""")
     govde = "".join(firmalar) or "<p>Seçilen firmalarda bu dönemde tevkifatlı alış faturası yok.</p>"
     return f"""<!doctype html><html lang=tr><head><meta charset=utf-8><title>KDV2 Raporu {e(donem)}</title><style>
 @page{{size:A4 landscape;margin:12mm}}body{{font:11px/1.35 "Segoe UI",Arial,sans-serif;color:#111;margin:0}}
@@ -400,8 +399,7 @@ table{{width:100%;border-collapse:collapse;margin-top:6px}}th{{background:#1F386
 td{{border-bottom:1px solid #ccc;padding:3px 6px;vertical-align:top}}td.n,th.n{{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}}
 td.k{{font-family:Consolas,monospace;white-space:nowrap}}tfoot td{{font-weight:700;border-top:2px solid #1F3864;background:#f2f4f8}}
 table.oz td{{border:1px solid #ccd;background:#f7f8fb}}thead{{display:table-header-group}}tr{{page-break-inside:avoid}}
-table.imza{{margin-top:28px;page-break-inside:avoid}}table.imza td{{border:none;width:50%;padding:0 24px 0 0;background:none}}
-table.imza .cizgi{{height:48px;border-bottom:1px solid #333;margin:4px 0}}table.imza span{{color:#555;font-size:10px}}
+{FIS_EK_CSS}
 .ayak{{margin-top:8px;color:#777;font-size:9px}}</style></head><body>{govde}
 <p class=ayak>{e(ofis + " · " if ofis else "")}MuhaWin · {e(datetime.now().strftime("%d.%m.%Y %H:%M"))}</p></body></html>"""
 

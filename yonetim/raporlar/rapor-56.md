@@ -20,7 +20,7 @@ Derleme yapılmadı.
   - Program dışında rapor yeni sekmede yazdırma penceresiyle açılıyor.
 - **Tek PDF, ayrı dosya yok (karar):** Seçilen firmalar tek dosyada, her biri ayrı sayfada. Tek firma istenirse yalnız o seçilir ve dosya adına firma adı eklenir. Firma başına ayrı dosya, her biri için ayrı kaydetme penceresi açacağı için şimdilik eklenmedi. İstenirse aynı uçla firma firma çağrılarak eklenebilir.
 - **Tek firma:** Tek firmada KDV2 "raporu" yok; KDV2 beyannamesi sayfası ve onun mevcut PDF düğmesi var. Orada değişiklik yapılmadı.
-- **Görev 53 ortak çıktı yardımcısı (#98):** Henüz birleşmedi. Başlık ve imza alanı şimdilik `kdv2_html` içinde aynı düzende yazıldı. #98 birleşince `fis_cikti` yardımcılarına bağlanacak; dışa görünen değişiklik olmayacak.
+- **Görev 53 ortak çıktı yardımcısı (sonradan bağlandı):** #98 birleşince imza alanı ortak yardımcıya bağlandı (`fis_cikti.fis_ek_html` + `FIS_EK_CSS`), tutar biçimi için de `fis_cikti.tl` kullanılıyor. Artık diğer fiş çıktılarıyla aynı üç imza alanı var: Hazırlayan / Kontrol Eden / Onaylayan, her birinde Ad Soyad · Tarih · İmza çizgileri.
 
 ## Testler
 - **`fk/tests/test_kdv2_pdf.py` (yeni):**
