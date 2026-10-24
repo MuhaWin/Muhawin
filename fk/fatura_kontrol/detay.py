@@ -137,7 +137,7 @@ def hazirla(r, faturalar, muavin, bas: date, bit: date) -> dict:
         out["gider" if f.yon == "ALIS" else "gelir"].append({
             "anahtar": fatura_anahtari(f), "belge_no": f.belge_no, "tarih": f.tarih.isoformat(), "yon": f.yon,
             "karsi_taraf": f.karsi_unvan, "vkn": f.karsi_vkn, "matrah": _sayi(f.matrah), "kdv": _sayi(f.kdv_toplam),
-            "toplam": _sayi(f.odenecek), "kayitli": bool(kendi),
+            "toplam": _sayi(f.odenecek), "kayitli": bool(kendi), "kalemler": [str(k)[:120] for k in (f.kalemler or [])[:15]],
             "fisler": [{"no": n, "tarih": t.isoformat()} for n, t in fisler],
             "hesaplar": hesaplar, "hesap_toplam": _sayi(toplam),
             "cari": {"kod": c.hesap_kodu, "ad": c.hesap_adi} if c else None, "gecmis": g})

@@ -177,6 +177,8 @@ def main():
         print("Detay denetim")
         bekle(pg, "document.querySelector('#nGider .rozet')", 60000)
         pg.click("#nav [data-g=gider]")
+        kontrol("yalnız MuhaWin masaüstü" in pg.inner_text("#icerik") and not pg.query_selector("#yzToplu"),
+                "yapay zekâ önerisi sitede kapalı (anahtar tarayıcıya girmez)")
         pg.click("#kBasla")
         bekle(pg, "document.querySelector('#kontrolPen.acik #kFis table')", 60000)
         bekle(pg, "document.querySelector('#kFatura').srcdoc.includes('2026')", 60000)

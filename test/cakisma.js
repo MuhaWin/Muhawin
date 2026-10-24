@@ -5,8 +5,10 @@
 // - çakışma: DOM'da biri ötekini içermeyen iki görünür öğenin dikdörtgenleri 2 px'ten fazla kesişirse
 // - taşma: sayfa yatay kaydırılabiliyorsa (scrollWidth > clientWidth) ya da bir öğe pencerenin sağından / solundan çıkıyorsa
 // - kesik metin: metin, kaydırılamayan (overflow:hidden / clip) bir üst öğenin kenarında yarım kalıyorsa (… ile kısaltılan hariç)
-// Kasıtlı üst üste binme için öğeye data-ust-ok konur.
-function cakisma(kok) {
+// - yatay kaydırma: { yatay: [seçici…] } verilirse o kutular yatay kaydırılmamalı (scrollWidth ≤ clientWidth; ör. tablo kutusu)
+// Kasıtlı üst üste binme için öğeye data-ust-ok konur. Çağrı: cakisma(kök seçici | null) ya da cakisma({ kok, yatay })
+function cakisma(arg) {
+  const kok = arg && typeof arg === 'object' ? arg.kok : arg, yatay = (arg && typeof arg === 'object' && arg.yatay) || [];
   const R = kok ? document.querySelector(kok) : document.body;
   const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
   const sonuc = { cakisan: [], tasan: [], kesik: [], sayfaTasma: null, n: 0 };
@@ -20,7 +22,7 @@ function cakisma(kok) {
     const t = (e.innerText || e.value || e.getAttribute('aria-label') || e.getAttribute('alt') || '').replace(/\s+/g, ' ').trim().slice(0, 40); return t ? s + ' "' + t + '"' : s; };
   const gorunur = (e) => { if (!e.getClientRects().length) return false; for (let x = e; x && x.nodeType === 1; x = x.parentElement) { const c = getComputedStyle(x); if (c.visibility === 'hidden' || c.display === 'none' || +c.opacity === 0) return false; if (x.hasAttribute('data-ust-ok')) return false; } return true; };
   // öğenin görünebileceği alan: pencere ∩ taşmayı kesen üst öğeler
-  const klip = (e) => { let a = { l: 0, t: 0, r: vw, b: vh }; for (let x = e.parentElement; x && x !== document.documentElement; x = x.parentElement) { const c = getComputedStyle(x); if (c.overflowX !== 'visible' || c.overflowY !== 'visible' || c.contain.includes('paint')) a = kes(a, kutu(x.getBoundingClientRect())); if (c.position === 'fixed') break; } return a; };
+  const klip = (e, kendi) => { let a = { l: 0, t: 0, r: vw, b: vh }; for (let x = kendi ? e : e.parentElement; x && x !== document.documentElement; x = x.parentElement) { const c = getComputedStyle(x); if (c.overflowX !== 'visible' || c.overflowY !== 'visible' || c.contain.includes('paint')) a = kes(a, kutu(x.getBoundingClientRect())); if (c.position === 'fixed') break; } return a; };
   const KUTU = 'button,a[href],input:not([type=hidden]),select,textarea,img,svg,[role=button],[role=tab],.chip,.btn';
   const adaylar = [];
   for (const e of R.querySelectorAll('*')) {
@@ -33,7 +35,7 @@ function cakisma(kok) {
     const parcalar = [];
     if (kutuMu) parcalar.push(kutu(e.getBoundingClientRect()));
     else for (const n of metinler) { const rg = document.createRange(); rg.selectNodeContents(n); for (const r of rg.getClientRects()) if (r.width > 0.5 && r.height > 0.5) parcalar.push(kutu(r)); }
-    const k = klip(e);
+    const k = klip(e, !kutuMu);   // metin, kendi taşmayı kesen kutusunda da kırpılır (… ile kısaltılan metin)
     // kaydırılamayan bir kutunun kenarında yarım kalan metin
     if (!kutuMu && getComputedStyle(e).textOverflow !== 'ellipsis') {
       let vis = parcalar;   // kaydırılabilen kutunun dışında kalan kısım kesik sayılmaz (kaydırınca görünür)
@@ -44,7 +46,7 @@ function cakisma(kok) {
     const kp = parcalar.map(p => kes(p, k)).filter(p => !bos(p));
     if (!kp.length) continue;
     // pencere dışına taşma (kırpılmayan öğe sağdan / soldan çıkıyor)
-    for (const p of parcalar) if (p.r > vw + 1 || p.l < -1) { const c = kes(p, klip(e)); if (c.r >= vw - 1 || c.l <= 1) { sonuc.tasan.push(ad(e) + ' [' + Math.round(p.l) + '…' + Math.round(p.r) + ' / ' + vw + ']'); break; } }
+    for (const p of parcalar) if (p.r > vw + 1 || p.l < -1) { const c = kes(p, klip(e, !kutuMu)); if (c.r >= vw - 1 || c.l <= 1) { sonuc.tasan.push(ad(e) + ' [' + Math.round(p.l) + '…' + Math.round(p.r) + ' / ' + vw + ']'); break; } }
     adaylar.push({ e, kp, kutuMu });
   }
   // gerçekten görünüyor mu (üstünü başka bir katman örtmüyor mu): içindeki birkaç noktadan biri öğenin kendisine düşmeli
@@ -56,6 +58,10 @@ function cakisma(kok) {
     if (A.e.contains(B.e) || B.e.contains(A.e)) continue;
     for (const p of A.kp) { let bulundu = false; for (const q of B.kp) { const c = kes(p, q); if (c.r - c.l > 2 && c.b - c.t > 2) { sonuc.cakisan.push(ad(A.e) + ' ⟷ ' + ad(B.e) + ' (' + Math.round(c.r - c.l) + '×' + Math.round(c.b - c.t) + ')'); bulundu = true; break; } } if (bulundu) break; }
   }
+  for (const sec of yatay) for (const e of document.querySelectorAll(sec)) if (e.getClientRects().length && e.scrollWidth > e.clientWidth + 1) {
+    const sag = e.getBoundingClientRect().left + e.clientLeft + e.clientWidth - e.scrollLeft; let en = null, enR = sag;   // en sağa taşan iç öğe (nedenini göstermek için)
+    for (const x of e.querySelectorAll('*')) { const r = x.getBoundingClientRect(); if (r.width && r.right > enR + 0.5) { enR = r.right; en = x; } }
+    sonuc.tasan.push('yatay kaydırma: ' + sec + ' ' + e.scrollWidth + ' > ' + e.clientWidth + (en ? ' (en sağda: ' + ad(en) + ' ' + Math.round(enR - sag) + ' px)' : '')); }
   return sonuc;
 }
 module.exports = { cakisma };
