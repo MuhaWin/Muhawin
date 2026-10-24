@@ -29,6 +29,7 @@ from ..rapor_kayit import _db, _sayi, _t, _tarih, defter_turu, rapor_oku, rapor_
 warnings.filterwarnings("ignore", module="openpyxl")
 
 from .. import arsiv, ayarlar, bildirim, depo
+from ..fis_cikti import FIS_EK_CSS, TDHP, ana_hesap_ozeti, fis_ek_html
 
 VERI = depo.veri()
 VERI.mkdir(parents=True, exist_ok=True)
@@ -604,24 +605,6 @@ def denetim_getir(id: str):
     return JSONResponse(json.loads((k / DENETIM_JSON).read_text(encoding="utf-8")))
 
 
-# Tek Düzen Hesap Planı ana hesap adları (fiş görüntüsündeki ana hesap özeti için)
-TDHP = {"100": "Kasa", "101": "Alınan Çekler", "102": "Bankalar", "103": "Verilen Çekler ve Ödeme Emirleri (-)", "108": "Diğer Hazır Değerler",
-        "120": "Alıcılar", "121": "Alacak Senetleri", "126": "Verilen Depozito ve Teminatlar", "127": "Diğer Ticari Alacaklar",
-        "131": "Ortaklardan Alacaklar", "136": "Diğer Çeşitli Alacaklar", "150": "İlk Madde ve Malzeme", "153": "Ticari Mallar",
-        "157": "Diğer Stoklar", "159": "Verilen Sipariş Avansları", "180": "Gelecek Aylara Ait Giderler", "190": "Devreden KDV",
-        "191": "İndirilecek KDV", "193": "Peşin Ödenen Vergiler ve Fonlar", "195": "İş Avansları", "196": "Personel Avansları",
-        "253": "Tesis, Makine ve Cihazlar", "254": "Taşıtlar", "255": "Demirbaşlar", "257": "Birikmiş Amortismanlar (-)",
-        "260": "Haklar", "300": "Banka Kredileri", "309": "Diğer Mali Borçlar", "320": "Satıcılar", "321": "Borç Senetleri",
-        "326": "Alınan Depozito ve Teminatlar", "329": "Diğer Ticari Borçlar", "331": "Ortaklara Borçlar", "335": "Personele Borçlar",
-        "336": "Diğer Çeşitli Borçlar", "340": "Alınan Sipariş Avansları", "360": "Ödenecek Vergi ve Fonlar",
-        "361": "Ödenecek Sosyal Güvenlik Kesintileri", "391": "Hesaplanan KDV", "392": "Diğer KDV", "500": "Sermaye",
-        "600": "Yurtiçi Satışlar", "601": "Yurtdışı Satışlar", "602": "Diğer Gelirler", "610": "Satıştan İadeler (-)",
-        "611": "Satış İskontoları (-)", "612": "Diğer İndirimler (-)", "620": "Satılan Mamuller Maliyeti (-)",
-        "621": "Satılan Ticari Mallar Maliyeti (-)", "622": "Satılan Hizmet Maliyeti (-)", "632": "Genel Yönetim Giderleri (-)",
-        "642": "Faiz Gelirleri", "646": "Kambiyo Karları", "649": "Diğer Olağan Gelir ve Karlar", "653": "Komisyon Giderleri (-)",
-        "656": "Kambiyo Zararları (-)", "659": "Diğer Olağan Gider ve Zararlar (-)", "679": "Diğer Olağandışı Gelir ve Karlar",
-        "689": "Diğer Olağandışı Gider ve Zararlar (-)", "760": "Pazarlama Satış ve Dağıtım Giderleri", "770": "Genel Yönetim Giderleri",
-        "780": "Finansman Giderleri", "790": "Gider Çeşitleri"}
 _FIS_ONBELLEK: dict = {}
 
 
@@ -649,18 +632,15 @@ def _fis_verisi(id: str, fis: str, tarih: str) -> dict:
     if not satirlar:
         raise HTTPException(404, "Fiş muavinde bulunamadı")
     satirlar.sort(key=lambda s: (s.satir, s.hesap_kodu))
-    ana: dict[str, dict] = {}
-    for s in satirlar:
-        a = ana.setdefault(s.hesap_kodu[:3], {"hesap": s.hesap_kodu[:3], "ad": TDHP.get(s.hesap_kodu[:3], ""), "borc": Decimal(0), "alacak": Decimal(0)})
-        a["borc"] += s.borc; a["alacak"] += s.alacak
-    for a in ana.values():
-        if not a["ad"]:
-            a["ad"] = next((s.hesap_adi for s in satirlar if s.hesap_kodu == a["hesap"]), "")
+    oz = ana_hesap_ozeti(((s.hesap_kodu, s.borc, s.alacak) for s in satirlar),
+                         lambda k: TDHP.get(k) or next((s.hesap_adi for s in satirlar if s.hesap_kodu == k), ""))
     b, al = sum((s.borc for s in satirlar), Decimal(0)), sum((s.alacak for s in satirlar), Decimal(0))
     return {"fis_no": fis, "tarih": _t(satirlar[0].fis_tarihi), "tip": satirlar[0].fis_tipi,
             "satirlar": [{"tarih": _t(s.fis_tarihi), "hesap": s.hesap_kodu, "hesap_adi": s.hesap_adi, "aciklama": s.aciklama, "belge_no": s.belge_no or "",
                           "borc": _sayi(s.borc), "alacak": _sayi(s.alacak)} for s in satirlar],
-            "ana": [{**a, "borc": _sayi(a["borc"]), "alacak": _sayi(a["alacak"])} for a in sorted(ana.values(), key=lambda x: x["hesap"])],
+            "ana": [{**a, "borc": _sayi(a["borc"]), "alacak": _sayi(a["alacak"])} for a in oz["ana"]],
+            # yazdırmada ana hesap özeti yalnız aynı ana hesap birden çok satırdaysa (Görev 53)
+            "ozet": oz["goster"],
             "borc": _sayi(b), "alacak": _sayi(al), "dengeli": abs(b - al) <= Decimal("0.01")}
 
 
@@ -672,7 +652,8 @@ def denetim_fis(id: str, fis: str, tarih: str = ""):
 
 @app.get("/api/denetim/fis/yazdir", response_class=HTMLResponse)
 def denetim_fis_yazdir(id: str, fis: str, tarih: str = "", oto: int = 1):
-    """Yazdırılabilir fiş: üstte fişin aslı (muavinden), altta yalnız ana hesaplarla aynı fiş."""
+    """Yazdırılabilir fiş: üstte fişin aslı (muavinden); aynı ana hesap birden çok satırdaysa altta ana hesap özeti;
+    en altta Hazırlayan / Kontrol Eden / Onaylayan imza alanları."""
     import html as H
     v = _fis_verisi(id, fis, tarih)
     firma = id.split("/")[0]
@@ -680,25 +661,19 @@ def denetim_fis_yazdir(id: str, fis: str, tarih: str = "", oto: int = 1):
     tr = lambda d: "-".join(reversed((d or "").split("-"))).replace("-", ".")
     sat = "".join(f"<tr><td class=m>{H.escape(x['hesap'])}</td><td>{H.escape(x['hesap_adi'])}</td><td>{H.escape(x['aciklama'])}</td>"
                   f"<td class=n>{tl(x['borc'])}</td><td class=n>{tl(x['alacak'])}</td></tr>" for x in v["satirlar"])
-    ana = "".join(f"<tr><td class=m>{H.escape(x['hesap'])}</td><td>{H.escape(x['ad'])}</td><td class=n>{tl(x['borc'])}</td><td class=n>{tl(x['alacak'])}</td></tr>"
-                  for x in v["ana"])
+    ek = fis_ek_html({"goster": v["ozet"], "ana": v["ana"], "borc": v["borc"], "alacak": v["alacak"], "dengeli": v["dengeli"]})
     return f"""<!doctype html><html lang=tr><head><meta charset=utf-8><title>Fiş {H.escape(fis)} – {H.escape(firma)}</title>
 <style>body{{font:12px/1.35 Arial,sans-serif;margin:24px;color:#111}}h1{{font-size:16px;margin:0}}h2{{font-size:13px;margin:22px 0 6px}}
 .ust{{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #222;padding-bottom:6px;margin-bottom:8px}}
 table{{width:100%;border-collapse:collapse}}th,td{{border:1px solid #999;padding:4px 6px;text-align:left;vertical-align:top}}th{{background:#eee}}
 td.n,th.n{{text-align:right;white-space:nowrap}}td.m{{font-family:Consolas,monospace;white-space:nowrap}}tfoot td{{font-weight:700;background:#f4f4f4}}
-.not{{color:#555;font-size:11px}}table.imza{{margin-top:36px;page-break-inside:avoid}}table.imza td{{border:none;width:50%;padding:0 24px 0 0;vertical-align:top}}
-table.imza .cizgi{{height:56px;border-bottom:1px solid #333;margin:4px 0}}table.imza span{{color:#555;font-size:11px}}@media print{{.yok{{display:none}}body{{margin:10mm}}}}</style></head><body>
+.not{{color:#555;font-size:11px}}{FIS_EK_CSS}@media print{{.yok{{display:none}}body{{margin:10mm}}}}</style></head><body>
 <div class=yok style="margin-bottom:12px"><button onclick="print()">Yazdır / PDF olarak kaydet</button></div>
 <div class=ust><div><h1>{H.escape(firma)}</h1><div class=not>Muavinden oluşturulan fiş görüntüsü</div></div>
 <div style="text-align:right"><b>Fiş no:</b> {H.escape(fis)} &nbsp; <b>Tarih:</b> {tr(v['tarih'])}<br><span class=not>{H.escape(v['tip'] or '')}</span></div></div>
 <table><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Açıklama</th><th class=n>Borç</th><th class=n>Alacak</th></tr></thead><tbody>{sat}</tbody>
 <tfoot><tr><td colspan=3>Toplam{'' if v['dengeli'] else ' — fiş dengesiz'}</td><td class=n>{tl(v['borc'])}</td><td class=n>{tl(v['alacak'])}</td></tr></tfoot></table>
-<h2>Ana hesaplar görünümü</h2>
-<table><thead><tr><th>Ana hesap</th><th>Hesap adı</th><th class=n>Borç</th><th class=n>Alacak</th></tr></thead><tbody>{ana}</tbody>
-<tfoot><tr><td colspan=2>Toplam</td><td class=n>{tl(v['borc'])}</td><td class=n>{tl(v['alacak'])}</td></tr></tfoot></table>
-<table class=imza><tr><td><b>Hazırlayan</b><div class=cizgi></div><span>Ad Soyad · İmza · Tarih</span></td>
-<td><b>Onaylayan</b><div class=cizgi></div><span>Ad Soyad · İmza · Tarih</span></td></tr></table>
+{ek}
 {'<script>addEventListener("load",()=>setTimeout(()=>print(),300))</script>' if oto else ''}</body></html>"""
 
 

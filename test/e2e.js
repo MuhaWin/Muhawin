@@ -425,6 +425,21 @@ wb.save(${JSON.stringify(mzx)})`]);
     const fisT = await w.textContent('#mmFisT'); const fisN = await w.$$eval('#mmFisB tbody tr', t => t.length);
     check(/Fiş 1 /.test(fisT) && fisN === 2, 'fiş no tıklanınca fişin tüm satırları açıldı (' + fisT + ', ' + fisN + ' satır)');
     await w.screenshot({ path: OUT + '/8b-fis.png' });
+    // Görev 53: fiş PDF / Excel çıktısı — aynı ana hesap tekrarlanmıyorsa özet yok, imza alanları her durumda en altta
+    { await app.evaluate(({ ipcMain }) => { const H = ipcMain._invokeHandlers; global.__g53 = { pdf: H && H.get('html-pdf'), xls: H && H.get('save-file') }; global.__g53c = {};
+        ipcMain.removeHandler('html-pdf'); ipcMain.handle('html-pdf', (e, a) => { global.__g53c.pdf = a.html; return { ok: true }; });
+        ipcMain.removeHandler('save-file'); ipcMain.handle('save-file', (e, a) => { global.__g53c.xls = Buffer.from(a.data).toString('base64'); return { ok: false }; }); });
+      await w.click('#mmFisPdf'); await w.waitForTimeout(600); await w.click('#mmFisXls'); await w.waitForTimeout(600);
+      const c53 = await app.evaluate(() => global.__g53c);
+      const tekrar = await w.$$eval('#mmFisB tbody tr td:first-child', t => { const a = t.map(x => x.textContent.trim().slice(0, 3)); return a.some((k, i) => a.indexOf(k) !== i); });
+      const pdf = c53.pdf || '';
+      check(/Hazırlayan[\s\S]*Kontrol Eden[\s\S]*Onaylayan/.test(pdf) && /Ad Soyad/.test(pdf) && pdf.indexOf('Hazırlayan') > pdf.lastIndexOf('Toplam') && /Ana hesap özeti/.test(pdf) === tekrar,
+        'muavin fiş PDF: imza alanları (Hazırlayan / Kontrol Eden / Onaylayan) en altta; ana hesap özeti yalnız aynı ana hesap tekrarlanınca (' + (tekrar ? 'var' : 'yok') + ')');
+      const aoa = await w.evaluate(b => { const wb = XLSX.read(b, { type: 'base64' }); return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 }).map(r => r.join('|')); }, c53.xls || '');
+      const xi = aoa.findIndex(r => /^Hazırlayan/.test(r));
+      check(xi > aoa.findIndex(r => /Toplam/.test(r)) && /Kontrol Eden.*Onaylayan/.test(aoa[xi]) && aoa.some(r => /^Ad Soyad/.test(r)) && aoa.some(r => /Ana hesap özeti/.test(r)) === tekrar,
+        'muavin fiş Excel: fiş satırlarının altında imza satırları; özet PDF ile aynı kurala göre');
+      await app.evaluate(({ ipcMain }) => { ipcMain.removeHandler('html-pdf'); ipcMain.removeHandler('save-file'); if (global.__g53.pdf) ipcMain.handle('html-pdf', global.__g53.pdf); if (global.__g53.xls) ipcMain.handle('save-file', global.__g53.xls); }); }
     // Görev 55: fiş penceresinde "Luca'da aç" PDF / Excel düğmelerinin solunda; mevcut akışla (fisGoster) doğru fiş no / yıl gider
     { const yer = await w.evaluate(() => { const l = document.querySelector('#mmFisLuca'), p = document.querySelector('#mmFisPdf'), x = document.querySelector('#mmFisXls');
         return { var: !!l, solda: !!(l && p && x && (l.compareDocumentPosition(p) & 4) && (l.compareDocumentPosition(x) & 4) && l.getBoundingClientRect().right <= p.getBoundingClientRect().left + 1),

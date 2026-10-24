@@ -96,6 +96,8 @@ jobs:
         run: node test/guncelleme.js
       - name: Yapay zekâ modülü testi (sahte istemci; dışarıya istek yok)
         run: node test/yz.js
+      - name: Fiş çıktısı yardımcıları testi
+        run: node --test test/fis-ozet.test.js
       - name: Mizan detay hesap (DH)
         run: node test/hesap_dh.js
       - name: Luca testleri
