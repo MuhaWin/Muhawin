@@ -521,6 +521,7 @@ ipcMain.handle('luca-muavin-indir', async (e, a) => { fkLicensed(); const o = a 
   return { ...y, boyut: r.veri.length }; });
 ipcMain.handle('luca-hesap-ekle', (e, a) => luca.hesapEkle(a || {}));
 ipcMain.handle('luca-defter-turu', (e, a) => luca.defterTuru(a || {}));
+ipcMain.handle('luca-kdv-hesaplari', (e, a) => luca.kdvHesaplari(a || {}));
 ipcMain.handle('luca-hesap-ara-vkn', (e, a) => luca.hesapAraVkn(a || {}));
 ipcMain.handle('luca-doviz-kodlari', () => luca.dovizKodlari());
 ipcMain.handle('luca-isletme-listeleri', (e, a) => luca.isletmeListeleri(a || {}));
