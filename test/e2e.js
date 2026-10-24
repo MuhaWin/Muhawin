@@ -368,7 +368,7 @@ wb.save(${JSON.stringify(mzx)})`]);
     // yürüyen bakiye görünen sıraya göre yeniden hesaplanır (son satır = toplam bakiye)
     { const kodlar = await w.$$eval('#mmTable tbody tr[data-mzhesap]', t => t.map(r => r.dataset.kod));
       if (kodlar.length >= 2) {
-        const hf = () => w.evaluate(() => MMUI._st.hesapF);
+        const hf = () => w.evaluate(() => window.__mmui._st.hesapF);
         await w.click(`#mmTable tbody tr[data-kod="${kodlar[0]}"] td >> nth=0`); await w.waitForTimeout(700);
         const ilkH = await hf();
         await w.keyboard.press('ArrowRight'); await w.waitForTimeout(700);
@@ -384,14 +384,14 @@ wb.save(${JSON.stringify(mzx)})`]);
         check(ilkH === kodlar[0] && ikinci !== ilkH && ikinci === kodlar[1] && geri === kodlar[0] && basta === kodlar[0] && kutuda === kodlar[0] && dug,
           'Görev 55: muavinde → sonraki, ← önceki hesap; listenin başında durur; kutu odaktayken oklar hesap değiştirmez (' + [ilkH, ikinci, geri, basta, kutuda].join(' · ') + ')');
         // bakiye: alacağa göre azalan sırala
-        const bk = async () => w.evaluate(() => { const st = MMUI._st; const cols = st.cols.map(c => c[0]); const bi = cols.indexOf('bakiye');
+        const bk = async () => w.evaluate(() => { const st = window.__mmui._st; const cols = st.cols.map(c => c[0]); const bi = cols.indexOf('bakiye');
           const satir = [...document.querySelectorAll('#mmTable tbody tr[data-kod]')]; const ft = document.querySelector('#mmTable tfoot td:nth-child(' + (bi + 1) + ')');
           return { bi, n: satir.length, son: satir.length ? satir[satir.length - 1].cells[bi].textContent.trim() : '', top: ft ? ft.textContent.trim() : '', ilk: satir.length ? satir[0].cells[bi].textContent.trim() : '' }; });
         const once = await bk();
         if (once.bi >= 0 && once.n >= 2) {
           await w.click('[data-mmsort=alacak]'); await w.click('[data-mmsort=alacak]'); await w.waitForTimeout(300);
           const sonra = await bk();
-          const tutarli = await w.evaluate(() => { const st = MMUI._st; const cols = st.cols.map(c => c[0]); const bi = cols.indexOf('bakiye'), b = cols.indexOf('borc'), a = cols.indexOf('alacak');
+          const tutarli = await w.evaluate(() => { const st = window.__mmui._st; const cols = st.cols.map(c => c[0]); const bi = cols.indexOf('bakiye'), b = cols.indexOf('borc'), a = cols.indexOf('alacak');
             const p = x => +String(x).replace(/[^\d,]/g, '').replace(',', '.') || 0; let t = st.acilis || 0;
             return [...document.querySelectorAll('#mmTable tbody tr[data-kod]')].every(r => { t = Math.round((t + p(r.cells[b].textContent) - p(r.cells[a].textContent)) * 100) / 100;
               return Math.abs(Math.abs(t) - p(r.cells[bi].textContent)) < 0.01; }); });
@@ -433,7 +433,7 @@ wb.save(${JSON.stringify(mzx)})`]);
       if (yer.var && !yer.pasif) {
         await w.evaluate(() => { window.__fgEski = window.__mwApi.luca.fisGoster; window.__fgIstek = null; window.__mwApi.luca.fisGoster = a => { window.__fgIstek = a; return Promise.resolve({ ok: true }); }; });
         await w.click('#mmFisLuca'); await w.waitForTimeout(1500);
-        istek = await w.evaluate(() => { const a = window.__fgIstek; window.__mwApi.luca.fisGoster = window.__fgEski; const r = MMUI._st.fisAcik.r; return a && { ...a, beklenen: { fisNo: String(r.fis_no), year: String(r.tarih).slice(0, 4) } }; });
+        istek = await w.evaluate(() => { const a = window.__fgIstek; window.__mwApi.luca.fisGoster = window.__fgEski; const r = window.__mmui._st.fisAcik.r; return a && { ...a, beklenen: { fisNo: String(r.fis_no), year: String(r.tarih).slice(0, 4) } }; });
       }
       check(yer.var && yer.solda && (yer.pasif ? /Luca karşılığı yok/.test(yer.ipucu) : !!istek && istek.fisNo === istek.beklenen.fisNo && istek.year === istek.beklenen.year),
         'Görev 55: fiş penceresinde "Luca\'da aç" PDF / Excel düğmelerinin solunda; ' + (yer.pasif ? 'firmanın Luca karşılığı yok: pasif, nedeni ipucunda' : 'Luca\'da aç isteği doğru fiş / yılla gitti (' + JSON.stringify(istek) + ')')); }

@@ -3581,6 +3581,7 @@ const MMUI=(()=>{
   };
   return {open,close,_st:st,_mojibake:mojibakeDuzelt};
 })();
+window.__mmui=MMUI;   // testler için
 $('#mmBtn').addEventListener('click',()=>MMUI.open('mizan'));
 // Luca'da Çalış: kullanıcının kendi çalışacağı, programın sorgu yapmadığı tam ekran Luca penceresi (MuhaWin'in önünde)
 if(window.desktop&&window.desktop.luca&&window.desktop.luca.calis){$('#lucaCalisBtn').hidden=false;
