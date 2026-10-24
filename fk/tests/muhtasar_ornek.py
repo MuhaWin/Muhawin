@@ -48,6 +48,56 @@ SATIRLAR = [
 ]
 
 
+# Gerçek GİB çıktısına yakın düzen (yöneticinin gerçek PDF'te gördükleri): vergi dairesi iki satıra bölünmüş ve aynı
+# satırlarda dönem sütunları; "Onay Zamanı :"; tür kodu satırında açıklama yok; icmal alt alta "etiket tutar";
+# "Damga Vergisi" başlığı altında "Ödenecek"; kişi satırları çok satırlı, belge türü "S.M." / alt satırda "Makbuz".
+# Her satır: [(x, metin), …]
+GERCEK = [
+    [(30, "MUHTASAR VE PRİM HİZMET BEYANNAMESİ"), (450, "1003A")],
+    [(130, "ANTALYA KURUMLAR VERGİ DAİRESİ"), (330, "DÖNEM TİPİ"), (420, "Yıl"), (460, "2026")],
+    [(30, "Vergi Dairesi"), (130, "MÜDÜRLÜĞÜ"), (330, "Aylık"), (420, "Ay"), (460, "Eylül")],
+    [(30, "Onay Zamanı :"), (130, "23.10.2026 - 12:18:17")],
+    [(30, "VERGİ SORUMLUSUNUN")],
+    [(30, "Vergi Kimlik Numarası"), (200, "3810463613"), (330, "E-Posta"), (400, "ornek@ornek.com.tr")],
+    [(30, "Soyadı (Unvanı)"), (200, "DENETİM İNŞAAT SANAYİ")],
+    [(30, "Adı (Unvanın Devamı)"), (200, "VE TİCARET LİMİTED ŞİRKETİ")],
+    [(30, "MATRAH VE VERGİ BİLDİRİMİ")],
+    [(30, "Ödemelerin Türü"), (300, "Gayrisafi Tutar"), (430, "Vergi Kesinti Tutarı")],
+    [(30, "Ücret Ödemeleri")],
+    [(30, "011"), (300, "51.747,00"), (430, "4.123,45")],
+    [(30, "Serbest Meslek Kazançları")],
+    [(30, "022"), (300, "6.000,00"), (430, "1.200,00")],
+    [(30, "GMSİ Kira (Bina)")],
+    [(30, "041"), (300, "90.625,00"), (430, "18.125,00")],
+    [(30, "302"), (300, "0,00"), (430, "0,00")],
+    [(30, "Toplam"), (300, "148.372,00"), (430, "23.448,45")],
+    [(30, "Terkin Sonrası Kalan Vergi Tutarı"), (430, "23.448,45")],
+    [(30, "Tevkifata İlişkin Damga Vergisi"), (430, "0,00")],
+    [(30, "VERGİ BİLDİRİMİ")],
+    [(30, "Toplam Çalışan Sayısı"), (300, "7")],
+    [(30, "TAHAKKUKA ESAS İCMAL CETVELİ")],
+    [(30, "Matrah"), (300, "148.372,00")],
+    [(30, "Tahakkuk Eden"), (300, "23.448,45")],
+    [(30, "Mahsup Edilen"), (300, "0,00")],
+    [(30, "Tecil Edilecek Tutar"), (300, "0,00")],
+    [(30, "Ödenecek"), (300, "23.448,45")],
+    [(30, "İade Edilecek"), (300, "0,00")],
+    [(30, "Damga Vergisi")],
+    [(30, "Ödenecek"), (300, "0,00")],
+    [(30, "TEVKİFATA TABİ ÖDEMELERE AİT BİLDİRİM (ÜCRET HARİÇ)")],
+    [(30, "12345678901"), (110, "AHMET"), (200, "KONYAALTI"), (300, "022"), (340, "S.M."), (390, "15.09.2026"), (450, "SMM2026000000022")],
+    [(110, "YILMAZ"), (200, "ANTALYA"), (340, "Makbuz"), (470, "6.000,00")],
+    [(470, "1.200,00")],
+    [(30, "23456789012"), (110, "AYŞE"), (200, "MURATPAŞA"), (300, "041"), (340, "Yok"), (390, "01.09.2026")],
+    [(110, "KAYA"), (200, "ANTALYA"), (470, "90.625,00")],
+    [(470, "18.125,00")],
+    [(30, "GAYRİSAFİ TUTAR TOPLAMI"), (470, "96.625,00")],
+    [(30, "KESİLEN VERGİ TUTARI TOPLAMI"), (470, "19.325,00")],
+    [(30, "Sigortalı Çalışan Bilgileri")],
+    [(30, "34567890123"), (110, "MEHMET DEMİR"), (300, "30 33030.00 2.477,25")],
+]
+
+
 def muhtasar_yaz(yol: Path, satirlar=None):
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfbase import pdfmetrics
@@ -60,11 +110,11 @@ def muhtasar_yaz(yol: Path, satirlar=None):
     pdfmetrics.registerFont(TTFont("DejaVu", font))
     c = canvas.Canvas(str(yol), pagesize=A4)
     y = 810
-    for sol, sag in satirlar or SATIRLAR:
+    for satir in satirlar or SATIRLAR:
         if y < 40:
             c.showPage(); y = 810
         c.setFont("DejaVu", 8)
-        c.drawString(30, y, sol)
-        c.drawString(280, y, sag)
+        for x, metin in (satir if isinstance(satir, list) else [(30, satir[0]), (280, satir[1])]):
+            c.drawString(x, y, metin)
         y -= 14
     c.save()

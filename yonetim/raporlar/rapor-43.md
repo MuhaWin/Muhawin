@@ -226,9 +226,16 @@ Yazdırılabilir HTML; masaüstünde ve sitede ayrı pencerede açılır. Toplu 
   - diğer kodlar bilgi olarak.
   - Beyannamenin dönemi ya da VKN'si denetimle tutmazsa uyarı çıkar.
 - **Güncel kalır:** Karşılaştırma her açılışta güncel denetim ve muavinle yeniden yapılır.
-- **Gerçek PDF ile denenmedi.**
-  - Sahte PDF, aktarılan bölüm düzeninde reportlab ile üretildi (`fk/tests/muhtasar_ornek.py`).
-  - Gerçek GİB PDF'inde satır düzeni farklıysa okuma ayarlanmalı. Özellikle kişi başına gayrisafi / kesinti satırları bilinmiyor; genel toplamla tutmazsa ekranda uyarı çıkar.
+- **Gerçek PDF'te yöneticinin denemesi:**
+  - Yönetici gerçek PDF'i yalnız kendi oturumunda okuttu. Form, dönem, VKN, unvan, kod tutarları ve toplamlar doğru çıktı.
+  - Beş hata vardı; düzeltildi (ayrı commit):
+    1. Vergi dairesi iki satıra bölünmüş ve aynı satırlarda dönem sütunları vardı. Artık büyük harfli "… VERGİ DAİRESİ" sütunu alınıyor, komşu satırdaki "MÜDÜRLÜĞÜ" ekleniyor.
+    2. "Onay Zamanı :" (iki noktalı) okunmuyordu.
+    3. Tür kodu satırında açıklama yokken tutar "ad" sanılıyordu. Artık tutarlar çıkarılıyor; ad bir üst açıklama satırından ya da bilinen tür adından geliyor.
+    4. İcmal alt alta "etiket tutar" düzenindeydi; ayrıca "Damga Vergisi" başlığının altında "Ödenecek" vardı.
+    5. Belge türü "S.M." / alt satırda "Makbuz" olunca 022 satırı atlanıyordu.
+  - Sahte PDF'e bu düzende ikinci bir örnek eklendi (`muhtasar_ornek.GERCEK`) ve testi var.
+  - Düzeltme gerçek metinle henüz sınanmadı; yöneticiden maskeli pypdf metni istendi.
 
 ### Değişen / yeni dosyalar (Faz 2)
 | Dosya | Değişiklik |

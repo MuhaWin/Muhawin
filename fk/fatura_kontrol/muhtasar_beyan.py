@@ -53,12 +53,33 @@ def pdf_metni(veri: bytes) -> str:
         raise BeyannameHatasi(f"PDF okunamadı: {type(e).__name__}") from e
 
 
+def _sutunlar(satir: str) -> list[str]:
+    return [x for x in re.split(r"\s{2,}", satir.strip()) if x]
+
+
+def _vergi_dairesi(satirlar: list[str]) -> str:
+    """Vergi dairesi adı iki satıra bölünebiliyor ("… VERGİ DAİRESİ" / "MÜDÜRLÜĞÜ") ve aynı satırlarda dönem sütunları var:
+    büyük harfli "VERGİ DAİRESİ" sütunu alınır, komşu satırdaki "MÜDÜRLÜĞÜ" sütunu eklenir."""
+    for i, s in enumerate(satirlar[:40]):
+        for c in _sutunlar(s):
+            c = re.sub(r"^Vergi\s+Dairesi\s*:?\s*", "", c).strip()
+            if "vergi dairesi" in _k(c) and c == c.upper():
+                ek = next((d for j in (i + 1, i - 1) if 0 <= j < len(satirlar) for d in _sutunlar(satirlar[j])
+                           if _k(d).startswith("mudurlugu")), "")
+                return f"{c} {ek}".strip() if ek and "mudurlugu" not in _k(c) else c
+    return ""
+
+
 def ayristir(metin: str) -> dict:
     b: dict = {"form": "", "vergi_dairesi": "", "yil": None, "ay": None, "onay": "", "vkn": "", "unvan": "",
                "kodlar": {}, "toplam": None, "terkin": None, "kalan_vergi": None, "damga": None,
                "icmal": [], "damga_odenecek": None, "tevkifat": {"kodlar": {}, "gayrisafi": None, "vergi": None}}
-    bolum, unvan, kisi_kod, kisi_tutar = "", [], None, []
-    for ham in metin.splitlines():
+    bolum, unvan, kisi_kod, kisi_tutar, aciklama, icmal = "", [], None, [], "", None
+    satirlar = metin.splitlines()
+    b["vergi_dairesi"] = _vergi_dairesi(satirlar)
+    ICMAL_ALAN = [("matrah", "matrah"), ("tahakkuk eden", "tahakkuk"), ("mahsup", "mahsup"), ("tecil", "tecil"),
+                  ("odenecek", "odenecek"), ("iade", "iade")]
+    for ham in satirlar:
         s = ham.strip()
         if not s:
             continue
@@ -84,10 +105,8 @@ def ayristir(metin: str) -> dict:
             b["yil"] = int(m.group(1))
         if (m := re.search(r"\bay\s+(" + "|".join(AYLAR) + r")\b", k)) and b["ay"] is None:
             b["ay"] = AYLAR.index(m.group(1)) + 1
-        if (m := re.search(r"onay zamani\s+(\d{2}\.\d{2}\.\d{4})(?:\s*-\s*(\d{2}:\d{2}(?::\d{2})?))?", k)):
+        if (m := re.search(r"onay zamani\s*:?\s*(\d{2}\.\d{2}\.\d{4})(?:\s*-\s*(\d{2}:\d{2}(?::\d{2})?))?", k)):
             b["onay"] = m.group(1) + (" " + m.group(2) if m.group(2) else "")
-        if k.startswith("vergi dairesi") and not b["vergi_dairesi"]:
-            b["vergi_dairesi"] = re.sub(r"(?i)^vergi\s+dairesi\s*", "", s).strip()
         if bolum == "kimlik":
             if (m := re.search(r"vergi kimlik (?:numarasi|no)\s+(\d{10,11})", k)):
                 b["vkn"] = m.group(1)
@@ -96,8 +115,13 @@ def ayristir(metin: str) -> dict:
             continue
         t = _tutarlar(s)
         if bolum == "matrah":
-            if (m := re.match(r"^(\d{3})\s+(.*?)\s+" + TUTAR, s)) and len(t) >= 2:
-                b["kodlar"][m.group(1)] = {"ad": m.group(2).strip(), "gayrisafi": t[-2], "vergi": t[-1]}
+            if (m := re.match(r"^(\d{3})\b", s)) and len(t) >= 2:
+                # ad aynı satırda olabilir ya da bir üst satırda (tutarsız açıklama satırı); yoksa bilinen tür adı
+                ad = re.sub(r"\s{2,}", " ", _TUTAR_RE.sub(" ", s[3:])).strip() or aciklama or TUR_ADLARI.get(m.group(1), "")
+                b["kodlar"][m.group(1)] = {"ad": ad, "gayrisafi": t[-2], "vergi": t[-1]}
+                aciklama = ""
+            elif not t and not re.match(r"^\d{3}\b", s) and not k.startswith("odemelerin tur"):
+                aciklama = re.sub(r"\s{2,}", " ", s)
             elif k.startswith("toplam") and len(t) >= 2:
                 b["toplam"] = {"gayrisafi": t[-2], "vergi": t[-1]}
             elif "terkin sonrasi kalan" in k and t:
@@ -109,17 +133,31 @@ def ayristir(metin: str) -> dict:
         elif bolum == "icmal":
             if k.startswith("damga vergisi odenecek") and t:
                 b["damga_odenecek"] = t[-1]
-            elif len(t) >= 5:
+            elif len(t) >= 5:                                  # tek satırda: ad + 6 sütun
                 ad = re.split(TUTAR, s)[0].strip()
                 adlar = ["matrah", "tahakkuk", "mahsup", "tecil", "odenecek", "iade"]
                 b["icmal"].append({"ad": ad, **dict(zip(adlar, t[:6]))})
+                if "damga" in _k(ad):
+                    b["damga_odenecek"] = t[4]
+            elif not t and k.startswith(("vergi turu", "vergi kodu")):
+                continue                                       # sütun başlığı
+            elif not t and not any(k.startswith(e) for e, _ in ICMAL_ALAN):   # alt alta düzen: vergi türü başlığı
+                icmal = {"ad": re.sub(r"\s{2,}", " ", s)}
+                b["icmal"].append(icmal)
+            elif t and (alan := next((a for e, a in ICMAL_ALAN if k.startswith(e)), None)):
+                if icmal is None or alan in icmal:             # başlıksız ilk blok: gelir vergisi stopajı
+                    icmal = {"ad": "Gelir Vergisi Stopajı" if icmal is None else "Diğer"}
+                    b["icmal"].append(icmal)
+                icmal[alan] = t[-1]
+                if alan == "odenecek" and "damga" in _k(icmal["ad"]):
+                    b["damga_odenecek"] = t[-1]
         elif bolum == "tevkifat":
             # kişi satırları: yalnız tür kodu ve tutarlar alınır; TC / ad / adres okunmaz, saklanmaz
             if k.startswith("gayrisafi tutar toplami") and t:
                 b["tevkifat"]["gayrisafi"] = t[-1]; continue
             if k.startswith("kesilen vergi tutari toplami") and t:
                 b["tevkifat"]["vergi"] = t[-1]; continue
-            if (m := re.search(r"(?<!\d)(0\d\d)\s+(?:s\.?\s*m\.?\s*makbuz|yok|fatura|gider pusulasi|diger)\b", k)):
+            if (m := re.search(r"(?<![\d.])(0\d\d)\s+(?:s\.\s*m\.|s\.?\s*m\.?\s*makbuz|makbuz|yok|fatura|gider pusulasi|diger)(?![a-z])", k)):
                 kisi_kod, kisi_tutar = m.group(1), []
                 x = b["tevkifat"]["kodlar"].setdefault(kisi_kod, {"adet": 0, "gayrisafi": Decimal(0), "vergi": Decimal(0)})
                 x["adet"] += 1
@@ -134,6 +172,7 @@ def ayristir(metin: str) -> dict:
                     kisi_tutar.append(v)
                     b["tevkifat"]["kodlar"][kisi_kod][alan] += v
     b["unvan"] = " ".join(x for x in unvan if x)
+    b["icmal"] = [x for x in b["icmal"] if len(x) > 1]           # tutarsız başlıklar atılır
     if not b.get("baslik") and not b["kodlar"]:
         raise BeyannameHatasi("Bu dosya Muhtasar ve Prim Hizmet Beyannamesi (1003A) görünmüyor.")
     b.pop("baslik", None)

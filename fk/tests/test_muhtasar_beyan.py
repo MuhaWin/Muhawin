@@ -10,7 +10,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent))
 pytest.importorskip("reportlab")
 pytest.importorskip("pypdf")
-from muhtasar_ornek import muhtasar_yaz  # noqa: E402
+from muhtasar_ornek import GERCEK, muhtasar_yaz  # noqa: E402
 from fatura_kontrol import muhtasar_beyan as MB  # noqa: E402
 
 KISISEL = ["12345678901", "23456789012", "34567890123", "AHMET", "AYŞE", "MEHMET", "KONYAALTI", "MURATPAŞA", "ornek@ornek", "33030"]
@@ -35,6 +35,28 @@ def test_beyanname_okunur_calisan_bolumu_ve_kisisel_veri_yok(pdf):
     metin = json.dumps(MB.kayit_bicimi(b), ensure_ascii=False)
     assert not [x for x in KISISEL if x in metin], metin                  # TC, ad, adres, e-posta, çalışan ücreti yok
     assert "calisan" not in metin.lower() and "Toplam Çalışan" not in metin
+
+
+def test_gercek_duzen(tmp_path):
+    """Gerçek GİB PDF'inde görülen düzen: vergi dairesi iki satırda (etiket ikinci satırda, yanında dönem sütunları),
+    "Onay Zamanı :", tür kodu satırında açıklama yok, icmal alt alta, damga başlığı altında "Ödenecek",
+    kişi satırları çok satırlı ve belge türü "S.M." / "Makbuz" iki satırda."""
+    y = tmp_path / "g.pdf"; muhtasar_yaz(y, GERCEK)
+    b = MB.oku(y.read_bytes())
+    assert b["vergi_dairesi"] == "ANTALYA KURUMLAR VERGİ DAİRESİ MÜDÜRLÜĞÜ"
+    assert b["onay"] == "23.10.2026 12:18:17" and (b["yil"], b["ay"]) == (2026, 9)
+    assert {k: x["ad"] for k, x in b["kodlar"].items()} == {"011": "Ücret Ödemeleri", "022": "Serbest Meslek Kazançları",
+                                                            "041": "GMSİ Kira (Bina)", "302": ""}
+    assert float(b["kodlar"]["041"]["gayrisafi"]) == 90625 and float(b["toplam"]["gayrisafi"]) == 148372
+    assert [(x["ad"], float(x.get("tahakkuk", -1)), float(x["odenecek"])) for x in b["icmal"]] == \
+        [("Gelir Vergisi Stopajı", 23448.45, 23448.45), ("Damga Vergisi", -1, 0)]
+    assert float(b["damga_odenecek"]) == 0 and float(b["icmal"][0]["matrah"]) == 148372
+    t = b["tevkifat"]
+    assert {k: (x["adet"], float(x["gayrisafi"]), float(x["vergi"])) for k, x in t["kodlar"].items()} == \
+        {"022": (1, 6000, 1200), "041": (1, 90625, 18125)}
+    assert float(t["gayrisafi"]) == 96625 and float(t["vergi"]) == 19325
+    metin = json.dumps(MB.kayit_bicimi(b), ensure_ascii=False)
+    assert not [x for x in KISISEL + ["YILMAZ", "KAYA", "SMM2026000000022"] if x in metin], metin
 
 
 def test_baska_pdf_reddedilir(tmp_path):
