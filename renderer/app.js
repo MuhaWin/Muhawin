@@ -4780,7 +4780,7 @@ const HUB=(()=>{
       {id:'ozet',ad:'Günün özeti',d:'Bugün (ya da seçilen aralıkta) Luca\'ya kaydedilen fişler, indirilen muavinler ve diğer işler — firma bazında, PDF.',i:I.tablo,ac:()=>OZET.ac()},
       {id:'kdviade',ad:'KDV iade listeleri',d:'İndirilecek KDV ve yüklenilen KDV listelerini GİB\'in güncel Excel biçiminde hazırlar.',i:I.kdv,dev:true}]},
     ozel:{t:'Ofisinize Özel Çözümler',p:'Sadece sizin muhasebe ofisinize özel, sizin tarafınızdan talep edilmiş yazılımlar. Bir işlem seçin.',k:[
-      {id:'mikro',ad:'Muhasebe Denetimi',d:'Mikro\'dan alınan alış / satış XML\'leri ve firmanın Mikro muaviniyle firma denetimi: KDV, matrah ve cari kontrolü; KDV 1 / KDV 2 beyannamesi, çıktı raporu ve muhtasar taslağı.',i:I.tablo,ac:()=>{HUB.hide();CEK.hide();MDENET.show();}},
+      {id:'mikro',ad:'Muhasebe Denetimi',d:'Muhasebe programından (Mikro, Luca) alınan alış / satış XML\'leri ve firmanın muaviniyle firma denetimi: KDV, matrah ve cari kontrolü; KDV 1 / KDV 2 beyannamesi, çıktı raporu ve muhtasar taslağı.',i:I.tablo,ac:()=>{HUB.hide();CEK.hide();MDENET.show();}},
       {id:'cek',ad:'Çek / Senet Kayıtları',d:'Logo ve Mikro\'dan alınan çek / senet Excel dosyalarını okur, Luca muavini ile eşleştirip raporlar; eksik kayıtları fiş olarak hazırlar ve Luca\'ya işler.',i:I.kur,ac:()=>{HUB.hide();MDENET.hide();CEK.show();}}]}};
   let aktif=null;
   function show(id){aktif=id;const x=ISLER[id];$('#hubT').textContent=x.t;$('#hubP').textContent=x.p;
@@ -5753,7 +5753,7 @@ const FKAYIT=(()=>{
 })();
 window.__fkayit=FKAYIT;
 
-/* ---------- Ofisinize Özel Çözümler › Mikro Denetim: Fatura Kontrol yan sürecinde çalışan sayfa (denetim.html) ---------- */
+/* ---------- Ofisinize Özel Çözümler › Muhasebe Denetimi: Fatura Kontrol yan sürecinde çalışan sayfa (denetim.html) ---------- */
 const MDENET=(()=>{
   let url=null;
   const fr=()=>$('#mdFrame');

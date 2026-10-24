@@ -89,7 +89,8 @@ test('Denetim program seçimi: yalnız denetime uygun programlar (?denetim=1)', 
   const hepsi = json(await istek('GET', '/api/muavin/programlar')).programlar.map(p => p.kod);
   const denetim = json(await istek('GET', '/api/muavin/programlar', { sorgu: { denetim: '1' } })).programlar.map(p => p.kod);
   const sifir = json(await istek('GET', '/api/muavin/programlar', { sorgu: { denetim: '0' } })).programlar.map(p => p.kod);
-  assert.ok(denetim.includes('mikro') && denetim.length < hepsi.length, JSON.stringify({ hepsi, denetim }));
+  assert.deepStrictEqual(denetim, ['mikro', 'elektra', 'luca']);          // Görev 43: Mikro · Elektra (örnek bekliyor) · Luca
+  assert.ok(!hepsi.includes('elektra'), JSON.stringify(hepsi));
   assert.deepStrictEqual(sifir, hepsi);
 });
 
@@ -114,7 +115,11 @@ test('belge sınırı (GirdiSiniri): uygulamanın kendi 400 iletisi döner', asy
 
 test('hatalar ve kapalı bölümler', async () => {
   const eksik = await istek('POST', '/api/denetim', { form: { bas: ['2026-09-01'] } });
-  assert.strictEqual(eksik.durum, 422);
+  assert.strictEqual(eksik.durum, 400);                              // muavin artık isteğe bağlı alan (Luca'dan da gelir)
+  assert.match(json(eksik).detail, /e-fatura dosyalarını/);
+  const elektra = await istek('POST', '/api/denetim', { form: { bas: ['2026-09-01'], program: ['elektra'] } });
+  assert.strictEqual(elektra.durum, 400);
+  assert.match(json(elektra).detail, /Elektra muavin örneği bekleniyor/);
   for (const yol of ['/api/toplu/durum', '/api/kontrol/luca-faturalari', '/api/ayarlar']) {
     assert.strictEqual((await istek('GET', yol)).durum, 404, yol);
   }

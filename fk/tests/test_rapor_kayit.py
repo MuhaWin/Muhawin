@@ -74,16 +74,15 @@ def test_masaustunde_gecmis_yine_yazilir(c, tmp_path):
 def test_denetim_program_listesi(c):
     from fatura_kontrol import muavin_programlari as MP
     d = c.get("/api/muavin/programlar", params={"denetim": 1}).json()["programlar"]
-    assert [p["kod"] for p in d] == [k for k, v in MP.PROGRAMLAR.items() if v.get("denetim") and not v.get("gizli")]
-    assert "mikro" in [p["kod"] for p in d] and "luca" not in [p["kod"] for p in d]
+    assert [p["kod"] for p in d] == MP.DENETIM_SIRA == ["mikro", "elektra", "luca"]     # Görev 43: Mikro · Elektra · Luca
     assert all(p["ad"] and p["ipucu"] for p in d)
     tum = c.get("/api/muavin/programlar").json()["programlar"]
-    assert "luca" in [p["kod"] for p in tum]                 # tek firma kontroldeki liste değişmedi
+    assert [p["kod"] for p in tum] == ["luca", "mikro", "luca_isletme_excel"]   # tek firma kontroldeki liste değişmedi
 
 
 def test_denetimde_olmayan_program_reddedilir(c, tmp_path):
     z, m = _belgeler(tmp_path)
-    r = c.post("/api/denetim", data={"bas": "2026-09-01", "bit": "2026-09-30", "program": "luca"},
+    r = c.post("/api/denetim", data={"bas": "2026-09-01", "bit": "2026-09-30", "program": "luca_isletme_excel"},
                files=[("faturalar", ("p.zip", z.read_bytes(), "application/zip")),
                       ("muavinler", ("m.xlsx", m.read_bytes(), "application/octet-stream"))])
     assert r.status_code == 400 and "Denetim ekranında desteklenmiyor" in r.json()["detail"]

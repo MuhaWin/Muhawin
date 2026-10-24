@@ -23,6 +23,17 @@ if a.liste:
 firmalar = [f for f in T.liste_oku() if f["id"] in a.idler.split(",")] if a.idler else \
     [f for f in T.liste_oku() if f["dahil"]]
 y, m = map(int, a.ay.split("-"))
+if a.yalniz_fatura and a.adim == "muavin":     # Denetim › "Muavini Luca'dan Al": yalnız muavin dönem klasörüne
+    from test_luca_otomasyon import muavin_yaz
+    il = T.Ilerleme(k, date(y, m, 1), date(y, m, 28), firmalar)
+    for f in firmalar:
+        r = depo.donem_klasoru(f["ad"], date(y, m, 1)); r.mkdir(parents=True, exist_ok=True)
+        muavin_yaz(r / "muavin.xlsx")
+        eski = T.adimlari_oku(r)
+        (r / "adimlar.json").write_text(json.dumps([x for x in eski if T.adim_kodu(x) != "muavin"] +
+                                                   [{"adim": "Muavin indirildi", "durum": "tamam", "ayrinti": "5 KB"}], ensure_ascii=False), encoding="utf-8")
+    il.yaz(asama="bitti", mesaj="bitti")
+    raise SystemExit
 if a.yalniz_fatura:           # Tek firma › "Luca'dan al": yalnız e-belgeler firmanın dönem arşivine
     import zipfile, sys as _s
     from test_luca_otomasyon import ubl, FIRMA_VKN

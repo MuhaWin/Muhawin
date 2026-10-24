@@ -275,7 +275,7 @@ $("#pdf").onclick = () => {
   const d = new Date(), o = new Date(d.getFullYear(), d.getMonth() - 1, 1), s = new Date(d.getFullYear(), d.getMonth(), 0);
   const iso = x => x.toISOString().slice(0, 10); $("#dBas").value = iso(o); $("#dBit").value = iso(s);
   await donemleriYukle();
-  { const id = new URLSearchParams(location.search).get("id"); const d = id && donemler.find(x => x.id === id);   // Mikro Denetim'den: o dönem doğrudan açılır
+  { const id = new URLSearchParams(location.search).get("id"); const d = id && donemler.find(x => x.id === id);   // Muhasebe Denetimi'nden: o dönem doğrudan açılır
     if (id) { if (d) firmaK = fAnahtar(d); secili = id; donemleriCiz(); hazirla(); } }
   if (!secili) firmaAc();
 })();
