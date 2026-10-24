@@ -50,7 +50,7 @@
 - `yonetim/raporlar/rapor-39.md`
 
 ## Testler (Linux, xvfb; derleme yok)
-- `xvfb-run -a node test/e2e.js`: **295 ✓, 0 başarısız.**
+- `xvfb-run -a node test/e2e.js`: **314 ✓, 0 başarısız** (`main` ve Görev 34 değişiklikleri birleştirildikten sonra).
 - `node test/mobil.js`: **45/45.**
 - **Yeni e2e denetimi**, Z raporu, ÖKC fişi ve yurt dışı fatura için ayrı ayrı. Her adımda ekrandaki eklenen / çıkarılan satır sayısı ve fiş dengesi ölçülüyor:
   1. ＋ Satır ekle → boş satır ekranda görünüyor, fişe girmiyor
