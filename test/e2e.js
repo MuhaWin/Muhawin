@@ -576,6 +576,8 @@ c.save()`]);
     { const kaynak = fs.readFileSync(path.join(APP, 'renderer', 'app.js'), 'utf8');   // Görev 28: arayüz betiği index.html'den app.js'e taşındı
       const cagri = kaynak.match(/pdfjsLib\.getDocument\(\{.*?\}\)\.promise/g) || [];
       check(cagri.length >= 3 && cagri.every(c => /isEvalSupported:false/.test(c)), 'pdf.js: her getDocument çağrısında isEvalSupported:false (' + cagri.length + ' çağrı)');
+      { const v = path.join(APP, 'renderer', 'vendor'); const surum = (fs.readFileSync(path.join(v, 'pdf.min.mjs'), 'utf8').match(/apiVersion:"(\d+\.\d+\.\d+)"/) || [])[1] || '';
+        check(/^5\./.test(surum) && fs.existsSync(path.join(v, 'pdf.worker.min.mjs')) && !fs.existsSync(path.join(v, 'pdf.min.js')), 'pdf.js 5.x (ES modülü + worker), eski 3.11 dosyaları yok (' + surum + ')'); }
       // Görev 28: satır içi betik yok; CSP script-src 'unsafe-inline' içermiyor ve oturum boyunca CSP ihlali yok
       const csp = f => ((fs.readFileSync(path.join(APP, 'renderer', f), 'utf8').match(/Content-Security-Policy" content="([^"]*)"/) || [])[1] || '');
       const satirIci = f => /<script(?![^>]*\bsrc=)[^>]*>/i.test(fs.readFileSync(path.join(APP, 'renderer', f), 'utf8')) || /\son[a-z]+\s*=\s*["']/i.test(fs.readFileSync(path.join(APP, 'renderer', f), 'utf8'));

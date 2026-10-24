@@ -201,9 +201,17 @@ function parseExcelTable(t,map){
   return finishRows(out,null);
 }
 
+/* ---------- PDF okuyucu (pdf.js 5.x, ES modülü; Görev 30) ----------
+   Kütüphane ilk PDF okunurken yüklenir; worker ayrı modül dosyası (CSP: script-src 'self', worker-src 'self'). Her getDocument
+   çağrısı isEvalSupported:false ile (yazı tipi gliflerinde kod derlenmez). */
+let pdfYuk=null;
+function pdfKutuphane(){
+  if(!pdfYuk)pdfYuk=import('./vendor/pdf.min.mjs').then(m=>{m.GlobalWorkerOptions.workerSrc=new URL('vendor/pdf.worker.min.mjs',location.href).href;window.pdfjsLib=m;return m;})
+    .catch(e=>{pdfYuk=null;throw new Error('PDF okuyucu yüklenemedi: '+(e&&e.message||e));});
+  return pdfYuk;}
 /* ---------- PDF ekstre ---------- */
 async function readPdfLines(file){
-  if(!window.pdfjsLib)throw new Error('PDF okuyucu yüklenemedi.');
+  const pdfjsLib=await pdfKutuphane();
   const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false}).promise;
   const lines=[];
   for(let p=1;p<=pdf.numPages;p++){
@@ -2720,7 +2728,7 @@ const FKUI=(()=>{
     if(e.data.tip==='esc'){if(!document.querySelector(ESC_ACIK))geri();return;}
     if(e.data.tip==='ctrlF'){try{KOMUT.ac();}catch(x){}return;}
     if(e.data.tip==='muavinCek'){muavinCek(e.data);return;}
-    if(e.data.tip==='pdfMetin'){const kid=e.data.kid;try{if(!window.pdfjsLib)throw new Error('PDF okuyucu yüklenemedi');
+    if(e.data.tip==='pdfMetin'){const kid=e.data.kid;try{const pdfjsLib=await pdfKutuphane();
         const pdf=await pdfjsLib.getDocument({data:new Uint8Array(e.data.buf),isEvalSupported:false}).promise;const parcalar=[];
         for(let i=1;i<=Math.min(pdf.numPages,40);i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();
           // satırları y konumuna göre birleştir (etiket ile tutar aynı satırda kalsın)
@@ -3674,7 +3682,7 @@ const OKC=(()=>{
     try{const k=await api.tcmbKurlar(ist);for(const b of bs){const v=(k.kurlar||{})[b.pb+'|'+b.tarih];if(v){b.kur=v.kur;b.kurBulten=v.bulten;}}if((k.hatalar||[]).length)toast('TCMB kuru: '+k.hatalar[0]);}catch(e){toast('TCMB kuru alınamadı: '+clean(e));}}
   // PDF fatura: metin pdf.js ile; ilk sayfa görüntüye çizilip yanına kaydedilir (taranmış PDF'te görüntü okunur)
   async function ydPdf(x,buf){
-    if(!window.pdfjsLib)throw new Error('PDF okuyucu yüklenemedi');
+    const pdfjsLib=await pdfKutuphane();
     const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf),isEvalSupported:false}).promise;const sat=[];
     for(let i=1;i<=Math.min(pdf.numPages,10);i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();const m=new Map();
       for(const it of tc.items){if(!it.str||!it.str.trim())continue;const y=Math.round((it.transform?it.transform[5]:0)/3);if(!m.has(y))m.set(y,[]);m.get(y).push({x:it.transform?it.transform[4]:0,s:it.str});}
@@ -5639,7 +5647,6 @@ $('#homeLogo').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e
 $('#storeState').textContent='Bağlanıyor…';
 
 (async()=>{
-  if(window.pdfjsLib){try{pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';}catch(e){}}
   S.db=null;
   S.dl={save:async({filename,data})=>{const buf=new Uint8Array(await data.arrayBuffer());const r=await window.desktop.saveFile(filename,buf);if(!r.ok)throw {code:'declined'};S.lastSaved=r.path;return {status:'saved'};}};
   if(!(await Desk.authGate()))return;
