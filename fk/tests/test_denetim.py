@@ -71,7 +71,7 @@ def test_denetim_kdv_matrah_cari_muhtasar(c, tmp_path):
     assert [(x["hesap"], x["borc"], x["alacak"]) for x in j["ana"]] == [("191", 200, 0), ("320", 0, 1150), ("770", 1000, 0)]
     assert j["ana"][0]["ad"] == "İndirilecek KDV"
     h = c.get("/api/denetim/fis/yazdir", params={"id": v["rapor_id"], "fis": no, "tarih": tr}).text
-    assert "Ana hesaplar görünümü" in h and "Hazırlayan" in h and "Onaylayan" in h and "770.01" in h and "print()" in h
+    assert j["ozet"] is False and "Ana hesap özeti" not in h and "Hazırlayan" in h and "Kontrol Eden" in h and "Onaylayan" in h and "770.01" in h and "print()" in h
     assert c.get("/api/denetim/fis", params={"id": v["rapor_id"], "fis": "YOK", "tarih": tr}).status_code == 404
     # Bilgisayardaki belgelerle yeniden denetim / kontrol (yükleme ve Luca olmadan)
     y = c.get("/api/yerel-belgeler", params={"firma_ad": "DENETİM A.Ş."}).json()

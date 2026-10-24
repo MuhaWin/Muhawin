@@ -896,6 +896,10 @@ function virmanTL(r){
   return {tl,r:dv(pr,ar),p:dv(pp,ap),pr,pp};
 }
 function refreshVirman(){resetVirman();reassign();return detectVirman();}
+/* Görev 53: fiş çıktısı ortak yardımcıları (ana hesap özeti, imza alanları) renderer/fis-cikti.js'te */
+const {anaHesapOzeti,fisEkHtml,fisEkAoa,FIS_EK_CSS}=window.FisCikti;
+// fişin firmasının hesap planı / mizanı: ana hesap adı için (3 haneli kod planda varsa)
+async function anaAdBul(f){try{if(f&&typeof HESAP!=='undefined'){const m=await HESAP.hesaplar(f);return k=>m.get(k)||'';}}catch(e){}return ()=>'';}
 function askConfirm(title,text,yes){
   return new Promise(res=>{const m=$('#askModal');$('#askTitle').textContent=title;$('#askText').textContent=text;$('#askYes').textContent=yes||'Evet, sil';
     const prev=document.activeElement;m.hidden=false;$('#askNo').focus();
@@ -2820,7 +2824,7 @@ const FKUI=(()=>{
   });
   // tema değişince Fatura Kontrol de uysun
   document.addEventListener('click',e=>{if(e.target.closest('[data-skin]'))setTimeout(()=>post({tip:'tema',tema:fkTheme()}),50);});
-  return {show,hide,onFirm,reset,syncFirms,muavinYenile,sonucYenile,sayfaAc,_sayfa:()=>sayfa};
+  return {show,hide,onFirm,reset,syncFirms,muavinYenile,sonucYenile,sayfaAc,lucaFisAc,_sayfa:()=>sayfa};
 })();
 
 /* ---------- başlangıç ---------- */
@@ -3027,7 +3031,9 @@ const MMUI=(()=>{
     return N(String(v??'')).includes(N(f));
   }
   function planCols(){return [['kod','Hesap kodu'],['ad','Hesap adı'],['duzey','Düzey'],['alt','Alt hesap',1]];}
-  function mizanCols(){return [['kod','Hesap kodu'],['ad','Hesap adı'],['borc','Borç',1],['alacak','Alacak',1],['bb','Borç bakiye',1],['ab','Alacak bakiye',1]];}
+  // Görev 55: DH = detay hesap (E: en alt kırılım · H: altında hesap var, satır kalın)
+  function mizanCols(){return [['kod','Hesap kodu'],['ad','Hesap adı'],['dh','DH'],['borc','Borç',1],['alacak','Alacak',1],['bb','Borç bakiye',1],['ab','Alacak bakiye',1]];}
+  const dhIsaretle=rows=>{const m=HesapDH.detayHesaplar(rows.map(r=>r.kod));for(const r of rows){r.dh=m.get(r.kod)||'E';r._leaf=r.dh==='E';}return rows;};
   function muavinCols(){if(st.hesapF&&!st.grup)return [['tarih','Tarih'],['fis_tipi','Fiş tipi'],['fis_no','Fiş no'],['hesap_kodu','Hesap kodu'],['aciklama','Açıklama'],['belge_no','Belge no'],['borc','Borç',1],['alacak','Alacak',1],['bakiye','Bakiye',1]];
     return st.grup?[['kod','Hesap kodu'],['ad','Hesap adı'],['adet','Hareket',1],['borc','Borç',1],['alacak','Alacak',1],['bb','Borç bakiye',1],['ab','Alacak bakiye',1]]
     :[['tarih','Tarih'],['fis_tipi','Fiş tipi'],['fis_no','Fiş no'],['hesap_kodu','Hesap kodu'],['hesap_adi','Hesap adı'],['aciklama','Açıklama'],['belge_no','Belge no'],['borc','Borç',1],['alacak','Alacak',1]];}
@@ -3064,8 +3070,7 @@ const MMUI=(()=>{
     try{for(const r of await Store.getMizan(f.id,(f.mizanInfo||{}).parts)||[])if(r&&r[0]&&!plan.has(String(r[0])))plan.set(String(r[0]),String(r[1]||''));}catch(e){}
     const g=new Map();const ekle=(k,ad,b,a)=>{const x=g.get(k)||{kod:k,ad:ad||plan.get(k)||'',borc:0,alacak:0};if(!x.ad&&ad)x.ad=ad;x.borc+=b;x.alacak+=a;g.set(k,x);};
     for(const r of sat){const k=String(r.hesap_kodu);ekle(k,r.hesap_adi,r.borc||0,r.alacak||0);const p=k.split('.');for(let i=p.length-1;i>=1;i--)ekle(p.slice(0,i).join('.'),'',r.borc||0,r.alacak||0);}
-    const kodlar=new Set(g.keys());
-    st.rows=[...g.values()].map(x=>({...x,borc:Math.round(x.borc*100)/100,alacak:Math.round(x.alacak*100)/100,...bak(x.borc,x.alacak),_lv:x.kod.split('.').length,_leaf:![...kodlar].some(o=>o!==x.kod&&o.startsWith(x.kod+'.'))}))
+    st.rows=dhIsaretle([...g.values()].map(x=>({...x,borc:Math.round(x.borc*100)/100,alacak:Math.round(x.alacak*100)/100,...bak(x.borc,x.alacak),_lv:x.kod.split('.').length})))
       .sort((a,b)=>a.kod.localeCompare(b.kod,'tr',{numeric:true}));
     st.note=`Muavinden mizan · ${esc(m.firma||f.name)} · ${bas||bit?esc((trd(bas)||'dönem başı')+' – '+(trd(bit)||'dönem sonu')):'tüm yıl '+esc(yil)} · ${sat.length} hareket · muavin indirildi ${d.zaman?new Date(d.zaman).toLocaleString('tr-TR',{dateStyle:'short',timeStyle:'short'}):''}`;
   }
@@ -3093,8 +3098,7 @@ const MMUI=(()=>{
     const acc=await Store.getMizan(f.id,(f.mizanInfo||{}).parts)||[];
     const has=acc.some(x=>x.length>=4);
     st.rows=acc.map(([kod,ad,b,a])=>{const lv=String(kod).split(/[.\- ]/).length;return {kod,ad,borc:has?+b||0:null,alacak:has?+a||0:null,...(has?bak(+b||0,+a||0):{bb:null,ab:null}),_lv:lv};});
-    const kodlar=new Set(acc.map(x=>String(x[0]).split(/[.\- ]/).join('.')));
-    st.rows.forEach(r=>{const k=String(r.kod).split(/[.\- ]/).join('.');r._leaf=![...kodlar].some(o=>o!==k&&o.startsWith(k+'.'));});
+    dhIsaretle(st.rows);
     const mi=f.mizanInfo||{};
     st.note=(mi.source==='luca'?`Luca ${mi.year||''} dönemi`:esc((mi.program?PROG_AD(mi.program)+' · ':'')+(mi.file||'Excel')))+' · '+(mi.at?new Date(mi.at).toLocaleString('tr-TR',{dateStyle:'short',timeStyle:'short'}):'')+(has?'':' · <b>bakiyeler yok</b> (bu mizan eski sürümle çekildi; “Luca\'dan yeniden çek” ile bakiyeleriyle gelir)');
   }
@@ -3155,7 +3159,7 @@ const MMUI=(()=>{
     const fkey=st.firm?'s:'+st.firm:'d:'+(st.dFirma||'');
     const dosyalar=fds.filter(d=>!mvYil||String(d.yil)===mvYil);
     st.donem=dosyalar.length?'B|'+fkey+'|'+(mvYil||'tum'):'';
-    $('#mmBar').innerHTML=(st.hesapF?`<span class="mmhesap" title="Mizandan seçilen hesabın muavini">Hesap <b class="mono">${esc(st.hesapF)}</b> ${esc(st.hesapAd||'')} <button class="x" data-mmhx="1" title="Tüm muavini göster">✕</button></span>${st.geriTab?`<button class="btn small" data-mmgeri="1" title="Esc">← ${st.geriTab==='plan'?'Hesap planına':'Mizana'} dön</button>`:''}`:'')+`<label class="note">Firma</label><select id="mmMvFirm">${tumFirmalar().map(x=>`<option value="${esc(x.key)}"${x.key===fkey?' selected':''}>${esc(x.ad)}${ds.some(d=>x.firm?donemFirmasi(d,x.firm):N(d.firma)===N(x.ad))?'':' · muavin yok'}</option>`).join('')}</select>
+    $('#mmBar').innerHTML=(st.hesapF?`<span class="mmhesap" title="Mizandan seçilen hesabın muavini">Hesap <b class="mono">${esc(st.hesapF)}</b> ${esc(st.hesapAd||'')} <button class="x" data-mmhx="1" title="Tüm muavini göster">✕</button></span>${(st.hesapListe||[]).length>1?`<span class="mmgez"><button class="btn small" data-mmhgit="-1" title="Önceki hesap (←)">&lt; önceki</button><span class="note">${hesapSira()}</span><button class="btn small" data-mmhgit="1" title="Sonraki hesap (→)">sonraki &gt;</button></span>`:''}${st.geriTab?`<button class="btn small" data-mmgeri="1" title="Esc">← ${st.geriTab==='plan'?'Hesap planına':'Mizana'} dön</button>`:''}`:'')+`<label class="note">Firma</label><select id="mmMvFirm">${tumFirmalar().map(x=>`<option value="${esc(x.key)}"${x.key===fkey?' selected':''}>${esc(x.ad)}${ds.some(d=>x.firm?donemFirmasi(d,x.firm):N(d.firma)===N(x.ad))?'':' · muavin yok'}</option>`).join('')}</select>
       <label class="note">Dönem</label><select id="mmDonem" title="Firmanın indirilmiş tüm muavinleri birleştirilir; buradan yıl ya da ay süzülür">${yillar.length?`${yillar.length>1?`<option value="tum"${st.mvDonem==='tum'?' selected':''}>Tüm dönemler</option>`:''}${yillar.map(y=>`<option value="${y}"${st.mvDonem===y?' selected':''}>${y} · tüm yıl</option>${AYLAR.map((a,i)=>{const v=y+'-'+String(i+1).padStart(2,'0');return `<option value="${v}"${st.mvDonem===v?' selected':''}>&nbsp;&nbsp;${a} ${y}</option>`;}).join('')}`).join('')}`:'<option value="">Muavin yok</option>'}</select>
       <label class="note">Tarih <input type="date" id="mmMvBas" value="${esc(st.mvBas||'')}" title="Başlangıç (boş: dönem başı)"> – <input type="date" id="mmMvBit" value="${esc(st.mvBit||'')}" title="Bitiş (boş: dönem sonu)"></label>
       <label class="note"><input type="checkbox" id="mmGrup"${st.grup?' checked':''}> Hesap bazında topla (mizan)</label>
@@ -3175,7 +3179,12 @@ const MMUI=(()=>{
       if(st.hesapF){   // mizandan tıklanan hesap: yalnız onun (ve alt hesaplarının) hareketleri, tarih sırasıyla, yürüyen bakiye
         const k=String(st.hesapF);L=L.filter(r=>r.hesap_kodu===k||String(r.hesap_kodu).startsWith(k+'.'));
         L.sort((a,b)=>String(a.tarih).localeCompare(String(b.tarih))||String(a.fis_no).localeCompare(String(b.fis_no),'tr',{numeric:true})||a._i-b._i);
-        let b=0;for(const r of L){b=Math.round((b+(+r.borc||0)-(+r.alacak||0))*100)/100;r.bakiye=b;}}
+        let b=0;for(const r of L){b=Math.round((b+(+r.borc||0)-(+r.alacak||0))*100)/100;r.bakiye=b;}
+        // Görev 55: yürüyen bakiye ekrandaki sıraya göre filtered()'da yeniden hesaplanır; dönem / tarih aralığından
+        // önceki hareketler açılış bakiyesi olur
+        const ilk=mvAy?mvAy+'-01':(st.mvBas||'');
+        st.acilis=ilk?Math.round(L.filter(r=>!arl(r)&&String(r.tarih||'')<ilk).reduce((t,r)=>t+(+r.borc||0)-(+r.alacak||0),0)*100)/100:0;}
+      else st.acilis=0;
       st.rows=L.filter(arl);}
     const son=dosyalar.map(x=>x.zaman||'').sort().pop();
     st.note=`${esc(m.firma||'')} · ${sat.length}${sat.length!==m.satirlar.length?' / '+m.satirlar.length:''} hareket${mvAy?' · '+esc(AYLAR[+mvAy.slice(5)-1]+' '+mvAy.slice(0,4)):''}${(st.mvBas||st.mvBit)?' · '+esc(trd(st.mvBas)||'…')+' – '+esc(trd(st.mvBit)||'…'):''}${dosyalar.length>1?` · ${dosyalar.length} muavin dosyası birleştirildi`:''} · son indirme ${son?new Date(son).toLocaleString('tr-TR',{dateStyle:'short',timeStyle:'short'}):''}`;
@@ -3191,6 +3200,9 @@ const MMUI=(()=>{
     if(st.q){const q=N(st.q);rows=rows.filter(r=>N(cols.map(([k])=>r[k]??'').join(' ')).includes(q));}
     for(const [k,v] of Object.entries(st.f))if(v&&v.trim()){const num=cols.find(c=>c[0]===k&&c[2]);rows=rows.filter(r=>match(k==='tarih'?trd(r[k]):r[k],v,!!num));}
     if(st.sort){const {k,d}=st.sort;const num=st.cols.find(c=>c[0]===k&&c[2]);rows=rows.slice().sort((a,b)=>{const x=a[k],y=b[k];const c=num?((+x||0)-(+y||0)):String(x??'').localeCompare(String(y??''),'tr',{numeric:true});return d*c;});}
+    // Görev 55: tek hesabın muavininde yürüyen bakiye görünen sıraya (sıralama + süzgeç) göre baştan; açılış bakiyesinden başlar.
+    // Alt hesaplarıyla birlikte listelenen üst hesapta (102 → 102.01.x) bakiye tek toplam olarak yürür (bugünkü gibi).
+    if(st.tab==='muavin'&&st.hesapF&&!st.grup){let b=st.acilis||0;rows=rows.map(r=>({...r,bakiye:(b=Math.round((b+(+r.borc||0)-(+r.alacak||0))*100)/100)}));}
     return rows;
   }
   // Büyük muavinler: ilk 400 satır hemen, kalanı aşağı kaydırdıkça parça parça eklenir (toplamlar her zaman tümünden)
@@ -3210,11 +3222,11 @@ const MMUI=(()=>{
       tr=rows.filter(r=>{const p=nk(r).split('.');for(let i=1;i<p.length;i++)if(shown.has(p.slice(0,i).join('.')))return false;return true;});}
     const tot={};cols.filter(c=>c[2]).forEach(([k])=>tot[k]=tr.reduce((t,r)=>t+(+r[k]||0),0));
     const cell=(k,v,num,r)=>k==='bakiye'?(v==null?'':`<span class="${v<-0.004?'bkA':'bkB'}">${n2(Math.abs(v))} ${v>0.004?'B':v<-0.004?'A':''}</span>`):num?(k==='adet'||k==='alt'?(v??''):n2(v)):k==='tarih'||k==='belge_tarihi'?trd(v):(k==='fis_no'&&st.tab==='muavin'&&!st.grup&&v)?`<button class="fislink" data-mmfis="${r._i}" title="Fişi göster">${esc(v)}</button>`:esc(v??'');
-    const satirHtml=r=>`<tr data-kod="${esc(r.kod||'')}"${st.tab==='mizan'||st.tab==='plan'?' data-mzhesap="1" title="Tıklayın: bu hesabın muavini"':''} class="${(st.tab==='mizan'||st.tab==='plan')&&st.level!=='leaf'?'lv'+Math.min(r._lv||3,3):''}${st.tab==='mizan'&&tersMi(r)?' ters':''}"${st.tab==='mizan'&&tersMi(r)?' title="Ters bakiye: bu hesap normalde '+(normalYon(r.kod)==='B'?'borç':'alacak')+' bakiyesi verir"':''}>${cols.map(([k,,num])=>`<td class="${num?'n':''}">${cell(k,r[k],num,r)}</td>`).join('')}</tr>`;
-    $('#mmTable').innerHTML=`<thead><tr>${cols.map(([k,l,num])=>`<th class="${num?'n':''}"><button data-mmsort="${k}" title="Sırala">${esc(l)}${arrow(k)}</button></th>`).join('')}</tr>
-      <tr class="flt">${cols.map(([k,l,num])=>`<th><input data-mmf="${k}" value="${esc(st.f[k]||'')}" placeholder="${num?'>1000 · <500 · 1..9':'filtre'}" aria-label="${esc(l)} filtresi"></th>`).join('')}</tr></thead>
+    const satirHtml=r=>`<tr data-kod="${esc(r.kod||'')}"${st.tab==='mizan'||st.tab==='plan'?' data-mzhesap="1" title="Tıklayın: bu hesabın muavini"':''} class="${st.tab==='mizan'?(r.dh==='H'?'ust':''):st.tab==='plan'&&st.level!=='leaf'?'lv'+Math.min(r._lv||3,3):''}${st.tab==='mizan'&&tersMi(r)?' ters':''}"${st.tab==='mizan'&&tersMi(r)?' title="Ters bakiye: bu hesap normalde '+(normalYon(r.kod)==='B'?'borç':'alacak')+' bakiyesi verir"':''}>${cols.map(([k,,num])=>`<td class="${num?'n':k==='dh'?'dh':''}">${cell(k,r[k],num,r)}</td>`).join('')}</tr>`;
+    $('#mmTable').innerHTML=`<thead><tr>${cols.map(([k,l,num])=>`<th class="${num?'n':k==='dh'?'dh':''}"><button data-mmsort="${k}" title="${k==='dh'?'Detay hesap: E = en alt kırılım, H = altında hesap var (kalın). Tıklayın: sırala':'Sırala'}">${esc(l)}${arrow(k)}</button></th>`).join('')}</tr>
+      <tr class="flt">${cols.map(([k,l,num])=>`<th><input data-mmf="${k}" value="${esc(st.f[k]||'')}" placeholder="${num?'>1000 · <500 · 1..9':k==='dh'?'E/H':'filtre'}" aria-label="${esc(l)} filtresi"></th>`).join('')}</tr></thead>
       <tbody>${rows.slice(0,PARCA).map(satirHtml).join('')||`<tr><td colspan="${cols.length}" class="bosliste">${st.note&&!st.rows.length?st.note:'Bu görünümde kayıt yok. Süzgeçleri temizleyin ya da Luca\'dan çekin.'}</td></tr>`}</tbody>
-      ${rows.length?`<tfoot><tr>${cols.map(([k,,num],i)=>`<td class="${num?'n':''}">${i===0?`Toplam · ${rows.length} satır`:k==='bakiye'?(()=>{const v=Math.round(((tot.borc||0)-(tot.alacak||0))*100)/100;return `<b>${n2(Math.abs(v))} ${v>0.004?'B':v<-0.004?'A':''}</b>`;})():num?(k==='adet'?tot[k]:k==='alt'?'':n2(tot[k])):''}</td>`).join('')}</tr></tfoot>`:''}`;
+      ${rows.length?`<tfoot><tr>${cols.map(([k,,num],i)=>`<td class="${num?'n':''}">${i===0?`Toplam · ${rows.length} satır`:k==='bakiye'?(()=>{const v=Math.round(((st.hesapF&&!st.grup?st.acilis||0:0)+(tot.borc||0)-(tot.alacak||0))*100)/100;return `<b>${n2(Math.abs(v))} ${v>0.004?'B':v<-0.004?'A':''}</b>`;})():num?(k==='adet'?tot[k]:k==='alt'?'':n2(tot[k])):''}</td>`).join('')}</tr></tfoot>`:''}`;
     const tn=st.tab==='mizan'?rows.filter(tersMi).length:0;
     const info=$('#mmInfo');if(info)info.innerHTML=(st.rows.length?st.note:'')+(tn?` · <span style="color:#c62828;font-weight:600">${tn} ters bakiyeli hesap</span>`:'')+(rows.length>PARCA?` · ilk ${PARCA} satır gösteriliyor, kaydırdıkça devamı gelir (toplamlar tümü için)`:'');
     dahaKur(rows,satirHtml);
@@ -3235,32 +3247,38 @@ const MMUI=(()=>{
     const tb=fis.reduce((t,x)=>t+x.borc,0),ta=fis.reduce((t,x)=>t+x.alacak,0),denk=Math.abs(tb-ta)<0.005;
     st.fisAcik={r,fis,tb,ta,firma:m.firma||''};
     $('#mmFisT').textContent=`Fiş ${r.fis_no} · ${r.fis_tipi||''} · ${trd(r.tarih)}`;
-    $('#mmFisB').innerHTML=`<div class="actions" style="margin-bottom:8px"><span class="chip ${denk?'cari':'aski'}">${denk?'Borç = alacak':'Fark '+n2(tb-ta)}</span><span class="note">${fis.length} satır · ${esc(m.firma||'')}${fis.length<2?' · muavinde bu fişin diğer satırları yok (muavin 100–999 indirilmemiş olabilir)':''}</span><span style="flex:1"></span><button class="btn small" id="mmFisPdf">PDF Yazdır</button><button class="btn small" id="mmFisXls">Excel'e Aktar</button></div>
+    $('#mmFisB').innerHTML=`<div class="actions" style="margin-bottom:8px"><span class="chip ${denk?'cari':'aski'}">${denk?'Borç = alacak':'Fark '+n2(tb-ta)}</span><span class="note">${fis.length} satır · ${esc(m.firma||'')}${fis.length<2?' · muavinde bu fişin diğer satırları yok (muavin 100–999 indirilmemiş olabilir)':''}</span><span style="flex:1"></span>${(()=>{const fo=storeFirmalar().find(y=>y.id===st.firm);const lid=fo&&fo.lucaId;
+        return `<button class="btn small" id="mmFisLuca" ${lid&&r.fis_no?'':'disabled'} title="${lid?(r.fis_no?'Luca\'da Fiş Listesi bu fiş numarasıyla açılır; fiş hazır olunca Luca penceresi öne gelir':'Bu satırın fiş numarası yok'):'Firmanın Luca karşılığı yok (Ayarlar › Firmalar › Luca\'dan firma ekle)'}">Luca'da aç</button>`;})()}<button class="btn small" id="mmFisPdf">PDF Yazdır</button><button class="btn small" id="mmFisXls">Excel'e Aktar</button></div>
       <div class="tablewrap"><table style="width:100%;font-size:13px"><thead><tr><th>Hesap kodu</th><th>Hesap adı</th><th>Açıklama</th><th>Belge no</th><th style="text-align:right">Borç</th><th style="text-align:right">Alacak</th></tr></thead>
       <tbody>${fis.map(x=>`<tr class="${x._j===+i?'sec':''}"><td class="mono">${esc(x.hesap_kodu)}</td><td>${esc(x.hesap_adi)}</td><td>${esc(x.aciklama)}</td><td class="mono">${esc(x.belge_no||'')}</td><td class="n mono" style="text-align:right">${x.borc?n2(x.borc):''}</td><td class="n mono" style="text-align:right">${x.alacak?n2(x.alacak):''}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="4"><b>Toplam</b></td><td class="mono" style="text-align:right"><b>${n2(tb)}</b></td><td class="mono" style="text-align:right"><b>${n2(ta)}</b></td></tr></tfoot></table></div>`;
     $('#mmFis').hidden=false;$('#mmFisX').focus();
   }
   $('#mmFisX').onclick=()=>{$('#mmFis').hidden=true;};
+  // Görev 55: fiş penceresinde "Luca'da aç" — rapordaki / Fiş Listesi'ndeki akışın aynısı (FKUI.lucaFisAc → luca.fisGoster)
+  $('#mmFisB').addEventListener('click',e=>{if(!e.target.closest('#mmFisLuca')||!st.fisAcik)return;const r=st.fisAcik.r;
+    const fo=storeFirmalar().find(y=>y.id===st.firm);FKUI.lucaFisAc({lucaId:fo&&fo.lucaId,yil:String(r.tarih||'').slice(0,4),fisNo:r.fis_no});});
   // PDF için sade sayfa (görüntüleyicide yazdır / kaydet)
-  function pdfSayfa(baslik,alt,basliklar,satirlar,sag,toplam){
+  function pdfSayfa(baslik,alt,basliklar,satirlar,sag,toplam,ek){
     const e=esc;return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>${e(baslik)}</title><style>
       body{font:11px/1.35 "Segoe UI",Arial,sans-serif;color:#111;margin:0}h1{font-size:16px;margin:0 0 2px}.alt{color:#555;margin:0 0 10px}
       table{width:100%;border-collapse:collapse}th{background:#eef2f7;text-align:left;font-weight:600;border-bottom:1px solid #999;padding:4px 6px}
       td{border-bottom:1px solid #ddd;padding:3px 6px;vertical-align:top}td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
       tfoot td{font-weight:700;border-top:1px solid #999;border-bottom:0}.kod{font-family:Consolas,monospace;white-space:nowrap}
-      .ayak{margin-top:10px;color:#777;font-size:9px}</style></head><body><h1>${e(baslik)}</h1><p class="alt">${e(alt)}</p>
+      .ayak{margin-top:10px;color:#777;font-size:9px}${ek?FIS_EK_CSS:''}</style></head><body><h1>${e(baslik)}</h1><p class="alt">${e(alt)}</p>
       <table><thead><tr>${basliklar.map((h,i)=>`<th class="${sag.has(i)?'n':''}">${e(h)}</th>`).join('')}</tr></thead>
       <tbody>${satirlar.map(r=>`<tr>${r.map((v,i)=>`<td class="${sag.has(i)?'n':i===0?'kod':''}">${e(v??'')}</td>`).join('')}</tr>`).join('')}</tbody>
-      ${toplam?`<tfoot><tr>${toplam.map((v,i)=>`<td class="${sag.has(i)?'n':''}">${e(v??'')}</td>`).join('')}</tr></tfoot>`:''}</table>
+      ${toplam?`<tfoot><tr>${toplam.map((v,i)=>`<td class="${sag.has(i)?'n':''}">${e(v??'')}</td>`).join('')}</tr></tfoot>`:''}</table>${ek||''}
       <p class="ayak">MuhaWin · ${e(new Date().toLocaleString('tr-TR'))}</p></body></html>`;}
   async function pdfAc(html,ad,yatay){try{await Busy.run('PDF hazırlanıyor…',ad,()=>window.desktop.htmlPdf({html,ad,yatay}));}catch(x){toast(clean(x));}}
   document.addEventListener('click',async e=>{
-    if(e.target.id==='mmFisPdf'&&st.fisAcik){const {r,fis,tb,ta,firma}=st.fisAcik;
+    // fiş çıktısı: ana hesap özeti (aynı ana hesap birden çok satırdaysa) ve imza alanları (Görev 53)
+    const fisOzet=async fis=>anaHesapOzeti(fis.map(x=>({kod:x.hesap_kodu,borc:x.borc,alacak:x.alacak})),await anaAdBul((Store.local().firms||{})[st.firm]));
+    if(e.target.id==='mmFisPdf'&&st.fisAcik){const {r,fis,tb,ta,firma}=st.fisAcik;const oz=await fisOzet(fis);
       pdfAc(pdfSayfa(`Fiş ${r.fis_no} · ${r.fis_tipi||''} · ${trd(r.tarih)}`,firma,['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],
-        fis.map(x=>[x.hesap_kodu,x.hesap_adi,x.aciklama,x.belge_no||'',x.borc?n2(x.borc):'',x.alacak?n2(x.alacak):'']),new Set([4,5]),['','','','Toplam',n2(tb),n2(ta)]),'Fis_'+r.fis_no);return;}
-    if(e.target.id==='mmFisXls'&&st.fisAcik){const {r,fis,tb,ta,firma}=st.fisAcik;
-      const aoa=[[`Fiş ${r.fis_no} · ${r.fis_tipi||''} · ${trd(r.tarih)}`],[firma],[],['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],...fis.map(x=>[x.hesap_kodu,x.hesap_adi,x.aciklama,x.belge_no||'',+x.borc||0,+x.alacak||0]),['','','','Toplam',tb,ta]];
+        fis.map(x=>[x.hesap_kodu,x.hesap_adi,x.aciklama,x.belge_no||'',x.borc?n2(x.borc):'',x.alacak?n2(x.alacak):'']),new Set([4,5]),['','','','Toplam',n2(tb),n2(ta)],fisEkHtml(oz)),'Fis_'+r.fis_no);return;}
+    if(e.target.id==='mmFisXls'&&st.fisAcik){const {r,fis,tb,ta,firma}=st.fisAcik;const oz=await fisOzet(fis);
+      const aoa=[[`Fiş ${r.fis_no} · ${r.fis_tipi||''} · ${trd(r.tarih)}`],[firma],[],['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],...fis.map(x=>[x.hesap_kodu,x.hesap_adi,x.aciklama,x.belge_no||'',+x.borc||0,+x.alacak||0]),['','','','Toplam',tb,ta],...fisEkAoa(oz)];
       const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Fiş');
       try{const x=await window.desktop.saveFile(('Fis_'+r.fis_no+'_'+trd(r.tarih)).replace(/[^\wÇĞİÖŞÜçğıöşü.-]+/g,'_')+'.xlsx',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})));if(x.ok)toast('Kaydedildi: '+x.path);}catch(x){toast(clean(x));}return;}
     if(e.target.id==='mmPdf'){const rows=filtered();if(!rows.length){toast('Yazdırılacak satır yok.');return;}if(rows.length>6000&&!(await askConfirm('Çok satır',`${rows.length} satır PDF yapılacak; biraz sürebilir. Devam edilsin mi?`,'Devam')))return;
@@ -3530,19 +3548,38 @@ const MMUI=(()=>{
     const b=e.target.closest('[data-gor]');if(!b)return;st.gorunum=b.dataset.gor;const sel=$('#mmGorunum');if(sel)sel.value=st.gorunum;menuKapat();draw();});
   document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('.mmmenu'))menuKapat();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hidden){e.stopPropagation();menuKapat();}},true);
+  // Görev 55: muavinde ↑ / ↓ satır seçer, ← / → önceki / sonraki hesabı açar. Kutu / süzgeç odaktayken oklar metinde kalır.
+  document.addEventListener('keydown',e=>{
+    if($('#mmPanel').hidden||st.tab!=='muavin'||!st.hesapF||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;
+    if(!/^Arrow(Left|Right|Up|Down)$/.test(e.key)||!$('#mmFis').hidden||!$('#mmYk').hidden||document.querySelector('.modal:not([hidden])'))return;
+    const t=e.target;if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))return;
+    e.preventDefault();
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){hesapGit(e.key==='ArrowRight'?1:-1);return;}
+    const rs=[...document.querySelectorAll('#mmTable tbody tr[data-kod]')];if(!rs.length)return;
+    st.secSatir=Math.max(0,Math.min(rs.length-1,(st.secSatir??-1)+(e.key==='ArrowDown'?1:-1)));
+    rs.forEach((r,i)=>r.classList.toggle('sec',i===st.secSatir));rs[st.secSatir].scrollIntoView({block:'nearest'});});
   document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#mmPanel').hidden)return;if(!$('#mmFis').hidden){$('#mmFis').hidden=true;return;}if(!$('#mmYk').hidden){if(escKutu(e,$('#mmYk')))return;ykKapat();return;}
     if(escKutu(e,$('#mmPanel')))return;if(st.hesapF&&st.geriTab&&$('#chooseModal').hidden){hesapGeri();return;}if($('#chooseModal').hidden)close();});
   // Mizanda bir hesaba tıklayınca: muavin sekmesinde yalnız o hesabın hareketleri (alt hesaplarıyla), tarih sırasıyla, yürüyen bakiye
   function hesapAc(kod){const r=(st.rows||[]).find(x=>x.kod===kod)||{};let f=null;try{f=(Store.local().firms||{})[st.firm];}catch(x){}
     st.mizanKonum={kod,top:($('#mmTable')&&$('#mmTable').closest('.mmwrap')||{}).scrollTop||0,f:{...st.f},sort:st.sort,q:st.q};
+    st.hesapListe=filtered().map(x=>({kod:x.kod,ad:x.ad||''}));   // ← / →: geldiği listenin görünen sırası (süzgeç, sıralama dahil)
     st.hesapF=kod;st.hesapAd=r.ad||'';st.geriTab=st.tab==='plan'?'plan':'mizan';st.hesapYil=f&&f.mizanInfo&&f.mizanInfo.year;st.hesapYeni=true;
-    st.tab='muavin';st.grup=false;st.f={};st.sort=null;st.q='';load();}
+    st.tab='muavin';st.grup=false;st.f={};st.sort=null;st.q='';st.secSatir=-1;load();}
+  // Görev 55: muavinde ← / → (ya da "< önceki / sonraki >"): geldiği listedeki önceki / sonraki hesabın muavini.
+  // Sıralama ve süzgeç tercihi korunur; bakiye yeni hesap için yeniden hesaplanır.
+  function hesapGit(d){const L=st.hesapListe||[];const i=L.findIndex(x=>x.kod===st.hesapF);const j=i+d;
+    if(i<0||j<0||j>=L.length){toast(d<0?'Listenin başındasınız.':'Listenin sonundasınız.');return false;}
+    st.hesapF=L[j].kod;st.hesapAd=L[j].ad;st.secSatir=-1;if(st.mizanKonum){st.mizanKonum.kod=L[j].kod;st.mizanKonum.top=0;}
+    const w=$('#mmTable')&&$('#mmTable').closest('.mmwrap');if(w)w.scrollTop=0;load();return true;}
+  const hesapSira=()=>{const L=st.hesapListe||[];const i=L.findIndex(x=>x.kod===st.hesapF);return i<0?'':`${i+1} / ${L.length}`;};
   function hesapGeri(){const k=st.mizanKonum||{};st.tab=st.geriTab||'mizan';st.hesapF=null;st.geriTab=null;st.f=k.f||{};st.sort=k.sort||null;st.q=k.q||'';
     Promise.resolve(load()).then(()=>{setTimeout(()=>{const w=$('#mmTable')&&$('#mmTable').closest('.mmwrap');if(w&&k.top)w.scrollTop=k.top;const tr=k.kod&&document.querySelector(`#mmTable tr[data-kod="${CSS.escape(k.kod)}"]`);if(tr){tr.classList.add('sec');if(!k.top)tr.scrollIntoView({block:'center'});}},60);});}
   $('#mmPanel').addEventListener('click',async e=>{
     const t=e.target.closest('[data-mmtab]');if(t){st.tab=t.dataset.mmtab;st.f={};st.sort=null;st.q='';st.hesapF=null;st.geriTab=null;load();return;}
     if(e.target.closest('[data-mmhx]')){st.hesapF=null;st.geriTab=null;st.f={};st.sort=null;load();return;}
     if(e.target.closest('[data-mmgeri]')){hesapGeri();return;}
+    {const g=e.target.closest('[data-mmhgit]');if(g){hesapGit(+g.dataset.mmhgit);return;}}
     {const tr=(st.tab==='mizan'||st.tab==='plan')&&!e.target.closest('input,button,select,a')&&e.target.closest('#mmTable tbody tr[data-mzhesap]');
       if(tr&&tr.dataset.kod){hesapAc(tr.dataset.kod);return;}}
     const fb=e.target.closest('[data-mmfis]');if(fb){showFis(fb.dataset.mmfis);return;}
@@ -3579,8 +3616,9 @@ const MMUI=(()=>{
     const ad=(st.tab==='plan'?(((S.firms||[]).find(x=>x.id===st.firm)||{}).name||'firma')+'_hesap_plani':st.tab==='mizan'?(((S.firms||[]).find(x=>x.id===st.firm)||{}).name||'firma')+'_mizan':st.donem.replace(/\//g,'_')+'_muavin'+(st.grup?'_ozet':''));
     try{const r=await window.desktop.saveFile(ad.replace(/[^\wÇĞİÖŞÜçğıöşü.-]+/g,'_')+'.xlsx',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})));if(r.ok)toast('Kaydedildi: '+r.path);}catch(x){toast(clean(x));}
   };
-  return {open,close,_st:st,_mojibake:mojibakeDuzelt};
+  return {open,close,_st:st,_mojibake:mojibakeDuzelt,_draw:draw};
 })();
+window.__mmui=MMUI;   // testler için
 $('#mmBtn').addEventListener('click',()=>MMUI.open('mizan'));
 // Görev 54: tek satıra kısaltılan hücrelerin tamamı imleç ipucunda (muavin, mizan, Luca'ya kaydet)
 document.addEventListener('mouseover',e=>{const td=e.target.closest&&e.target.closest('#mmTable td,#fkkTable td .fkk-ad,#fkkTable td.fk-karsi .note,td.bankcol,.accname');
@@ -6457,12 +6495,14 @@ const FISL=(()=>{
       </div>`;
     dahaKur(l);
   }
-  function fisHtml(sec,f){const e=esc;const rows=sec.satir.slice().sort((a,b)=>((+b.borc>0)-(+a.borc>0))||a.hesap_kodu.localeCompare(b.hesap_kodu,'tr',{numeric:true}));
+  // fiş çıktısı: ana hesap özeti ve imza alanları (Görev 53)
+  async function flOzet(sec,f){return anaHesapOzeti(sec.satir.map(s=>({kod:s.hesap_kodu,borc:s.borc,alacak:s.alacak})),await anaAdBul(f));}
+  function fisHtml(sec,f,oz){const e=esc;const rows=sec.satir.slice().sort((a,b)=>((+b.borc>0)-(+a.borc>0))||a.hesap_kodu.localeCompare(b.hesap_kodu,'tr',{numeric:true}));
     return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>body{font:11.5px/1.35 "Segoe UI",Arial,sans-serif;color:#111;margin:0;padding:18px}h1{font-size:16px;margin:0 0 2px}.alt{color:#555;margin:0 0 10px}table{width:100%;border-collapse:collapse}th{background:#eef2f7;text-align:left;border-bottom:1px solid #999;padding:4px 6px}td{border-bottom:1px solid #ddd;padding:3px 6px;vertical-align:top}td.n,th.n{text-align:right;white-space:nowrap}tfoot td{font-weight:700;border-top:1px solid #999}.kod{font-family:Consolas,monospace}</style></head><body>
       <h1>Fiş ${e(sec.no)} · ${e(TIP_AD[String(sec.tip)]||sec.tip)} · ${e(trd(sec.tarih))}</h1><p class="alt">${e(f?f.name:'')}${sec.ac?' · '+e(sec.ac):''}</p>
       <table><thead><tr><th>Hesap Kodu</th><th>Hesap Adı</th><th>Açıklama</th><th>Belge No</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead>
       <tbody>${rows.map(s=>`<tr><td class="kod">${e(s.hesap_kodu)}</td><td>${e(s.hesap_adi)}</td><td>${e(s.aciklama||'')}</td><td class="kod">${e(s.belge_no||'')}</td><td class="n">${+s.borc?n2(s.borc):''}</td><td class="n">${+s.alacak?n2(s.alacak):''}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="4">Toplam</td><td class="n">${n2(sec.borc)}</td><td class="n">${n2(sec.alacak)}</td></tr></tfoot></table><p class="alt" style="margin-top:10px;font-size:9px">MuhaWin · ${e(new Date().toLocaleString('tr-TR'))}</p></body></html>`;}
+      <tfoot><tr><td colspan="4">Toplam</td><td class="n">${n2(sec.borc)}</td><td class="n">${n2(sec.alacak)}</td></tr></tfoot></table>${fisEkHtml(oz)}<p class="alt" style="margin-top:10px;font-size:9px">MuhaWin · ${e(new Date().toLocaleString('tr-TR'))}</p></body></html>`;}
   document.addEventListener('click',async e=>{const t=e.target;if(!t.closest||!t.closest('#flPanel'))return;const f=firma();
     const th=t.closest('[data-flsort]');if(th){const k=th.dataset.flsort;st.sort=st.sort.k===k?{k,d:-st.sort.d}:{k,d:1};ciz();return;}
     const tr=t.closest('tr[data-fl]');if(tr){st.sec=st.sec===tr.dataset.fl?null:tr.dataset.fl;ciz();return;}
@@ -6478,8 +6518,8 @@ const FISL=(()=>{
       catch(x){toast(clean(x));}return;}
     if(t.id==='flYenile'){if(!f||!f.lucaId){toast('Firmanın Luca karşılığı yok.');return;}HESAP.kayitSonrasi(f,{mizan:false,muavin:true,plan:false,sonra:()=>yukle(true)});toast(`${f.name}: muavin arka planda Luca'dan indiriliyor (yalnız muavin); bitince Fiş Listesi kendiliğinden yenilenir.`);return;}
     const sec=st.sec?st.fisler.find(x=>x.k===st.sec):null;
-    if(t.id==='flPdf'&&sec){try{await mwBusy.run('PDF hazırlanıyor…','Fiş '+sec.no,()=>window.desktop.htmlPdf({html:fisHtml(sec,f),ad:'Fis_'+sec.no+'_'+trd(sec.tarih)}));}catch(x){toast(clean(x));}return;}
-    if(t.id==='flFisXls'&&sec){const aoa=[[`Fiş ${sec.no} · ${TIP_AD[String(sec.tip)]||sec.tip} · ${trd(sec.tarih)}`],[f?f.name:''],[],['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],...sec.satir.map(s=>[s.hesap_kodu,s.hesap_adi,s.aciklama||'',s.belge_no||'',+s.borc||0,+s.alacak||0]),['','','','Toplam',sec.borc,sec.alacak]];
+    if(t.id==='flPdf'&&sec){try{await mwBusy.run('PDF hazırlanıyor…','Fiş '+sec.no,async()=>window.desktop.htmlPdf({html:fisHtml(sec,f,await flOzet(sec,f)),ad:'Fis_'+sec.no+'_'+trd(sec.tarih)}));}catch(x){toast(clean(x));}return;}
+    if(t.id==='flFisXls'&&sec){const aoa=[[`Fiş ${sec.no} · ${TIP_AD[String(sec.tip)]||sec.tip} · ${trd(sec.tarih)}`],[f?f.name:''],[],['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],...sec.satir.map(s=>[s.hesap_kodu,s.hesap_adi,s.aciklama||'',s.belge_no||'',+s.borc||0,+s.alacak||0]),['','','','Toplam',sec.borc,sec.alacak],...fisEkAoa(await flOzet(sec,f))];
       const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Fiş');try{const r=await window.desktop.saveFile(('Fis_'+sec.no+'_'+trd(sec.tarih)).replace(/[^\wÇĞİÖŞÜçğıöşü.-]+/g,'_')+'.xlsx',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})));if(r.ok)toast('Kaydedildi: '+r.path);}catch(x){toast(clean(x));}return;}
     if(t.id==='flXls'){const l=gorunen();const aoa=[['Tarih','Fiş No','Tip','Açıklama','Hesaplar','Satır','Borç','Alacak'],...l.map(x=>[trd(x.tarih),x.no,TIP_AD[String(x.tip)]||x.tip,x.ac||'',x.hesaplar.join(', '),x.n,x.borc,x.alacak])];
       const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Fiş Listesi');try{const r=await window.desktop.saveFile(((f?f.name:'firma')+'_fis_listesi').replace(/[^\wÇĞİÖŞÜçğıöşü.-]+/g,'_')+'.xlsx',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})));if(r.ok)toast('Kaydedildi: '+r.path);}catch(x){toast(clean(x));}return;}

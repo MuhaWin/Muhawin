@@ -191,6 +191,10 @@ body.mod-hub #modeTabs,body.mod-hub #toolbar,body.mod-hub #bottombar,body.mod-hu
 #mmPanel tfoot td{position:sticky;bottom:0;background:var(--surface-2);font-weight:700;border-top:2px solid var(--line)}
 #mmPanel tr.ters td{color:#c62828!important;background:rgba(220,38,38,.09)}#mmPanel tr.ters:hover td{background:rgba(220,38,38,.15)}
 #mmPanel tr.lv1 td{font-weight:700}#mmPanel tr.lv2 td{font-weight:600}
+/* Görev 55: mizanda altında hesap olan (DH = H) satırlar kalın ve koyu; detay hesaplar (E) normal */
+#mmPanel tr.ust td{font-weight:700;color:var(--ink)}
+#mmPanel th.dh,#mmPanel td.dh{width:44px;text-align:center;white-space:nowrap}#mmPanel th.dh button{text-align:center;padding:8px 4px}
+#mmPanel thead tr.flt th.dh input,#mmPanel thead tr.flt input[data-mmf=dh]{min-width:0;width:36px;text-align:center}
 #mmPanel .mmtabs{display:flex;gap:4px}
 .mmmenu{position:fixed;z-index:80;min-width:260px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(16,24,40,.18);padding:6px;display:grid}
 .mmmenu button{all:unset;cursor:pointer;padding:8px 12px;border-radius:6px;font-size:13.5px;display:flex;gap:8px;align-items:center}
@@ -638,6 +642,7 @@ td.amt .dvz{display:block;font-size:10.5px;color:var(--muted);font-family:var(--
 #mmTable tbody tr.sec td{background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
 .mmhesap{display:inline-flex;gap:6px;align-items:center;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 6px 3px 12px;font-size:13px}
 .mmhesap .x{appearance:none;border:0;background:none;color:inherit;cursor:pointer;font-size:13px}
+.mmgez{display:inline-flex;gap:6px;align-items:center}.mmgez .note{min-width:54px;text-align:center}
 .bkA{color:var(--out)}.bkB{color:var(--ink)}
 /* Ekranda ara (Ctrl+F) */
 #mwAra{position:fixed;top:10px;right:16px;z-index:90;display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
