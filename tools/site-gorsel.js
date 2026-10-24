@@ -46,14 +46,14 @@ k.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE
     await w.evaluate(async () => { const { Store } = window.__app; const now = new Date().toISOString();
       const firmalar = [['f1', 'DEMO TİCARET A.Ş.'], ['f2', 'ÖRNEK GIDA LTD. ŞTİ.'], ['f3', 'DENEME YAPI İNŞAAT LTD.'], ['f4', 'MAVİ TEKSTİL A.Ş.'], ['f5', 'KUZEY OTOMOTİV LTD.']];
       for (const [id, name] of firmalar) await Store.saveFirm({ id, name, lucaId: String(900 + +id.slice(1)), createdAt: now,
-        banks: id === 'f1' ? [{ label: 'ZİRAAT BANKASI 1234567 TL', code: '102.01.001' }] : [], askiIn: '399.99', askiOut: '199.99', mizanInfo: { source: 'luca', year: '2026', at: now, parts: 1 } });
-      await Store.saveMizan('f1', [['100', 'KASA', 48250, 31120], ['100.01', 'MERKEZ KASA', 48250, 31120], ['102', 'BANKALAR', 812400, 655300], ['102.01.001', 'ZİRAAT BANKASI TL', 812400, 655300],
+        banks: id === 'f1' ? [{ label: 'ÖRNEK BANK TL', code: '102.01.001' }] : [], askiIn: '399.99', askiOut: '199.99', mizanInfo: { source: 'luca', year: '2026', at: now, parts: 1 } });
+      await Store.saveMizan('f1', [['100', 'KASA', 48250, 31120], ['100.01', 'MERKEZ KASA', 48250, 31120], ['102', 'BANKALAR', 812400, 655300], ['102.01.001', 'ÖRNEK BANK TL', 812400, 655300],
         ['120', 'ALICILAR', 640500, 512000], ['120.01', 'ALFA MAĞAZACILIK', 240500, 190000], ['120.02', 'BETA MARKET', 400000, 322000], ['153', 'TİCARİ MALLAR', 420000, 0], ['153.01', 'TİCARİ MALLAR', 420000, 0],
         ['191', 'İNDİRİLECEK KDV', 84000, 0], ['191.10.20', '%20 İNDİRİLECEK KDV', 84000, 0], ['320', 'SATICILAR', 380000, 455000], ['320.01', 'GAMA TOPTAN', 180000, 230000], ['320.02', 'DELTA LOJİSTİK', 200000, 225000], ['320.03', 'ÖRNEK ELEKTRİK PERAKENDE', 9800, 9800], ['320.04', 'ÖRNEK İLETİŞİM HİZMETLERİ', 4200, 4200], ['320.05', 'YOL AKARYAKIT', 10000, 10000],
         ['335', 'PERSONELE BORÇLAR', 96000, 96000], ['335.01', 'PERSONEL ÜCRETLERİ', 96000, 96000], ['360', 'ÖDENECEK VERGİ VE FONLAR', 18000, 21400], ['360.01', 'MUHTASAR', 18000, 21400],
         ['391', 'HESAPLANAN KDV', 0, 128100], ['391.10.20', '%20 HESAPLANAN KDV', 0, 128100], ['600', 'YURTİÇİ SATIŞLAR', 0, 640500], ['600.01', 'YURTİÇİ SATIŞLAR', 0, 640500],
         ['760', 'PAZARLAMA SATIŞ DAĞITIM GİDERLERİ', 12600, 0], ['760.01', 'NAKLİYE GİDERLERİ', 12600, 0], ['770', 'GENEL YÖNETİM GİDERLERİ', 61800, 0], ['770.01', 'KİRA GİDERLERİ', 36000, 0], ['770.02', 'ELEKTRİK SU DOĞALGAZ', 9800, 0], ['770.03', 'HABERLEŞME', 4200, 0], ['770.04', 'BANKA MASRAFLARI', 1800, 0], ['770.05', 'AKARYAKIT', 10000, 0]]);
-      for (const r of [{ k: 'KİRA', dir: 'out', acc: '770.01', ld: 'Kira ödemesi' }, { k: 'ELEKTRİK', dir: 'out', acc: '770.02' }, { k: 'TURKCELL', dir: 'out', acc: '770.03' },
+      for (const r of [{ k: 'KİRA', dir: 'out', acc: '770.01', ld: 'Kira ödemesi' }, { k: 'ELEKTRİK', dir: 'out', acc: '770.02' }, { k: 'GSM', dir: 'out', acc: '770.03' },
         { k: 'MASRAF', dir: 'out', acc: '770.04' }, { k: 'ALFA MAĞAZA', dir: 'in', acc: '120.01' }, { k: 'BETA MARKET', dir: 'in', acc: '120.02' }, { k: 'GAMA TOPTAN', dir: 'out', acc: '320.01' },
         { k: 'DELTA LOJ', dir: 'out', acc: '320.02' }, { k: 'MAAŞ', dir: 'out', acc: '335.01' }, { k: 'MUHTASAR', dir: 'out', acc: '360.01' }, { k: 'AKARYAKIT', dir: 'out', acc: '770.05' }])
         await Store.addRule('f1', { id: 'r' + Math.random().toString(36).slice(2, 8), ...r, createdAt: now });
@@ -64,12 +64,12 @@ k.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE
     await cek('program-anasayfa');
 
     // 2) Banka: ekstre (Excel) yüklenmiş, kurallarla eşleşmiş satırlar
-    const ex = path.join(TMP, 'Ziraat_1234567_Eylul.xlsx');
+    const ex = path.join(TMP, 'Ornek_Bank_1234567_Eylul.xlsx');
     py(`from openpyxl import Workbook
 wb = Workbook(); ws = wb.active; ws.append(['Tarih', 'Açıklama', 'Tutar', 'Bakiye']); b = 125000.0
 for d, a, t in [('01.09.2026', 'EFT GELEN ALFA MAĞAZACILIK FT 2026-118', 48500.00), ('02.09.2026', 'KİRA ÖDEMESİ EYLÜL MERKEZ OFİS', -18000.00),
                 ('03.09.2026', 'HAVALE GELEN BETA MARKET A.Ş.', 72250.00), ('04.09.2026', 'ELEKTRİK FATURASI OTOMATİK ÖDEME', -4920.40),
-                ('05.09.2026', 'EFT GAMA TOPTAN GIDA SAN. TİC.', -36400.00), ('08.09.2026', 'TURKCELL FATURA ÖDEMESİ', -1180.25),
+                ('05.09.2026', 'EFT GAMA TOPTAN GIDA SAN. TİC.', -36400.00), ('08.09.2026', 'GSM FATURA ÖDEMESİ', -1180.25),
                 ('09.09.2026', 'HESAP İŞLETİM MASRAFI', -95.00), ('10.09.2026', 'MAAŞ ÖDEMESİ EYLÜL 2026', -48000.00),
                 ('12.09.2026', 'EFT GELEN ALFA MAĞAZACILIK FT 2026-131', 31200.00), ('15.09.2026', 'DELTA LOJİSTİK NAKLİYE BEDELİ', -12600.00),
                 ('16.09.2026', 'AKARYAKIT POS ÖDEMESİ', -3450.80), ('18.09.2026', 'GELEN HAVALE ZETA DANIŞMANLIK', 9600.00),
