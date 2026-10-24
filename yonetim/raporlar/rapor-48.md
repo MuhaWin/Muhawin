@@ -1,6 +1,6 @@
 # Rapor 48 – "Luca'da aç" hızlandırma
 
-**Oturum:** Yazılımcı (`session_01HKMyx49yrftMV598oVTfLH`) · **Taban:** Görev 45 dalı (`main` `af817e4` + #82) · **Dal:** `claude/awesome-ritchie-ftviuk`
+**Oturum:** Yazılımcı (`session_01HKMyx49yrftMV598oVTfLH`) · **Taban:** `main` `eee1fa4` (Görev 45 dahil) · **Dal:** `claude/awesome-ritchie-ftviuk`
 Derleme yapılmadı. Gerçek Luca'ya istek yapılmadı. Süreler taklit Luca'yla ölçüldü; gerçek süreler Luca'nın yanıt hızına bağlı.
 
 ## Belirti
@@ -23,6 +23,7 @@ Kontrol raporundaki / Fiş Listesi'ndeki "Luca'da aç" (Görev 37) doğru fişi 
    - **Seçilirse doğrulanıyor:** Çubuk yüklenince açılır listede seçili firma istenen değilse Fiş Listesi açılmıyor ve açık hata veriliyor (yanlış firmanın fiş listesi açılmasın).
 3. **Fiş Listesi:**
    - Firma değişmediyse ve Fiş Listesi süzgeç formu açıksa form doğrudan yeni fiş numarasıyla gönderiliyor; modül yeniden açılmıyor.
+   - Gönderimden önce form Luca'nın varsayılanlarına döndürülüyor (`form.reset()`). Çalışan açık formda başka bir süzgeç (açıklama, fiş türü…) değiştirmişse fiş listede saklanmıyor; eski davranışla aynı sonuç.
    - Firma değiştiyse modül yeniden açılıyor (eski formun eski firmaya ait olma riski yok).
 4. **Bekleme:**
    - Yoklama 50 ms.
@@ -37,10 +38,10 @@ Kontrol raporundaki / Fiş Listesi'ndeki "Luca'da aç" (Görev 37) doğru fişi 
 ## Testler
 | Test | Sonuç |
 |---|---|
-| `test/luca/fis-goster.js` (taklit Luca sunucusu, gerçek Chromium) | 25/25 (5'i yeni) |
+| `test/luca/fis-goster.js` (taklit Luca sunucusu, gerçek Chromium) | 26/26 (6'sı yeni) |
 | `test/luca/firma-listede-yok.js` | 14/14 (2'si yeni: dönem kilit beklemeden, önbellek) |
 | `test/luca/*.js` | 15 dosya geçti |
-| `xvfb-run -a node test/e2e.js` | 367 geçti, 0 başarısız |
+| `xvfb-run -a node test/e2e.js` (main `eee1fa4` ile birleşik) | 369 geçti, 0 başarısız |
 | `node test/mobil.js` | 45/45 |
 
 `fis-goster.js` yeni senaryolar (taklit Luca; süreler ms):
@@ -64,4 +65,5 @@ Derlemeden sonra.
 
 ## Açık konular
 - **Fiş Listesi'nin form + sonuç düzeni doğrulanmadı.** Luca'nın Fiş Listesi'nde süzgeç formu sonuçla birlikte açık kalıyorsa ikinci açılış en hızlı yoldan gider. Kalmıyorsa modül yeniden açılır (yine çubuk yüklenmeden). Bu, ölçüm satırlarında `modul` süresinden görünür.
+- **Dönem açılır listesi:** Çalışan Luca'da Çalış penceresinde dönemi çubuğu yenilemeden başka bir yolla değiştirdiyse çubuğun adresi eski dönemi gösterebilir. Bu durumda fiş yanlış dönemde aranır ve listede görünmez (yanlış fiş açılmaz). Görülürse ölçüm satırında `firmaSecildi:false` olur; çubuğun dönem açılır listesi de okunacak biçimde genişletilebilir.
 - **Luca'da Çalış penceresinin ilk açılışı** Luca'nın kendi giriş akışına bağlı; bu görevde değişmedi.

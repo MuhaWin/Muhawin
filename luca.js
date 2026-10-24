@@ -627,6 +627,7 @@ const FIS_GOSTER_JS = `(async (o) => {
     adim('modul');
   } else sure.modul = 0;
   if (!form) return { ok: false, hata: 'FORM', sure };
+  try { form.reset(); } catch (e) {}       // açık kalan formda elle değiştirilmiş süzgeçler Luca'nın varsayılanına döner
   const ata = (ad, deger) => { const e = form.elements.namedItem(ad); if (e && 'value' in e) e.value = deger; };
   ata('ilkFisNo', o.fisNo); ata('sonFisNo', o.fisNo); ata('ilkFisTarihi', ''); ata('sonFisTarihi', '');
   HTMLFormElement.prototype.submit.call(form);

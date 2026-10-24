@@ -31,7 +31,7 @@ const sunucu = http.createServer((q, r) => {
   }
   if (u.pathname === '/Luca/listFisParametreAction.do' && q.method === 'POST') {
     let b = ''; q.on('data', d => b += d); q.on('end', () => { kayit.gonderim = Object.fromEntries(new URLSearchParams(b));
-      html(sonucFormlu ? '<form name="listFisParametreForm" method="post" action="listFisParametreAction.do"><input name="ilkFisNo"><input name="sonFisNo"><input name="ilkFisTarihi"><input name="sonFisTarihi"></form><table><tr><td>Fiş ' + kayit.gonderim.ilkFisNo + '</td></tr></table>'
+      html(sonucFormlu ? '<form name="listFisParametreForm" method="post" action="listFisParametreAction.do"><input name="ilkFisNo"><input name="sonFisNo"><input name="ilkFisTarihi"><input name="sonFisTarihi"><input name="fisAciklama" value=""><select name="P_FIS_KODU"><option>Tümü</option><option>Mahsup</option></select></form><table><tr><td>Fiş ' + kayit.gonderim.ilkFisNo + '</td></tr></table>'
         : '<table><tr><td>Fiş 0143</td></tr></table>'); }); return;
   }
   if (/fisSil/.test(u.pathname)) kayit.sil = true;
@@ -68,8 +68,12 @@ const sunucu = http.createServer((q, r) => {
       const r = await p.evaluate(JS + '(' + JSON.stringify({ firma, sirket, donem, uye: '99', fisNo }) + ')'); for (let i = 0; i < 40 && !kayit.gonderim; i++) await p.waitForTimeout(50); await p.waitForTimeout(150); return r; };
     const r1 = await ac('55', 'D9', '0143');
     t('ilk açılış: firma seçildi, modül açıldı, form gönderildi (' + JSON.stringify(r1.sure) + ')', r1.ok && kayit.firmaSay === 1 && kayit.modulSay === 1 && kayit.gonderim.ilkFisNo === '0143' && r1.sure.firmaSecildi === true && r1.sure.toplam >= 0);
+    // çalışan açık formda bir süzgeç değiştirmiş olsun: yeniden kullanılan form varsayılana döner
+    await p.evaluate(() => { const f = window.frames['frm3']; const bul = w => { const x = w.document.querySelector('form[name=listFisParametreForm]'); if (x) return x; for (let i = 0; i < w.frames.length; i++) { const y = bul(w.frames[i]); if (y) return y; } return null; };
+      const form = bul(f); form.elements.namedItem('fisAciklama').value = 'KİRA'; form.elements.namedItem('P_FIS_KODU').selectedIndex = 1; });
     const r2 = await ac('55', 'D9', '0150');
     t('ikinci açılış (aynı firma, form açık): firma çubuğu ve modül yeniden yüklenmedi, yalnız form gönderildi (' + JSON.stringify(r2.sure) + ')', r2.ok && !kayit.firmaSay && !kayit.modulSay && kayit.gonderim.ilkFisNo === '0150' && r2.sure.firmaSecildi === false && r2.sure.modul === 0);
+    t('yeniden kullanılan formda elle değiştirilmiş süzgeçler varsayılana döndü', kayit.gonderim.fisAciklama === '' && kayit.gonderim.P_FIS_KODU === 'Tümü');
     const r3 = await ac('55', 'D10', '0151');
     t('aynı firmanın başka dönemi: çubuk yeniden seçildi, modül yeniden açıldı', r3.ok && kayit.firmaSay === 1 && kayit.modulSay === 1 && kayit.gonderim.ilkFisNo === '0151');
     const r4 = await ac('66', 'D9', '0152');
