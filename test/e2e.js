@@ -1171,7 +1171,7 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
       await w.click('[data-fkef=eksik]'); await w.waitForTimeout(150); const ne = await w.$$eval('#fkkTable tbody tr[data-i]', t => t.length);
       check(nd === 0 && ne === n0 && n0 >= 1, 'Eksik / Dolu filtresi: matrah hesabı boş fatura "Eksik"te, "Dolu" boş (' + ne + '/' + nd + ')');
       await w.click('[data-fkef=""]'); await w.waitForTimeout(150); }
-    await w.click('[data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kHesap');
+    await w.click('#fkkTable tbody tr[data-i] [data-menu]'); await w.click('.satirmenu:not([hidden]) [data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kHesap');
     await w.fill('#kHesap', '770.01'); await w.click('#kKaydet'); await w.waitForTimeout(400);
     check(/kural/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'kural uygulandı');
     check(/Ünvan içerir/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'listede uygulanan kural görünüyor (eski tek şartlı kural)');
