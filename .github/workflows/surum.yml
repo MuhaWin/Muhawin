@@ -98,6 +98,8 @@ jobs:
         run: node test/yz.js
       - name: Fiş çıktısı yardımcıları testi
         run: node --test test/fis-ozet.test.js
+      - name: Mizan detay hesap (DH)
+        run: node test/hesap_dh.js
       - name: Luca testleri
         run: for f in test/luca/*.js; do echo "== $f"; node "$f"; done
       - name: Uçtan uca test (e2e)
