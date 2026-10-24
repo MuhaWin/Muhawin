@@ -735,3 +735,77 @@ tr.fiscikan td:last-child{opacity:1}
 .btn.yenile,.btn.yenile.ghost{background:color-mix(in srgb,var(--yenile) 11%,var(--surface));border-color:color-mix(in srgb,var(--yenile) 45%,var(--line));color:var(--yenile);font-weight:600}
 .btn.yenile:hover,.btn.yenile.ghost:hover{background:var(--yenile);border-color:var(--yenile);color:var(--surface)}
 .btn.danger{border-color:color-mix(in srgb,var(--out) 45%,var(--line))}
+/* Görev 54: dikey alan. Üst bant tek satır (logo · firma · araçlar), modül sekmeleri ile Muhasebe alt sekmeleri aynı satırda.
+   Dar pencerede (≤1200 px) eski düzen gibi alta kayar. */
+header.top{flex-wrap:nowrap;gap:10px 16px;padding-bottom:0;margin-bottom:6px;align-items:center}
+header.top .sub{display:none}
+header.top h1{font-size:21px;white-space:nowrap}
+header.top .h1mod{display:none}
+.firmbar{flex-wrap:nowrap;gap:6px;align-items:center;flex:1 1 auto;justify-content:flex-end;min-width:0}
+.firmbar>div{min-width:200px!important;flex:0 1 260px}
+.firmbar label.lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.firmbar>.btn,.firmbar .themepick{align-self:center!important}
+.firmbar #komutBtn kbd{display:none}
+.firmbar #themeBtn{font-size:0;gap:0;padding:0 10px}
+.firmbar #themeBtn::before{margin:0}
+.wrap{padding-block:10px 40px}
+.sekmesatir{display:flex;align-items:flex-end;gap:0;border-bottom:2px solid var(--line);margin:0 0 10px}
+.sekmesatir>.modsekme{border-bottom:0;margin:0;flex:0 0 auto}
+.altsekme{display:flex;min-width:0}
+.altsekme>.fknav{display:none}
+body.fk-view .altsekme>.fknav{display:flex;border-bottom:0;margin:0 0 0 14px;padding:0 0 0 14px;border-left:1px solid var(--line);flex-wrap:wrap}
+.altsekme>.fknav .btn,.altsekme>.fknav .btn:hover{font-size:14px;padding:8px 13px 7px}
+@media (max-width:1200px){header.top,.firmbar{flex-wrap:wrap}.firmbar{justify-content:flex-start}
+  .sekmesatir{flex-wrap:wrap}body.fk-view .altsekme>.fknav{margin-left:0;padding-left:0;border-left:0}}
+.firmbar>*{flex-shrink:0}.firmbar>div{flex:0 1 250px;min-width:170px!important}
+/* Görev 54: Faturaları Luca'ya kaydet — başlık ve araç çubuğu tek satır, satırlar iki satır (1366×768'de 12+ fatura) */
+#fkKayit .mmtop{padding-top:6px;padding-bottom:6px;gap:8px}
+#fkKayit .mmtop h2{font-size:17px;white-space:nowrap}
+#fkkHead{flex:1 1 0;min-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fkKayit .mmtop>span[style*="flex:1"]{display:none}
+#fkkCekYer{display:inline-flex;flex-wrap:nowrap;gap:6px}#fkkCekYer .btn{white-space:nowrap}
+#fkKayit .mmtop label.note{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}#fkkGrup{max-width:170px}
+#fkKayit .mmbar{padding-top:6px;padding-bottom:6px;gap:6px}
+#fkKayit:not(.suz-acik) thead tr.flt{display:none}
+#fkKayit thead th{white-space:normal;line-height:1.2}
+#fkKayit td,#fkKayit thead th{padding-left:6px;padding-right:6px}
+#fkKayit td{padding-top:4px;padding-bottom:4px;line-height:1.3}
+#fkKayit td input{height:26px}
+#fkKayit td.fk-karsi>b,#fkKayit td.fk-karsi>.note{max-width:170px}
+#fkKayit .fkk-kalem{font-family:var(--f-body)}
+#fkKayit .fkk-hs{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+#fkKayit .fkk-hs .chip{font-size:10.5px;padding:0 6px}
+#fkKayit td.fk-hesap input,#fkKayit td.fk-cari input{width:92px!important}
+#fkKayit .fkk-hs2{display:flex;align-items:center;gap:4px;margin-top:2px}
+#fkKayit .fkk-ad{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;margin:2px 0 0}
+#fkKayit .fkk-hs2 .fkk-ad{margin:0;max-width:96px;flex:0 1 auto}
+#fkKayit td.fk-hesap>.note,#fkKayit td.fk-cari>.note{max-width:150px}
+#fkKayit .fkk-hs2 .fkk-ksl{margin-top:0}
+#fkKayit .fk-isler{display:flex;gap:2px;align-items:center}
+#fkKayit .fk-isler .btn{padding:0 7px}
+.dmenulist.satirmenu{min-width:240px}
+#fkKayit td.fk-hesap>div.fkk-hs2,#fkKayit td.fk-hesap>div.fkk-hs{max-width:none}
+/* Görev 54: Mizan / Muavin — satırlar tek satır (uzun açıklama imleç ipucunda), araç çubukları ince */
+#mmPanel .mmtop{padding-top:6px;padding-bottom:6px}
+#mmPanel .mmtop h2{font-size:17px}
+#mmPanel .mmbar{padding-top:4px;padding-bottom:6px;gap:6px}
+#mmPanel #mmTable tbody td{white-space:nowrap;max-width:300px;overflow:hidden;text-overflow:ellipsis;padding-top:4px;padding-bottom:4px}
+/* Görev 54: Banka — özet tek satır, karşı hesap adı ve banka adı kısalır, satır düğmeleri sığar */
+.stat{display:flex;align-items:baseline;gap:8px;padding:6px 12px}
+.stat .k{white-space:nowrap}
+.stat .v{font-size:16px;margin:0}
+.accin input{width:104px}
+.accname{max-width:150px}
+td.bankcol{max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.rowbtns .btn{padding:0 8px}
+#fkKayit td input{min-height:0;height:25px}
+#fkKayit td.fk-hesap input,#fkKayit td.fk-cari input{width:86px!important}
+#fkKayit .fkk-hs .fkk-ksl{margin:0;gap:1px}
+#fkKayit .fkk-hs .fkk-ks{font-size:10.5px;padding:0 5px;line-height:1.35}
+#fkKayit td{padding-top:3px;padding-bottom:3px}
+#fkKayit td.fk-karsi>b,#fkKayit td.fk-karsi>.note{max-width:150px}
+#fkkQ{width:140px!important}
+#fkKayit td input{height:24px}
+#fkKayit .fkk-ad{font-size:11px;line-height:1.2;margin:1px 0 0}
+#fkKayit td .note{line-height:1.25}
+.stat .k{white-space:normal;line-height:1.15;min-width:0}.stat .v{white-space:nowrap;flex:none}
