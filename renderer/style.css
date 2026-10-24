@@ -520,6 +520,10 @@ h1::before{background:url(gorsel/simge_lacivert.svg) center/contain no-repeat!im
 #fkKayit .fkk-ks{padding:1px 6px;font-size:11px;min-height:0;line-height:1.5}
 #fkKayit .fkk-ks[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
 #fkKayit .fkk-ks:disabled{opacity:.4}
+/* Görev 50: "Luca'ya kaydet" pasifken nedeni */
+#fkKayit .fkk-neden{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:52ch;font-size:12px}
+#fkKayit .fkk-neden:empty{display:none}
+#fkKayit .fkk-neden-ac{cursor:help}
 #okcPanel .mmtop{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--surface);flex-wrap:wrap}
 #okcPanel .mmtop h2{margin:0;font-family:var(--f-display);font-size:19px}
 #okcPanel .mmbar{display:flex;align-items:center;gap:10px;padding:10px 18px;flex-wrap:wrap}

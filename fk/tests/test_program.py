@@ -322,6 +322,8 @@ def test_kayit_adaylari(istemci, tmp_path):
     a = c.get("/api/kayit/adaylar", params={"id": v["id"]}).json()
     f = {x["belge_no"]: x for x in a["faturalar"]}
     assert f["AAA2026000000001"]["kayitli"] and not f["YYY2026000000009"]["kayitli"]
+    # Görev 50: kayıtlı sayılan faturanın muavindeki fişi (ekranda "muavinde var · fiş 1", fişi açılır)
+    assert f["AAA2026000000001"]["muavin_fis"] == [{"no": "1", "tarih": "2026-09-30"}] and f["YYY2026000000009"]["muavin_fis"] == []
     assert f["YYY2026000000009"]["oranlar"] == [{"oran": "20", "matrah": 500.0, "kdv": 100.0}]
     assert a["kdv_hesaplari"]["ALIS"]["20"] == "191.10.20"
     assert a["kdv_hesaplari"]["SATIS"]["20"] == "391.10.20"
