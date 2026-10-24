@@ -1225,7 +1225,24 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
       await w.evaluate(() => { const st = window.__fkayit._st;
         for (const [k, v] of [['153.01.01', '%1 TİCARİ MAL'], ['153.01.10', '%10 TİCARİ MAL'], ['153.01.20', '%20 TİCARİ MAL'], ['153.01.99', 'DİĞER TİCARİ MAL'], ['191.01.20', '%20 İNDİRİLECEK KDV']]) { st.acc.set(k, v); st.leaf.add(k); } });
       const i0 = await w.$eval('#fkkTable tbody tr[data-i]', t => +t.dataset.i);
-      await w.click('#fkkKodA'); await w.waitForSelector('#fkkModal:not([hidden]) #fkkKodTablo');
+      // Görev 41: Alış / Satış kod tanımları ve Doldurma tek "Kod tanımları ▾" menüsünde; araç çubuğu 1440 px'de alta taşmaz
+      { const ilk = await w.evaluate(() => ({ dugme: document.querySelectorAll('#fkkBar #fkkKod').length, gizli: document.querySelector('#fkkKodMenu').hidden, ayri: !!document.querySelector('#fkkBar > #fkkKodA, #fkkBar > #fkkKodS') }));
+        await w.click('#fkkKod'); const acik = await w.evaluate(() => ({ menu: !document.querySelector('#fkkKodMenu').hidden, ogeler: [...document.querySelectorAll('#fkkKodMenu [role=menuitem]')].map(x => x.textContent), exp: document.querySelector('#fkkKod').getAttribute('aria-expanded'), doldurma: !!document.querySelector('#fkkKodMenu #fkkKaynak') && !document.querySelector('#fkkBar > label #fkkKaynak') && (() => { const r = document.querySelector('#fkkKodMenu').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })(), odak: document.activeElement.id }));
+        await w.keyboard.press('ArrowDown'); const odak2 = await w.evaluate(() => document.activeElement.id);
+        await w.keyboard.press('Escape'); await w.waitForTimeout(150); const esc = await w.evaluate(() => ({ menu: document.querySelector('#fkkKodMenu').hidden, panel: !document.querySelector('#fkKayit').hidden, odak: document.activeElement.id }));
+        await w.click('#fkkKod'); await w.click('#fkkBar .note'); const disari = await w.evaluate(() => document.querySelector('#fkkKodMenu').hidden);
+        check(ilk.dugme === 1 && ilk.gizli && !ilk.ayri && acik.menu && acik.ogeler.join('|').toLocaleLowerCase('tr') === 'alış kod tanımları|satış kod tanımları' && acik.doldurma && acik.exp === 'true' && acik.odak === 'fkkKodA' && odak2 === 'fkkKodS' && esc.menu && esc.panel && esc.odak === 'fkkKod' && disari,
+          'Kod tanımları ▾ menüsü: Alış / Satış ve Doldurma seçimi (menü pencereye sığıyor); oklarla gezilir, Esc ve dışarı tıklama menüyü kapatır, ekran açık kalır (' + JSON.stringify({ ilk, acik, odak2, esc, disari }) + ')');
+        const once = await w.evaluate(() => [innerWidth, innerHeight]);
+        await app.evaluate(({ BrowserWindow }) => { const b = BrowserWindow.getAllWindows()[0]; if (b.isMaximized()) b.unmaximize(); b.setContentSize(1440, 900); }); await w.waitForFunction(() => innerWidth === 1440, null, { timeout: 5000 }).catch(() => {}); await w.waitForTimeout(400);
+        const satir = await w.evaluate(() => { const t = [...document.querySelector('#fkkBar').children].filter(x => x.getClientRects().length && x.offsetWidth).map(x => x.getBoundingClientRect().top).sort((a, b) => a - b);
+          return t.reduce((n, y, i) => n + (i && y - t[i - 1] > 14 ? 1 : 0), t.length ? 1 : 0); });   // aynı satırdaki etiket / düğme birkaç px farklı yükseklikte durabilir
+        const ayniSatir = await w.evaluate(() => Math.abs(document.querySelector('#fkkKod').getBoundingClientRect().top - document.querySelector('#fkkKurallar').getBoundingClientRect().top) < 4 && Math.abs(document.querySelector('#fkkKurallar').getBoundingClientRect().top - document.querySelector('#fkkBosDoldur').getBoundingClientRect().top) < 4);
+        await w.click('#fkkKod'); await w.waitForTimeout(150); await w.screenshot({ path: OUT + '/41-kod-menu-1440.png' }); await w.keyboard.press('Escape');
+        const st = await w.evaluate(() => ({ w: innerWidth, bar: Math.round(document.querySelector('#fkkBar').getBoundingClientRect().height) }));
+        await app.evaluate(({ BrowserWindow }, [cw, ch]) => { BrowserWindow.getAllWindows()[0].setContentSize(cw, ch); }, once); await w.waitForTimeout(300);
+        check(satir === 2 && ayniSatir, 'Faturaları Luca\'ya kaydet araç çubuğu 1440 px\'de iki satır: süzgeçler + işlemler; Kod tanımları işlem satırında, Doldurma alta düşmüyor (' + JSON.stringify({ ...st, satir, ayniSatir }) + ')'); }
+      await w.click('#fkkKod'); await w.click('#fkkKodA'); await w.waitForSelector('#fkkModal:not([hidden]) #fkkKodTablo');
       const baslik = await w.textContent('#fkkModalT');
       await w.fill('[data-kodh="11|10"]', '153.01.10'); await w.press('[data-kodh="11|10"]', 'Tab');
       await w.fill('[data-kodh="11|20"]', '153.01.99'); await w.press('[data-kodh="11|20"]', 'Tab');
@@ -1241,7 +1258,7 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
       const kayit = await w.evaluate(() => window.__fkayit._st.firm.fkKod);
       check(await w.isHidden('#fkkModal') && kayit.ALIS['11']['20'].elle && kayit.ALIS['11']['20'].kod === '153.01.99' && !kayit.ALIS['11']['1'].elle && !kayit.ALIS['11']['8'], 'kod tablosu firmaya kaydedildi (elle işaretiyle)');
       // ikinci çekiş: elle hücre yine ezilmez; "Luca'dakini kullan" denirse değişir
-      await w.click('#fkkKodA'); await w.waitForSelector('#fkkKodTablo'); await w.click('#kodCek'); await w.waitForSelector('#askModal:not([hidden])'); await w.click('#askYes'); await w.waitForTimeout(200);
+      await w.click('#fkkKod'); await w.click('#fkkKodA'); await w.waitForSelector('#fkkKodTablo'); await w.click('#kodCek'); await w.waitForSelector('#askModal:not([hidden])'); await w.click('#askYes'); await w.waitForTimeout(200);
       const e20b = await w.$eval('[data-kodh="11|20"]', x => x.value); await w.click('#fkkModal [data-kx]');
       check(e20b === '153.01.20' && (await app.evaluate(() => global.__kdvCek)) === 2, 'farkta "Luca\'dakini kullan" denince hücre Luca\'daki oldu (kaydetmeden kapatıldı)');
       // kural penceresi: ana hesap açıklaması
@@ -1592,6 +1609,20 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
     } catch (e) { bad.push('HATA (4): ' + e.message.split('\n')[0]); }
     finally { await app2.close().catch(() => {}); fake2.server.close(); }
   }
+
+  // ---------------- Görev 41: ekran boyu × Windows ölçeklemesi matrisi (açılış + ana ekranlar) ----------------
+  // test/ekran.js her ekranı 1280×720 … 3840×2160 @%100–200 boylarında, büyütülmüş ve tam ekran pencerede ölçer:
+  // görünür öğeler üst üste binmemeli, metin kesilmemeli, sayfa yatay taşmamalı
+  { const out = path.join(OUT, 'ekran'); fs.rmSync(out, { recursive: true, force: true });
+    // büyütülmüş / tam ekran pencere için 4K sanal ekran (xvfb-run varsa); yoksa o iki ölçüm atlanır
+    const xvfb = require('child_process').spawnSync('sh', ['-c', 'command -v xvfb-run']).status === 0;
+    const r = require('child_process').spawnSync(xvfb ? 'xvfb-run' : process.execPath, [...(xvfb ? ['-a', '-s', '-screen 0 3840x2160x24', process.execPath] : []), path.join(__dirname, 'ekran.js')], { encoding: 'utf8', timeout: 900000,
+      env: { ...process.env, OUT: out, MUHAWIN_APP: APP, EKRAN_EKRAN: process.env.EKRAN_EKRAN || 'giris,moduller,banka,muhasebe-toplu,muhasebe-tek,luca-kaydet' } });
+    let oz = []; try { oz = JSON.parse(fs.readFileSync(path.join(out, 'ozet.json'), 'utf8')); } catch (e) { bad.push('ekran matrisi çalışmadı: ' + (r.stderr || r.stdout || String(r.error)).slice(-300)); }
+    const ekranlar = [...new Set(oz.map(x => x.ekran))];
+    for (const e of ekranlar) { const L = oz.filter(x => x.ekran === e); const sorunlu = L.filter(x => x.hata || x.cakisan.length || x.tasan.length || x.sayfaTasma.length);
+      check(!sorunlu.length, 'ekran uyumu: ' + e + ' — ' + L.length + ' boyda çakışma / kesik metin / yatay taşma yok' + (sorunlu.length ? ' (' + sorunlu.map(x => (x.boy || '') + ': ' + (x.hata || [...x.sayfaTasma, ...x.tasan, ...x.cakisan].slice(0, 2).join(' ; '))).join(' | ').slice(0, 500) + ')' : '')); }
+    check(['giris', 'moduller', 'banka', 'muhasebe-toplu', 'luca-kaydet'].every(e => ekranlar.includes(e)) && oz.some(x => / @2$/.test(x.css || '')) && oz.some(x => / @1\.25$/.test(x.css || '')), 'ekran matrisi açılış ve ana ekranları %100, %125, %150 ve %200 ölçeklemede ölçtü (' + oz.length + ' ölçüm)'); }
 
   console.log(ok.map(x => '✓ ' + x).join('\n'));
   console.log(bad.map(x => '✗ ' + x).join('\n'));
