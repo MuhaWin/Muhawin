@@ -1,8 +1,8 @@
 {
-  "surum": "2.9.14",
-  "dosya": "MuhaWin-Kurulum-2.9.14.exe",
+  "surum": "2.9.15",
+  "dosya": "MuhaWin-Kurulum-2.9.15.exe",
   "depo": "muhawin/muhawin-surumler",
-  "indir": "https://github.com/muhawin/muhawin-surumler/releases/download/v2.9.14/MuhaWin-Kurulum-2.9.14.exe",
+  "indir": "https://github.com/muhawin/muhawin-surumler/releases/download/v2.9.15/MuhaWin-Kurulum-2.9.15.exe",
   "moduller": [
     "Muhasebe İşlemleri",
     "Banka İşlemleri",
@@ -16,102 +16,50 @@
   ],
   "notlar": [
     {
-      "surum": "2.9.14",
+      "surum": "2.9.15",
       "maddeler": [
         {
-          "metin": "Muavinde harfli cari kodları (ör. 320.P.0006, 120.Ş.001) doğru okunur. Önceden bu carilerin hareketleri muavinde bir önceki hesaba (çoğu zaman 302) yazılıyor, fiş ve cari önerisi bu yüzden yanlış çıkıyordu.",
+          "metin": "Muhasebe Denetimi muhasebe programından bağımsız: Mikro, Elektra ya da Luca muavini seçilir. Dönem tablosu (yıl ve ay düğmeleri); KDV kontrolünde KDV oranı ile hesap kodunun uyumu ve KDV fişi denetlenir.",
           "alt": []
         },
         {
-          "metin": "Kurallarda çoklu şart (VE) ve \"Hiç kaydetme\" eylemi.",
+          "metin": "Muhasebe Denetimi'nde bütün listelerde fiş düğmesinin yanında \"📄 Fatura\" düğmesi: faturanın GİB görünümü açılır (fatura dosyası yoksa \"Fatura yok\").",
           "alt": []
         },
         {
-          "metin": "Cari önerisi önce VKN/TCKN'ye, sonra ünvana bakar; fatura seri ön eki destekleyici bilgi olarak kullanılır. Yeni cari önerisinde IBAN ve sayı dizileri ünvan sayılmaz; mevcut cariye ekli ünvan tanınır.",
+          "metin": "Detay denetim: Gider kontrolü ve Gelir kontrolü (her faturanın kaydı, fişi ve carisi; geçmiş aylara göre otomatik değerlendirme), Kontrol kuralları ve Denetim raporu.",
           "alt": []
         },
         {
-          "metin": "\"Kod tanımları ▾\" menüsü (Alış / Satış kod tanımları): firma başına işlem türü × KDV oranı hesap tablosu. Luca'dan çekilebilir, elle girilen hücre korunur. Doldurma kaynağı seçilebilir (kural → geçmiş → varsayılan ya da kural → kod tablosu).",
+          "metin": "Muhtasar ve Prim Hizmet Beyannamesi (1003A PDF) ile muavin karşılaştırması.",
           "alt": []
         },
         {
-          "metin": "ÖİV'li faturalarda fiş satırları.",
+          "metin": "Yönetici raporu: aylık grafikler, ayın özeti ve rasyolar; yazdırılabilir, PDF olarak kaydedilebilir.",
           "alt": []
         },
         {
-          "metin": "Fiş önizlemede ve \"Luca'ya kaydet\" ekranında satır ekle / çıkar.",
+          "metin": "Detay denetimde yapay zekâ ile karşılaştırma (isteğe bağlı, öneri): Ayarlar'da kendi Anthropic API anahtarınızla açılır, ilk açılışta onay istenir. Gönderilen özet maskelenir (VKN/TCKN, IBAN, adres, kişi adları gönderilmez); \"Gönderilecek veriyi göster\" ile görülebilir. Yapay zekâ kayıt yapmaz, kararı siz verirsiniz.",
           "alt": []
         },
         {
-          "metin": "Tek düğme \"Muavini Luca'dan çek\" (mizan → hesap planı → muavin); \"Daha önce kaydedilenler\" listesi; Luca'dan silinen fiş muavinden kendiliğinden fark edilir; \"Luca fiş N\" düğmesi fişi açar.",
+          "metin": "Muhasebe Denetimi sitede de: muhawin.com.tr (giriş gerekir). Kartta ve ekranda \"Sitede Aç\" düğmesi.",
           "alt": []
         },
         {
-          "metin": "Rapordaki \"Luca'da aç\": Fiş Listesi o fişle süzülerek açılır.",
+          "metin": "Faturaları Luca'ya kaydet: tablo her ekranda yatay kaydırmasız sığar (tarih/belge no ve matrah/KDV tek hücrede, uzun ünvanlar kısaltılır, tamamı fareyle görünür).",
           "alt": []
         },
         {
-          "metin": "Muavin okuyucusu farklı Luca döküm biçimlerine dayanıklı.",
+          "metin": "Faturaları Luca'ya kaydet ekranı ESC ile kapanmaz (yalnız \"✕ Kapat\" ile); kutudayken ESC yalnız kutudan çıkarır, açık küçük pencereyi kapatır. Yazdıklarınız kaybolmaz.",
           "alt": []
         },
         {
-          "metin": "Toplu sonuçlarda \"Tümü\" süzgeci; rapordaki fiş ekranda açılır.",
+          "metin": "Kod tanımlarında \"Luca'dan çek\" ve \"Luca'ya kaydet\"teki \"firma bulunamadı\" hatası giderildi: firma Luca listesinde yoksa dönem bilgisinden bulunur, seçilen firma Luca'da doğrulanır.",
           "alt": []
         },
         {
-          "metin": "KDV beyannamesi: sorumlu sıfatıyla ödenen KDV ve önceki ayların tahakkuk fişi.",
-          "alt": []
-        },
-        {
-          "metin": "Luca iş kilidi: aynı anda iki iş aynı Luca sayfasını kullanmaz; gerektiğinde ek Luca sayfası açılır.",
-          "alt": []
-        },
-        {
-          "metin": "Luca giriş kutusu ve gizli giriş düzeltmeleri.",
-          "alt": []
-        },
-        {
-          "metin": "Farklı ekran boyu ve Windows ölçeklemesinde (%125–%200) düzen: giriş ekranı kesilmez, satırlar üst üste binmez.",
-          "alt": []
-        },
-        {
-          "metin": "Sabit üst şerit, \"yakında\" modüller, sade tema seçimi, Esc ile geri; üst menü hizası ve sıralama.",
-          "alt": []
-        },
-        {
-          "metin": "Tek tip sekmeler, düğme boyları, boş liste mesajları; örnek firma seçiliyken açıklayıcı uyarı.",
-          "alt": []
-        },
-        {
-          "metin": "\"Hızlı Fiş Girişi\"nin görünen adı her yerde \"Belgeden Fiş\".",
-          "alt": []
-        },
-        {
-          "metin": "PDF okuyucu pdf.js 5.7.284'e yükseltildi; PDF, pencere ve dosya erişimi sıkılaştırıldı.",
-          "alt": []
-        },
-        {
-          "metin": "Belge girdisi sınırları (ZIP bombası, yükleme boyutu).",
-          "alt": []
-        },
-        {
-          "metin": "Arayüz betikleri ayrı dosyada, satır içi betik kapalı (CSP).",
-          "alt": []
-        },
-        {
-          "metin": "Yerel veri ve oturum hijyeni.",
-          "alt": []
-        },
-        {
-          "metin": "Lisans denetimi sıkılaştırıldı; ofis başına en çok 10 kullanıcı.",
-          "alt": []
-        },
-        {
-          "metin": "Mobil yönetim paneli eşitlemesi ve oturum güvenliği.",
-          "alt": []
-        },
-        {
-          "metin": "Çek / Senet hesap yüklemesindeki yarış düzeltildi.",
+          "metin": "Luca penceresinde \"MuhaWin'e git\" düğmesi: Luca'nın üst şeridinde, Luca'yı küçültmeden MuhaWin'i öne getirir.",
           "alt": []
         }
       ]
