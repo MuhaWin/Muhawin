@@ -69,7 +69,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | 13 | Mobil yönetim paneli: `MuhaWin/Muhawin-yonetim-` ile otomatik eşitleme, D5 düzeltmesi | `gorevler/gorev-13-mobil-yonetim.md` | Açık. Web Asistanı |
 | 17–22 | Gece planı (arayüz, butonlar, toplu kontrol, muavin, kural, cari öneri) | `gorevler/gece-23-10.md` | Açık |
 | G | Derleme ve yayın (kalıcı) | `gorevler/guncelleyici.md` | İş akışı `.github/workflows/surum.yml`. **G-02 açık:** `test/guncelleme.js` iş akışına + testler açık deneme çalıştırması (yayın yok). **G-01 tamam:** 2.9.13 deneme derlendi ([#21](https://github.com/MuhaWin/Muhawin/pull/21), run 40018199927), kullanıcıya bağlantı verildi; `v2.9.13` etiketi konmaz. İlk yayın 2.9.14+ |
-| – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
+| 51 | Ofis ortak verisi: kurallar/firmalar/büro bilgileri Supabase'de, fatura–muavin verisi için seçilebilir (ortak) klasör + güvenli yenileme, işlem günlüğü | Menü Düzenleme · `belgeler/bulut-veri-tasarimi.md` | Başladı (24.10.2026). **2.9.17'ye girecek; 2.9.16 derlenene kadar main'e birleştirilmez.** Kararlar: silme/değiştirme yetkisi tüm çalışanlarda (canlıdaki yalnız-yönetici kuralı için SQL yaması, kullanıcı onayıyla); Luca giriş bilgisi yerelde kalır; günlük silinemez, ofisteki herkes görür |
 
 ## Sürüm planı
 - **Kural (kullanıcı kararı, 24.10.2026):** Program ve site düzeltmeleri toplu toplu `main`'e birleştirilir. Kullanıcı "artık programı güncelleyebiliriz" diyene kadar **hiçbir derleme yapılmaz**: exe, deneme sürümü, güncelleme ya da yayın yok (Actions'ta `surum.yml` elle çalıştırılmaz, `v*` etiketi konmaz). Kullanıcı karar verince yeni sürüm birlikte konuşulup oluşturulur. İşçiler her işte kendi testlerini çalıştırıp çalıştığını doğrular (derleme yapmadan). Deneme sürümü yalnız kullanıcı "deneme sürümü hazırlayın" derse yapılır.
@@ -91,6 +91,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 
 9. **İleride hatırlatılacaklar (kullanıcı: "çok ileride sor", 24.10.2026):** (a) Red/iptal faturalarını Luca'dan getirme — Luca'da böyle bir ekran şimdilik yok; (b) Google İşletme Profili ek doğrulaması (video vb. istiyor) — sonra yapılacak. (c) Muhasebe Denetimi yapay zekâ önerisi (Görev 43 Faz 4) kullanıcı isteğiyle şimdilik kapatıldı (Görev 49); ileride yeniden açmayı hatırlat. Bunları kısa vadede sorma.
 10. **Hesap planına VKN/TCKN (Görev 42):** Program yeni hesapları Luca'ya Excel ile değil `addHesapPlaniAction.do` ile tek tek açıyor; Luca'dan hesap planı Excel'i yalnız okunuyor. Kullanıcı şablonu daha önce verdiğini söylüyor; depoda bulunamadı. VKN alanının adı için Luca'da VKN girilerek hesap eklerken alınmış İstek Kaydı ya da boş Excel şablonu gerekli.
+11. **Supabase planı:** Kullanıcı şimdilik ücretsiz planda kalıyor (Pro'ya geçip geçmeme kararı sonra). Ücretsiz plan 1 hafta kullanılmazsa duruyor; Pzt/Çar/Cum 08:47 (TR) hatırlatma kuruldu (trig_015aL4cCp5pnhfu3b5L169kM).
 
 ## Önerilen eklentiler
 - **claude-security** (Anthropic): Görev 02 için.
