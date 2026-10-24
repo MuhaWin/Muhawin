@@ -36,9 +36,10 @@ function cakisma(kok) {
     const k = klip(e);
     // kaydırılamayan bir kutunun kenarında yarım kalan metin
     if (!kutuMu && getComputedStyle(e).textOverflow !== 'ellipsis') {
-      for (let x = e.parentElement; x && x !== document.documentElement; x = x.parentElement) { const c = getComputedStyle(x);
-        if (/hidden|clip/.test(c.overflowX + c.overflowY) && !/auto|scroll/.test(c.overflowX + c.overflowY)) { const z = kutu(x.getBoundingClientRect());
-          if (parcalar.some(p => p.r > z.r + 2 || p.l < z.l - 2 || p.b > z.b + 2 || p.t < z.t - 2) && parcalar.some(p => !bos(kes(p, z)))) { sonuc.kesik.push(ad(e) + ' ⊄ ' + ad(x).split(' "')[0]); break; } }
+      let vis = parcalar;   // kaydırılabilen kutunun dışında kalan kısım kesik sayılmaz (kaydırınca görünür)
+      for (let x = e.parentElement; x && x !== document.documentElement && vis.length; x = x.parentElement) { const c = getComputedStyle(x), o = c.overflowX + c.overflowY, z = kutu(x.getBoundingClientRect());
+        if (/auto|scroll/.test(o)) vis = vis.map(p => kes(p, z)).filter(p => !bos(p));
+        else if (/hidden|clip/.test(o)) { if (vis.some(p => p.r > z.r + 2 || p.l < z.l - 2 || p.b > z.b + 2 || p.t < z.t - 2) && vis.some(p => !bos(kes(p, z)))) { sonuc.kesik.push(ad(e) + ' ⊄ ' + ad(x).split(' "')[0]); break; } vis = vis.map(p => kes(p, z)).filter(p => !bos(p)); }
         if (c.position === 'fixed') break; } }
     const kp = parcalar.map(p => kes(p, k)).filter(p => !bos(p));
     if (!kp.length) continue;
