@@ -78,6 +78,11 @@ label.alan{display:grid;gap:4px;font-size:12px;color:var(--muted)}
       <label class="alan">GİB PDF<input type="file" id="karsPdf" accept=".pdf"></label>
       <div id="karsSonuc" class="ipucu" style="margin-top:6px;font-size:12px"></div>
     </section>
+    <section class="kart" id="sorumluKart" hidden>
+      <h3>Sorumlu sıfatıyla KDV</h3>
+      <p class="ipucu" style="margin:0 0 8px;font-size:12px">Bu dönem sorumlu sıfatıyla indirilen KDV (<b id="sorumluTutar"></b> TL) ödendi mi? Ödenmediyse indirimden çıkarılır; ödendiği dönemde indirilebilir.</p>
+      <div class="araclar"><select id="sorumluCevap"><option value="">Seçin… (cevaplanmazsa ödendi sayılır)</option><option value="odendi">Ödendi – indirime devam</option><option value="odenmedi">Ödenmedi – indirimden çıkar</option></select><button type="button" class="btn" id="sorumluUygula">Uygula</button></div>
+    </section>
     <section class="kart" id="iadeKart" hidden>
       <h3>İade talebi</h3>
       <p class="ipucu" style="margin:0 0 8px;font-size:12px">Bu dönemde istisna (ihracat vb.) teslim var. İade talep edilecek mi?</p>
@@ -93,6 +98,7 @@ label.alan{display:grid;gap:4px;font-size:12px;color:var(--muted)}
       <button type="button" class="btn birincil" id="pdf" disabled>PDF Yazdır</button>
     </div>
     <div id="uyari" class="uyari" hidden></div>
+    <div id="tahakkukUyari" class="uyari" style="background:#fdecea;border-color:#e3a49b;color:#7a1c12;margin-top:6px" hidden></div>
     <div id="kagit" class="kagit"><div class="bos">Soldan bir dönem seçin.</div></div>
   </section>
 </main>
@@ -145,6 +151,7 @@ async function hazirla(ek) {
   $("#kagit").innerHTML = `<div class="bos">Hazırlanıyor…</div>`;
   const u = new URL("/api/beyanname", location.origin); u.searchParams.set("id", secili);
   if (ek && ek.cevap) { u.searchParams.set("cevap", ek.cevap); if (ek.tutar) u.searchParams.set("tutar", ek.tutar); }
+  if (ek && ek.sorumlu) u.searchParams.set("sorumlu", ek.sorumlu);
   const r = await fetch(u);
   if (!r.ok) { const j = await r.json().catch(() => ({})); $("#kagit").innerHTML = `<div class="bos">${esc(j.detail || "Hazırlanamadı")}</div>`; return; }
   veri = await r.json(); kaynak = "kontrol"; ciz();
@@ -158,6 +165,13 @@ function ciz() {
   const k1 = veri.kdv1, ist = (k1.istisnalar || {}).satirlar || [];
   $("#iadeKart").hidden = !(kaynak === "kontrol" && ist.length);
   if (ist.length) { $("#iadeCevap").value = k1.iade_cevap || ""; $("#iadeTutar").hidden = $("#iadeCevap").value !== "evet"; $("#iadeTutar").value = k1.iade_cevap === "evet" ? para((k1.istisnalar || {}).iade_edilebilir) : (k1.iade_onerisi ? para(k1.iade_onerisi) : ""); }
+  const so = k1.sorumlu || {};
+  $("#sorumluKart").hidden = !(kaynak === "kontrol" && so.tutar > 0);
+  if (so.tutar > 0) { $("#sorumluTutar").textContent = para(so.tutar); $("#sorumluCevap").value = so.cevap || ""; }
+  // önceki aylarda KDV tahakkuk fişi yoksa devreden KDV yanlış gelebilir: çalışan kontrol etsin
+  const tk = k1.tahakkuk_kontrol || {}, ek = tk.eksik || [], tu = $("#tahakkukUyari");
+  tu.hidden = !ek.length;
+  if (ek.length) tu.innerHTML = `<b>KDV tahakkuk fişi bulunamadı:</b> ${ek.map(x => `${esc(x.ad)} ayına ait KDV tahakkuk fişi bulunamamıştır${x.hareket ? "" : " (o ayda KDV hareketi de yok)"}`).join("; ")}. Önceki dönemden devreden KDV bu nedenle yanlış gelebilir; fişleri kontrol edin.`;
   $("#yeniden").disabled = kaynak !== "kontrol"; $("#excel").disabled = !veri.id; $("#pdf").disabled = false;
   $("#karsKart").hidden = !(veri.id && MW); $("#karsSonuc").textContent = ""; const kn = $("#karsKart .ipucu b"); if (kn) kn.textContent = tur === "kdv2" ? "KDV 2" : "KDV 1";
   $("#kagit").innerHTML = tur === "kdv1" ? kdv1Html() : kdv2Html();
@@ -202,7 +216,7 @@ function kdv1Html() {
   ${(b.ilave || []).length ? detay("Daha Önce İndirim Konusu Yapılan KDV'nin İlavesi", [["İşlem"], ["Vergi", 1]], b.ilave.map(x => [x.ad, x.vergi]), ["Toplam", sum(b.ilave, "vergi")]) : ""}
   <h2 style="margin-top:22px;text-align:center;background:#dde5f1">İNDİRİMLER DETAYI</h2>
   ${detay("Önceki Dönemden Devreden İndirilecek KDV", [["Açıklama"], ["KDV Tutarı", 1]], [["Önceki dönemden devreden KDV", b.indirimler.onceki_donemden_devreden]], ["Toplam", b.indirimler.onceki_donemden_devreden])}
-  ${detay("Diğer İndirimler", [["İndirim Türü"], ["İndirilecek KDV Tutarı", 1]], [...ind.filter(x => !x.oran).map(x => [x.ad, x.vergi]), ...(b.indirimler.kdv2_odenen ? [["109 - Sorumlu Sıfatıyla Beyan Edilerek Ödenen KDV", b.indirimler.kdv2_odenen]] : []), ...(oranDag.length ? [["108 - Yurtiçi Alımlara İlişkin KDV", sum(oranDag.map(x => ({v: x[3]})), "v")]] : [])], ["Toplam", b.indirimler.bu_donem])}
+  ${detay("Diğer İndirimler", [["İndirim Türü"], ["İndirilecek KDV Tutarı", 1]], [...ind.filter(x => !x.oran).map(x => [x.ad, x.vergi]), ...(b.indirimler.kdv2_odenen ? [["109 - Sorumlu Sıfatıyla Beyan Edilerek Ödenen KDV", b.indirimler.kdv2_odenen]] : []), ...((b.sorumlu || {}).indirilmeyen ? [["Sorumlu sıfatıyla beyan edilen KDV – ödenmedi, indirimden çıkarıldı", -b.sorumlu.indirilmeyen]] : []), ...(oranDag.length ? [["108 - Yurtiçi Alımlara İlişkin KDV", sum(oranDag.map(x => ({v: x[3]})), "v")]] : [])], ["Toplam", b.indirimler.bu_donem])}
   ${detay("Bu Döneme Ait İndirilecek KDV Tutarının Oranlara Göre Dağılımı", [["İndirim Türü"], ["KDV Oranı (%)"], ["Alınan Mal ve Hizmete Ait Bedel", 1], ["KDV Tutarı", 1]], oranDag, ["Toplam", "", sum(oranDag.map(x => ({v: x[2]})), "v"), sum(oranDag.map(x => ({v: x[3]})), "v")])}
   ${ist.length ? `<h2 style="margin-top:22px;text-align:center;background:#dde5f1">İSTİSNALAR-DİĞER İADE HAKKI DOĞURAN İŞLEMLER DETAYI</h2>` + detay("Tam İstisna Kapsamına Giren İşlemler", [["İstisna Türü"], ["Teslim ve Hizmet Tutarı", 1], ["KDV Ödenmeksizin Temin Edilen Mal Bedeli", 1], ["Yüklenilen KDV", 1]], ist.map(x => [x.ad, x.matrah, 0, b.istisnalar.iade_edilebilir]), ["Toplam", sum(ist, "matrah"), 0, b.istisnalar.iade_edilebilir]) : ""}
   ${b.indirimler.kdv2_odenen ? `<h2 style="margin-top:22px;text-align:center;background:#dde5f1">EKLER</h2>` + detay("Sorumlu Sıfatıyla Ödenen KDV'ye İlişkin Bildirim", [["Ödeme Türü"], ["Dönemi"], ["Tutar", 1]], [["Sorumlu sıfatıyla beyan edilen KDV", `${b.donem.yil}/${String(b.donem.ay).padStart(2, "0")}`, b.indirimler.kdv2_odenen]], ["Toplam", "", b.indirimler.kdv2_odenen]) : ""}
@@ -247,6 +261,7 @@ $("#karsPdf").onchange = async () => {
   } catch (x) { S.innerHTML = `<span style="color:#9a1b1b">${esc(x.message)}</span>`; }
   $("#karsPdf").value = "";
 };
+$("#sorumluUygula").onclick = () => { const c = $("#sorumluCevap").value; if (!c) return; hazirla({sorumlu: c}); };
 $("#iadeCevap").onchange = () => { $("#iadeTutar").hidden = $("#iadeCevap").value !== "evet"; };
 $("#iadeUygula").onclick = () => { const c = $("#iadeCevap").value; if (!c) return; hazirla({cevap: c, tutar: c === "evet" ? $("#iadeTutar").value : ""}); };
 $("#excel").onclick = () => { if (kaynak === "toplu" && topluVeri) { location.href = `/api/beyanname/toplu/excel?yil=${topluVeri.yil}&ay=${topluVeri.ay}&temiz=${$("#tTemiz").checked ? 1 : 0}`; return; } if (veri && veri.id) location.href = `/api/beyanname/excel?id=${encodeURIComponent(veri.id)}&tur=${tur}`; };

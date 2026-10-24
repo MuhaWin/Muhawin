@@ -292,6 +292,24 @@ wb.save(${JSON.stringify(ex)})`]);
       const fark = Object.entries(bek).filter(([k, v]) => kutular[k] !== v).map(([k]) => k + '=' + kutular[k]);
       check(!/^HATA/.test(metin) && satirBirlesik, 'KDV beyannamesi PDF metni pdf.js 5 ile çıkarıldı; etiket ve tutar aynı satırda (' + metin.split('\n').length + ' satır)');
       check(!fark.length && kutular._vkn === '1111111114' && /2026/.test(kutular._donem || ''), 'GİB PDF\'inden KDV1 kutuları okundu (matrah, hesaplanan, indirim, ödenecek, devreden, dönem, VKN)' + (fark.length ? ' · farklı: ' + fark.join(', ') : '')); }
+    // KDV Beyannamesi: sorumlu sıfatıyla KDV ödendi mi sorusu; önceki aylarda KDV tahakkuk fişi yoksa uyarı
+    { const kf = await fkFrame();
+      const g = await kf.evaluate(async () => {
+        const k1 = { donem: { yil: 2026, ay: 9, ay_adi: 'Eylül', tip: 'AYLIK' }, matrah: { toplam_matrah: 1000, hesaplanan_kdv: 200, ilave_kdv: 0, toplam_kdv: 200 },
+          indirimler: { toplam: 150, onceki_donemden_devreden: 50, bu_donem: 100, satirlar: [], kdv2_odenen: 0 }, istisnalar: { teslim_toplami: 0, iade_edilebilir: 0, satirlar: [] },
+          sonuc: { tecil: 0, odenecek: 50, iade_edilecek: 0, sonraki_doneme_devreden: 0 }, diger: { teslim_bedeli_aylik: 0, teslim_bedeli_kumulatif: 0, kredi_karti: 0 },
+          teslimler: [], kismi_tevkifat: [], ilave: [], notlar: [], sorumlu: { tutar: 300, cevap: 'odenmedi', indirilmeyen: 300 },
+          tahakkuk_kontrol: { bulunan: [], eksik: [{ ay: 7, ad: 'Temmuz', hareket: true }], kapsam_disi: [] } };
+        veri = { id: 'X/2026/09', mukellef: {}, uygunluk: { fatura_sayisi: 1 }, kdv1: k1, kdv2: { donem: {}, vergi_bildirimi: {}, kesintiler: [] }, hazirlandi: '' }; kaynak = 'kontrol'; secili = 'X/2026/09'; ciz();
+        const sonuc = { kart: !$('#sorumluKart').hidden, tutar: $('#sorumluTutar').textContent, cevap: $('#sorumluCevap').value, uyari: $('#tahakkukUyari').hidden ? '' : $('#tahakkukUyari').textContent,
+          satir: /ödenmedi, indirimden çıkarıldı/.test($('#kagit').textContent) };
+        const eski = window.fetch; let url = ''; window.fetch = async u => { url = String(u); return { ok: false, json: async () => ({ detail: 'test' }) }; };
+        $('#sorumluCevap').value = 'odendi'; $('#sorumluUygula').click(); await new Promise(r => setTimeout(r, 100)); window.fetch = eski;
+        sonuc.istek = url; return sonuc; });
+      check(g.kart && g.tutar === '300,00' && g.cevap === 'odenmedi' && g.satir, 'KDV Beyannamesi: "sorumlu sıfatıyla indirilen KDV ödendi mi?" sorusu ve ödenmediyse indirimden çıkarılan satır (' + JSON.stringify(g) + ')');
+      check(/sorumlu=odendi/.test(g.istek), 'cevap beyanname isteğine gidiyor (sorumlu=odendi)');
+      check(/Temmuz ayına ait KDV tahakkuk fişi bulunamamıştır/.test(g.uyari), 'önceki aylarda KDV tahakkuk fişi yoksa ekranda uyarı (Temmuz)');
+      await w.screenshot({ path: OUT + '/7c-kdv-sorumlu-tahakkuk.png' }); }
     await w.click('#fkNav [data-fksayfa=toplu]');
     fr = await fkFrame(); await fr.waitForSelector('#sekmeler', { timeout: 20000 });
     // firmalar: MuhaWin'den eşitleme
