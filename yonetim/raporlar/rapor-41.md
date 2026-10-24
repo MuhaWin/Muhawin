@@ -93,7 +93,7 @@
 - `yonetim/raporlar/rapor-41.md`, `rapor-41/*.png` (8 görüntü)
 
 ## Testler (Linux, xvfb; derleme yok)
-- `xvfb-run -a node test/e2e.js`: **E2E_SONUC**
+- `xvfb-run -a node test/e2e.js`: **359 ✓, 0 başarısız.** Yeni denetimler: 6 ekran uyumu (her biri 18 boy), ölçek kapsamı, Kod tanımları menüsü, araç çubuğu 1440 px
 - `node test/mobil.js`: **45/45.**
 - `test/ekran.js` sonuçları yukarıda.
 
