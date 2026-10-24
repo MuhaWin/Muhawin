@@ -2283,8 +2283,8 @@ const Desk=(()=>{
       if(st.authed){acct=st;resolve(true);return;}
       const g=$('#authGate'),box=$('#authBox');g.hidden=false;
       const yerlestir=()=>{const p=$('#authPanel'),k=$('#authKutu');if(!p||!k)return;const r=p.getBoundingClientRect();if(!r.width)return;
-        const sc=Math.max(r.width/560,r.height/720);k.style.transform=`translate(0px,${(r.height-720*sc)/2}px) scale(${sc})`;
-        const w=$('#authFeatW');if(w)w.style.width=Math.max(260,Math.min(470,r.width/sc-56-24))+'px';};
+        // tasarım kutusu (560×720, görsel ve özellik listesi) panele kırpılmadan sığar ve ortalanır (Görev 41)
+        const sc=Math.min(r.width/560,r.height/720);k.style.transform=`translate(${(r.width-560*sc)/2}px,${(r.height-720*sc)/2}px) scale(${sc})`;};
       yerlestir();setTimeout(yerlestir,50);window.addEventListener('resize',yerlestir);
       api.info().then(i=>{const v=$('#authSurum');if(v)v.textContent=`© ${new Date().getFullYear()} MuhaWin · Sürüm ${i.version||''}`;}).catch(()=>{});
       const done=async r=>{acct={email:r.email,offline:!!r.offline};g.hidden=true;box.innerHTML='';
@@ -5215,7 +5215,7 @@ const FKAYIT=(()=>{
       <label class="note">Toplu hesap <input id="fkkTopluH" list="fkkAccList" class="mono" style="width:130px" placeholder="seçililere"></label>
       <label class="note">Belge türü <input id="fkkBT" class="mono" style="width:60px" value="${esc(st.belgeTuru)}" placeholder="boş"></label>
       <button class="btn small" id="fkkKurallar">Kurallar (${Object.keys(st.kural).length})</button>
-      <button class="btn small" id="fkkKodA" title="Alış faturaları için KDV oranı × işlem türü → hesap kodu (bu firma)">Alış kod tanımları</button><button class="btn small" id="fkkKodS" title="Satış faturaları için KDV oranı × işlem türü → hesap kodu (bu firma)">Satış kod tanımları</button>
+      <span class="dmenu"><button class="btn small" id="fkkKod" aria-haspopup="menu" aria-expanded="false" aria-controls="fkkKodMenu" title="KDV oranı × işlem türü → hesap kodu (bu firma)">Kod tanımları ▾</button><div class="dmenulist" id="fkkKodMenu" role="menu" hidden><button type="button" role="menuitem" id="fkkKodA" title="Alış faturaları için KDV oranı × işlem türü → hesap kodu (bu firma)">Alış kod tanımları</button><button type="button" role="menuitem" id="fkkKodS" title="Satış faturaları için KDV oranı × işlem türü → hesap kodu (bu firma)">Satış kod tanımları</button></div></span>
       <label class="note" title="Kural tutmayan faturalarda hesap nereden önerilsin? Her satırda [Kod] [Geçmiş] [Kural] düğmeleriyle tek tek de seçebilirsiniz.">Doldurma <select id="fkkKaynak" style="width:auto"><option value="">Kural → geçmiş → varsayılan</option><option value="kod"${((st.firm||{}).fkKaynak)==='kod'?' selected':''}>Kural → kod tablosuna göre</option></select></label>`;
     const SM=silinmisler();const silOf=r=>r.silindi||SM.get(r.f.anahtar)||SM.get('b:'+r.f.belge_no);
     const silChip=v=>v.neden==='muavin'?`<span class="chip aski" title="Programın kaydettiği Luca fişi${v.n?' '+esc(v.n):''} son çekilen muavinde yok; fiş Luca'dan silinmiş sayıldı. Fatura yeniden kaydedilebilir.">Luca'da bulunamadı (silinmiş)${v.n?' · fiş '+esc(v.n):''}</span>`
@@ -5702,7 +5702,8 @@ const FKAYIT=(()=>{
       for(const r of L){r.haricBekle=true;r.haricAcik=ac.trim();r.sec=false;}draw();await haricOnay();return;}
     const os=e.target.closest('[data-oivsec]');if(os){const r=st.rows[+os.dataset.oivsec];oivHatirla(r,os.dataset.key,os.dataset.v);draw();return;}
     if(e.target.id==='fkkKurallar'){kurallar();return;}
-    if(e.target.id==='fkkKodA'||e.target.id==='fkkKodS'){kodTanim(e.target.id==='fkkKodA'?'ALIS':'SATIS');return;}
+    if(e.target.closest('#fkkKod')){const m=$('#fkkKodMenu');m.hidden=!m.hidden;$('#fkkKod').setAttribute('aria-expanded',String(!m.hidden));if(!m.hidden)m.querySelector('[role=menuitem]').focus();return;}
+    if(e.target.id==='fkkKodA'||e.target.id==='fkkKodS'){kodMenuKapat();kodTanim(e.target.id==='fkkKodA'?'ALIS':'SATIS');return;}
     const ksb=e.target.closest('[data-ks]');if(ksb){const r=st.rows[+ksb.dataset.ks];r.kaynakSec=ksb.dataset.v;r.elle=false;const o=oner(r.f,r.kaynakSec);
       Object.assign(r,{hesap:o.hesap,kaynak:o.kaynak,kuralMetin:o.kuralMetin,kodUyari:o.kodUyari,kuralAna:o.kuralAna});draw();return;}
     const ca=e.target.closest('[data-cariac]');if(ca){cariAc([st.rows[+ca.dataset.cariac]]);return;}
@@ -5748,7 +5749,12 @@ const FKAYIT=(()=>{
   });
   document.addEventListener('input',e=>{const fk=e.target.dataset&&e.target.dataset.fkfl;if(fk!=null&&e.target.closest('#fkKayit')){st.f[fk]=e.target.value;const p=e.target.selectionStart;draw();const n=document.querySelector(`[data-fkfl="${fk}"]`);if(n){n.focus();n.setSelectionRange(p,p);}return;}
     if(e.target.id==='fkkQ'){st.q=e.target.value;const p=e.target.selectionStart;draw();const n=$('#fkkQ');n.focus();n.setSelectionRange(p,p);}});
-  document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#fkKayit').hidden)return;if(!$('#fkkModal').hidden){if(!st.busy)$('#fkkModal').hidden=true;return;}if(!st.busy)close();});
+  // "Kod tanımları ▾" menüsü (Görev 41): dışarı tıklayınca ya da Esc ile kapanır, oklarla öğeler arasında gezilir
+  function kodMenuKapat(){const m=$('#fkkKodMenu');if(!m||m.hidden)return;m.hidden=true;const b=$('#fkkKod');if(b)b.setAttribute('aria-expanded','false');}
+  document.addEventListener('click',e=>{if(!e.target.closest('#fkkKod,#fkkKodMenu'))kodMenuKapat();},true);
+  document.addEventListener('keydown',e=>{const m=$('#fkkKodMenu');if(!m||m.hidden||!/^Arrow(Up|Down)$/.test(e.key))return;e.preventDefault();
+    const L=[...m.querySelectorAll('[role=menuitem]')],i=L.indexOf(document.activeElement);L[(i+(e.key==='ArrowDown'?1:L.length-1))%L.length].focus();});
+  document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#fkKayit').hidden)return;{const m=$('#fkkKodMenu');if(m&&!m.hidden){e.preventDefault();kodMenuKapat();$('#fkkKod').focus();return;}}if(!$('#fkkModal').hidden){if(!st.busy)$('#fkkModal').hidden=true;return;}if(!st.busy)close();});
   return {open,close,_st:st,_satirlar:satirlar,_cariSec:cariSec,_vknOk:vknOk,_cariVknHatirla:cariVknHatirla,_fisler:fisler,_grupTarihi:grupTarihi,_oner:oner,_kodBirlestir:kodBirlestir,_kaynaklar:kaynaklar,_silinenBul:silinenBul,_fnoN:fnoN,_lucaFisAc:lucaFisAc,_muavinIs:muavinIs,_beklemeMs:o=>{muavinBekleMs=o;},_silinenleriIsle:async()=>{await silinenleriIsle();draw();},_firma:()=>st.firm,_yenile:async()=>{if(!st.data)return;await resolveFirm();reapply();}};
 })();
 window.__fkayit=FKAYIT;

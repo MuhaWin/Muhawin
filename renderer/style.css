@@ -452,10 +452,13 @@ img.bimg{content:url(gorsel/bekleme_simgesi_acik.gif)}
 @media (prefers-color-scheme: dark){:root:not([data-skin]) img.logoyatay{content:url(gorsel/logo_yatay_koyu.svg)}:root:not([data-skin]) img.bimg{content:url(gorsel/bekleme_simgesi_koyu.gif)}}
 .modhead h1.logoh1::before{display:none!important}
 h1::before{background:url(gorsel/simge_lacivert.svg) center/contain no-repeat!important}
-/* giriş ekranı (1280×720 tasarımı): solda panel görseli, sağda form */
-#authGate{display:grid;grid-template-columns:minmax(0,560px) 1fr;padding:0;place-items:stretch;background:var(--surface)}
-#authGate .authpanel{position:relative;overflow:hidden;background:#16325C -webkit-image-set(url(gorsel/giris_sol_panel_bos.png) 1x,url(gorsel/giris_sol_panel_bos@2x.png) 2x) left center/cover no-repeat}
-#authGate .authkutu{position:absolute;left:0;top:0;width:560px;height:720px;transform-origin:0 0;color:#fff;font-family:Inter,"Segoe UI",system-ui,sans-serif}
+/* giriş ekranı (1280×720 tasarımı): solda panel görseli, sağda form
+   Görev 41: logo ve başlık panel görselinin içinde. Görsel artık 560×720 tasarım kutusunun kendi arka planı; kutu panele
+   kırpılmadan sığdırılır (JS: ölçek = min(genişlik/560, yükseklik/720)). Panel genişliği pencere yüksekliğiyle orantılı
+   (en çok pencerenin yarısı); boşta kalan şerit görselin kenar renkleriyle dolar. Sağ alttaki satırlar akışta (formun üstüne binmez). */
+#authGate{display:grid;grid-template-columns:min(calc(100vh * 560 / 720),50vw) minmax(0,1fr);grid-template-rows:1fr auto auto;padding:0;place-items:stretch;background:var(--surface);overflow:auto}
+#authGate .authpanel{grid-row:1 / -1;position:relative;overflow:hidden;background:linear-gradient(180deg,#183c66,#162235)}
+#authGate .authkutu{position:absolute;left:0;top:0;width:560px;height:720px;transform-origin:0 0;color:#fff;font-family:Inter,"Segoe UI",system-ui,sans-serif;background:-webkit-image-set(url(gorsel/giris_sol_panel_bos.png) 1x,url(gorsel/giris_sol_panel_bos@2x.png) 2x) 0 0/100% 100% no-repeat}
 #authGate .authfeatw{position:absolute;left:56px;top:318px;width:470px}
 #authGate .authfeat{list-style:none;margin:0;padding:0;display:grid;gap:12px}
 #authGate .authfeat li{display:flex;align-items:center;gap:16px;min-height:52px}
@@ -464,17 +467,17 @@ h1::before{background:url(gorsel/simge_lacivert.svg) center/contain no-repeat!im
 #authGate .authfeat b{display:block;font-size:16.5px;font-weight:600;letter-spacing:-.005em}
 #authGate .authfeat span:not(.fi){display:block;font-size:13.5px;color:#b9c7dd;margin-top:2px;line-height:1.3}
 #authGate .authyakinda{margin:16px 0 0;font-size:12.5px;color:#8ea2c2}
-#authGate #authBox{place-self:center;width:min(380px,calc(100% - 48px));border:0;background:transparent;box-shadow:none;padding:0;gap:16px}
+#authGate #authBox{grid-column:2;grid-row:1;margin:24px 0;place-self:center;width:min(380px,calc(100% - 48px));border:0;background:transparent;box-shadow:none;padding:0;gap:16px}
 #authGate #authBox h2{font-size:28px;color:var(--mw-lacivert);margin:0;letter-spacing:-.01em}
 #authGate #authBox .lbl{text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--ink)}
 #authGate #authBox input[type=email],#authGate #authBox input[type=password],#authGate #authBox input[type=text]{height:44px;border-radius:10px;font-size:15px;border:1px solid #d0d7e2;background:var(--surface)}
 #authGate #authBox input:focus{border-color:var(--mw-turkuaz);outline:2px solid color-mix(in srgb,var(--mw-turkuaz) 30%,transparent);outline-offset:0}
 #authGate #authBox .btn.primary{width:100%;justify-content:center;height:46px;border-radius:10px;font-size:15px;background:var(--mw-lacivert);border-color:var(--mw-lacivert);box-shadow:0 8px 20px rgba(22,50,92,.22)}
 #authGate #authBox .btn.small.ghost{color:var(--mw-turkuaz);font-weight:600}
-#authGate .authsurum{position:absolute;left:56px;top:670px;font-size:12px;color:#8ea2c2}
-#authGate .authgelistiren{position:fixed;right:24px;bottom:48px;font-size:12px;color:var(--muted);z-index:5}
-#authGate .authupd{position:fixed;right:24px;bottom:18px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:10px;z-index:5}
-@media (max-width:900px){#authGate{grid-template-columns:1fr}#authGate .authpanel{display:none}img.authlogo{display:block}}
+#authGate .authsurum{position:absolute;left:56px;bottom:32px;font-size:12px;color:#8ea2c2}
+#authGate .authgelistiren{grid-column:2;grid-row:2;justify-self:end;margin:0 24px 6px;font-size:12px;color:var(--muted);text-align:right}
+#authGate .authupd{grid-column:2;grid-row:3;justify-self:end;margin:0 24px 14px;font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 10px}
+@media (max-width:900px){#authGate{grid-template-columns:minmax(0,1fr)}#authGate .authpanel{display:none}#authGate #authBox,#authGate .authgelistiren,#authGate .authupd{grid-column:1}img.authlogo{display:block}}
 :root[data-skin="grafit"] #authGate #authBox h2{color:var(--ink)}
 /* yükleme penceresi ("Mizan hazırlanıyor…") */
 .mwbusy{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:color-mix(in srgb,var(--ink) 28%,transparent);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
@@ -690,3 +693,9 @@ td.amt .dvz{display:block;font-size:10.5px;color:var(--muted);font-family:var(--
 .fiscikar{min-width:28px;font-weight:700;font-size:15px;line-height:1}
 tr.fiscikan td{opacity:.55}
 tr.fiscikan td:last-child{opacity:1}
+/* Görev 41: açılır düğme menüsü (ör. "Kod tanımları ▾" → Alış / Satış) */
+.dmenu{position:relative;display:inline-flex}
+.dmenulist{position:absolute;left:0;top:calc(100% + 4px);z-index:60;min-width:190px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);padding:4px;display:grid;gap:2px}
+.dmenulist[hidden]{display:none}
+.dmenulist button{all:unset;display:block;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--ink);font-size:13px;white-space:nowrap}
+.dmenulist button:hover,.dmenulist button:focus-visible{background:var(--hover)}
