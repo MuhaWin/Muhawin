@@ -79,3 +79,13 @@ test('önceki sürümün listesine gönderme yapan madde sitede çıkarılır', 
     { metin: "2.9.13 ayrıca yayınlanmadı; 2.9.12'den güncelleyenler için aşağıdaki 2.9.13 yenilikleri de geçerlidir.", alt: [] }] });
   assert.deepStrictEqual(n.maddeler.map(m => m.metin), ['Yeni özellik']);
 });
+
+test('Kurulum adımları: dosya adı yazmaz, "Bilgilerinizi girin" adımında Luca geçmez', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const SITE = path.join(__dirname, '..', 'web', 'site');
+  const index = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8'), js = fs.readFileSync(path.join(SITE, 'site.js'), 'utf8');
+  const kurulum = index.slice(index.indexOf('<section id="kurulum"'), index.indexOf('</section>', index.indexOf('<section id="kurulum"')));
+  assert.ok(kurulum.includes('Yukarıdaki düğmeyle dosyayı indirin.') && !/Kurulum[-\w.]*\.exe|dosyaAdi/.test(kurulum));
+  assert.ok(kurulum.includes('<b>Bilgilerinizi girin</b>') && !/Luca/.test(kurulum));
+  assert.ok(!/dosyaAdi/.test(js));                       // kaldırılan öğeye yazılmıyor
+});

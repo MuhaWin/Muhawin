@@ -8,10 +8,9 @@
 
   $('#yil').textContent = new Date().getFullYear();
 
-  function indirmeyiYaz(surum, url, dosya, boyut) {
+  function indirmeyiYaz(surum, url, boyut) {
     if (url) $('#indirDugme').href = url;
     if (surum) $('#indirSurum').textContent = 'Sürüm ' + surum;
-    if (dosya) $('#dosyaAdi').textContent = dosya;
     if (boyut) $('#indirBoyut').textContent = mb(boyut);
   }
 
@@ -36,13 +35,13 @@
   fetch('surum.json', { cache: 'no-cache' })
     .then(r => r.json())
     .then(v => {
-      indirmeyiYaz(v.surum, null, v.dosya);
+      indirmeyiYaz(v.surum, null);
       notlariYaz(v.notlar);
       if (v.yakinda && v.yakinda.length) $('#yakinda').textContent = 'Yakında: ' + v.yakinda.join(' · ');
       if (v.depo) {
         $('#indirDugme').href = `https://github.com/${v.depo}/releases/latest`;
         return githubSonSurum(v.depo)
-          .then(s => indirmeyiYaz(s.surum, s.url, s.dosya, s.boyut))
+          .then(s => indirmeyiYaz(s.surum, s.url, s.boyut))
           .catch(() => { if (v.indir) $('#indirDugme').href = v.indir; });
       }
     })
