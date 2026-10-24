@@ -1,6 +1,6 @@
 # Rapor 39 – Fiş önizlemesinde satır ekle / çıkar
 
-**Durum:** Belgeden Fiş için yapıldı: ÖKC fişi, Z raporu ve yurt dışı faturası; üçü aynı fiş önizlemesini kullanıyor. **Faturaları Luca'ya kaydet (FKAYIT) yönetici kararını bekliyor** (aşağıda). İşçi oturumu: **Menü Düzenleme**. Taban: `main` (Görev 33 sonrası).
+**Durum:** Yapıldı. Fiş önizlemesi olan tüm bölümlerde düzeltildi: Belgeden Fiş (ÖKC fişi, Z raporu, yurt dışı faturası; üçü aynı önizlemeyi kullanıyor) ve **Faturaları Luca'ya kaydet (FKAYIT)**. İşçi oturumu: **Menü Düzenleme**. Taban: `main` (Görev 34 #65 ve Görev 37 #66 birleştikten sonra).
 
 ## 1. "Satır ekle" neden çalışmıyordu
 - **Kök neden:**
@@ -13,7 +13,7 @@
   - Girildiği anda fişe giriyor ve denge yeniden hesaplanıyor:
     - ÖKC fişi ve yurt dışı faturada ödeme satırı dengeliyor (eskisi gibi).
     - Z raporunda kasa (nakit) satırı dengeliyor (yeni; ayrıntısı aşağıda).
-- **Ortak mı:** Belgeden Fiş'in üç bölümü aynı `satirlar()` ve aynı önizleme kodunu kullanıyor; düzeltme tek yerde. FKAYIT ayrı kod, ama aynı hata kalıbı orada da var (aşağıda).
+- **Ortak mı:** Belgeden Fiş'in üç bölümü aynı `satirlar()` ve aynı önizleme kodunu kullanıyor; düzeltme tek yerde. FKAYIT ayrı kodda aynı hata kalıbını taşıyordu; orada da aynı biçimde düzeltildi (aşağıda).
 
 ## 2. "−" (çıkar) düğmesi
 - Her satırın yanında **−** düğmesi var.
@@ -37,22 +37,27 @@
 - Bu tür "veride oldu ama ekranda yok" hataları için yeni e2e denetimi sonucu ekranda ölçüyor.
 
 ## FKAYIT (Faturaları Luca'ya kaydet)
-- Aynı kalıp orada ayrı kodda var: `renderer/app.js`'te satır üretimi (~4956 `if(!b&&!c&&!x.acc)continue`), fiş tablosu (~5086) ve olaylar (~5375–5418).
-- Yazılımcı o ekranda çalıştığı için yöneticiye sordum. Onay gelirse aynı düzeltme (boş satırın görünmesi, −, Geri ekle, 0 kuralı) bu dalda ayrı commit ya da ayrı PR olarak eklenecek.
+- Yönetici onayıyla, Görev 34 birleştikten sonra `main` üzerine uygulandı.
+- Aynı kök neden: fatura fişini üreten `satirlar(r)` boş eklenen satırı atlıyordu. Düzeltme Belgeden Fiş'le aynı:
+  - boş eklenen satır görünüyor (`bosEk`), hesap / tutar girilince fişe giriyor; cari satırı fişi yeniden dengeliyor
+  - otomatik satırlarda **−** (`data-fcikar`, kayıtta `{cikar:true}`), çıkarılan satır soluk ve **↺ Geri ekle** (`data-fgeri`)
+  - eklenen satırda ✕ yerine **−**
+  - 0 yazmak satırı çıkarmıyor; önerilen tutara dönülüyor ve bildirim çıkıyor; eski `{b:0,c:0}` kayıtları "çıkarılmış" sayılıyor
+  - açıklama metni Belgeden Fiş'le aynı
+- Kaydedilmiş (Luca'ya gönderilmiş) faturada düğmeler çıkmıyor (eskisi gibi salt okunur).
 
 ## Değişen dosyalar
-- `renderer/app.js` (yalnız OKC / Belgeden Fiş):
-  - `satirlar()`: `cikan` ve `bosEk` listeleri, Z kasa dengesi
-  - önizleme tablosu: −, Geri ekle, açıklama metni
-  - olaylar: `data-okccikar`, `data-okcgeri`, 0 kuralı
+- `renderer/app.js`:
+  - Belgeden Fiş `satirlar()`: `cikan` ve `bosEk` listeleri, Z kasa dengesi; önizleme: −, Geri ekle, açıklama; olaylar: `data-okccikar`, `data-okcgeri`, 0 kuralı
+  - FKAYIT `satirlar(r)`: `cikan` ve `bosEk`; fiş tablosu: −, Geri ekle, açıklama; olaylar: `data-fcikar`, `data-fgeri`, 0 kuralı
 - `renderer/style.css`: `.fiscikar`, `tr.fiscikan`
-- `test/e2e.js`: yeni denetim
+- `test/e2e.js`: iki yeni denetim (Belgeden Fiş üç bölüm, FKAYIT)
 - `yonetim/raporlar/rapor-39.md`
 
 ## Testler (Linux, xvfb; derleme yok)
-- `xvfb-run -a node test/e2e.js`: **314 ✓, 0 başarısız** (`main` ve Görev 34 değişiklikleri birleştirildikten sonra).
+- `xvfb-run -a node test/e2e.js`: **315 ✓, 0 başarısız** (`main`, Görev 34 ve Görev 37 birleştirildikten sonra).
 - `node test/mobil.js`: **45/45.**
-- **Yeni e2e denetimi**, Z raporu, ÖKC fişi ve yurt dışı fatura için ayrı ayrı. Her adımda ekrandaki eklenen / çıkarılan satır sayısı ve fiş dengesi ölçülüyor:
+- **Yeni e2e denetimi**, Z raporu, ÖKC fişi, yurt dışı fatura ve FKAYIT fatura fişi için ayrı ayrı (FKAYIT'te hesap 770.01, borç 10,00; cari 600 → 610 → 600, − ile gider çıkınca 100). Her adımda ekrandaki eklenen / çıkarılan satır sayısı ve fiş dengesi ölçülüyor:
   1. ＋ Satır ekle → boş satır ekranda görünüyor, fişe girmiyor
   2. hesap (770.01) ve borç (12,50) yazılıyor → satır fişte, denge eşit
   3. − ile eklenen satır siliniyor

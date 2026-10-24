@@ -1041,6 +1041,20 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     await w.click('[data-fis]'); await w.waitForTimeout(200);
     const fis = await w.$$eval('#fkkTable table.mini tbody tr', t => t.map(x => [...x.children].map(c => { const i = c.querySelector('input'); return i ? i.value : c.textContent.trim(); })));
     check(JSON.stringify(fis.map(r => [r[0], r[3], r[4]])) === JSON.stringify([['770.01', '500,00', ''], ['191.10.20', '100,00', ''], ['320.01', '', '600,00']]), 'fiş: gider borç, KDV borç, cari alacak');
+    // Görev 39: fatura fişinde ＋ Satır ekle / − / Geri ekle / 0 kuralı
+    { const T = '#fkkTable table.mini';
+      const durum = () => w.evaluate((T) => { const i = +document.querySelector('[data-fekle]').dataset.fekle; const r = window.__fkayit._st.rows[i]; const s = window.__fkayit._satirlar(r);
+        const top = (k) => Math.round(s.L.reduce((t, x) => t + x[k], 0) * 100) / 100;
+        return { L: s.L.length, ek: document.querySelectorAll(T + ' tr.fkek').length, cikan: document.querySelectorAll(T + ' tr.fiscikan').length, b: top('b'), c: top('c'), cari: (s.L.find(x => x.acc === '320.01') || {}).c }; }, T);
+      await w.click('[data-fekle]'); await w.waitForTimeout(200); const d1 = await durum();
+      await w.fill(`${T} tr.fkek >> nth=-1 >> [data-alan=acc]`, '770.01'); await w.dispatchEvent(`${T} tr.fkek >> nth=-1 >> [data-alan=acc]`, 'change'); await w.waitForTimeout(200);
+      await w.fill(`${T} tr.fkek >> nth=-1 >> [data-alan=b]`, '10,00'); await w.dispatchEvent(`${T} tr.fkek >> nth=-1 >> [data-alan=b]`, 'change'); await w.waitForTimeout(300); const d2 = await durum();
+      await w.click(`${T} [data-feksil]`); await w.waitForTimeout(200); const d3 = await durum();
+      await w.click(`${T} [data-fcikar] >> nth=0`); await w.waitForTimeout(200); const d4 = await durum();
+      await w.click(`${T} [data-fgeri]`); await w.waitForTimeout(200); const d5 = await durum();
+      await w.fill(`${T} [data-ftut] >> nth=0`, '0'); await w.dispatchEvent(`${T} [data-ftut] >> nth=0`, 'change'); await w.waitForTimeout(300); const d6 = await durum();
+      const ok = d1.ek === 1 && d1.L === 3 && d2.ek === 1 && d2.L === 4 && d2.cari === 610 && d2.b === d2.c && d3.ek === 0 && d3.L === 3 && d4.cikan === 1 && d4.L === 2 && d4.cari === 100 && d4.b === d4.c && d5.cikan === 0 && d5.cari === 600 && d6.L === 3 && d6.cikan === 0 && d6.cari === 600;
+      check(ok, 'fatura fişi (FKAYIT): ＋ Satır ekle görünür ve fişe girer, − çıkarır, Geri ekle döndürür, 0 yazmak çıkarmaz, cari dengeler' + (ok ? '' : ' ' + JSON.stringify([d1, d2, d3, d4, d5, d6]))); }
     await w.screenshot({ path: OUT + '/10-fatura-kayit.png' });
     // fiş kuralları: tevkifat, satış, satış tevkifatı, iadeler, ihraç kayıtlı
     const vakalar = await w.evaluate(() => {
