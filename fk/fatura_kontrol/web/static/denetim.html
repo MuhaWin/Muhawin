@@ -117,6 +117,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
         <button type="button" data-g="gelir"><b>Gelir kontrolü</b><span id="nGelir"></span><small>Satış faturaları ↔ gelir hesabı ve fişi (600 …)</small></button>
         <button type="button" data-g="kurallar"><b>Kontrol kuralları</b><span id="nKural"></span><small>Kurala uyan fatura otomatik uygun sayılır (kayıt yapılmaz)</small></button>
         <button type="button" data-g="rapor"><b>Denetim raporu</b><span></span><small>KDV + matrah kontrolü ve detay denetim sonuçları (yazdırılabilir)</small></button>
+        <button type="button" data-g="yonetici"><b>Yönetici raporu</b><span></span><small>Aylık satış / gider grafikleri, vergiler, rasyolar</small></button>
       </div>
     </section>
     <section class="kart" id="gecmisKart" hidden><h3>Önceki denetimler</h3><div id="gecmis" class="nav"></div></section>
@@ -371,6 +372,11 @@ function ciz() {
   } else if (gor === "rapor") {
     govde = `<div class="ozetler"><div class="oz"><b style="font-size:16px">Denetim raporu</b><span>KDV ve matrah kontrolü, gider / gelir kontrolünün sonuçları (uygun, uygun değil, bekleyen ve gerekçeleri), imza alanları</span>
       <div class="araclar" style="margin-top:8px"><button class="btn birincil" type="button" data-ac="/api/denetim/detay/rapor?id=${encodeURIComponent(veri.rapor_id || "")}">Raporu aç</button></div></div></div>`;
+  } else if (gor === "yonetici") {
+    govde = `<div class="ozetler"><div class="oz"><b style="font-size:16px">Yönetici raporu · ${esc(AYLAR[+String(veri.bas).slice(5, 7) - 1] || "")} ${esc(String(veri.bas).slice(0, 4))}</b>
+      <span>Yıllık muavinden: satışlar (600) ay ay ve önceki aya göre değişim; giderler (7xx) ay ay, yüksek artışlar vurgulu; o ayın KDV'si, satışı, 360 / 361 tahakkuk ve ödemeleri; cari oran, asit-test, nakit oran, borç / özkaynak, kâr marjı (formülleriyle). Yazdırılabilir / PDF.</span>
+      <span class="ipucu">Ocak'tan itibaren tüm hesapları içeren muavin yüklenirse aylar ve bilanço oranları tam çıkar.</span>
+      <div class="araclar" style="margin-top:8px"><button class="btn birincil" type="button" data-ac="/api/denetim/yonetici?id=${encodeURIComponent(veri.rapor_id || "")}">Raporu aç</button></div></div></div>`;
   } else if (gor === "beyan") {
     const id = encodeURIComponent(veri.rapor_id || "");
     govde = `<div class="ozetler">

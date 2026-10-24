@@ -802,6 +802,21 @@ def denetim_detay_rapor(id: str):
     return HTMLResponse(rapor_html(v, detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma)), mb))
 
 
+# ------------------------------------------------------------------ Yönetici raporu (Görev 43 Faz 3)
+@app.get("/api/denetim/yonetici", response_class=HTMLResponse)
+def denetim_yonetici(id: str):
+    """Yıllık muavinden aylık satış / gider grafikleri, o ayın vergileri ve rasyolar (yazdırılabilir)."""
+    from .. import yonetici
+    from ..denetim import DENETIM_JSON
+    from ..yonetici_rapor import rapor_html
+    k = depo.rapor_klasoru(id)
+    if not k or not (k / DENETIM_JSON).exists():
+        raise HTTPException(404, "Bu dönemin denetimi yok")
+    v = json.loads((k / DENETIM_JSON).read_text(encoding="utf-8"))
+    y = yonetici.hazirla(_denetim_muavini(k), date.fromisoformat(v["bas"]), date.fromisoformat(v["bit"]))
+    return HTMLResponse(rapor_html(v, y))
+
+
 # ------------------------------------------------------------------ Muhtasar beyannamesi (1003A PDF) ↔ muavin
 MUHTASAR_BEYAN_JSON = "muhtasar_beyan.json"      # yalnız tutarlar / adetler; PDF ve kişisel alanlar saklanmaz
 

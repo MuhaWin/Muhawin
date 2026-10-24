@@ -137,6 +137,15 @@ test('Muhtasar beyannamesi (1003A PDF) tarayıcıda okunur ve muavinle karşıla
   assert.ok(!/12345678901|AHMET/.test(py.runPython("import pathlib; ''.join(p.read_text('utf-8') for p in pathlib.Path('/veri').rglob('*.json'))")));
 });
 
+test('Yönetici raporu tarayıcıda: grafikler (SVG), vergiler, rasyolar', async () => {
+  const id = json(await istek('GET', '/api/denetim/liste')).liste.find(x => /ÖRNEK/.test(x.id)).id;
+  const y = await istek('GET', '/api/denetim/yonetici', { sorgu: { id } });
+  assert.strictEqual(y.durum, 200, y.govde);
+  assert.match(y.govde, /<svg/);
+  assert.match(y.govde, /Rasyolar/);
+  assert.match(y.govde, /Cari oran/);
+});
+
 test('Luca ve sqlite olmadan çalışır (taklit yalnız fastapi / pydantic)', async () => {
   const y = py.runPython("import sys; json_ = __import__('json'); json_.dumps([m in sys.modules for m in ('playwright', 'sqlite3', 'fastapi')])");
   assert.deepStrictEqual(JSON.parse(y), [false, false, true]);

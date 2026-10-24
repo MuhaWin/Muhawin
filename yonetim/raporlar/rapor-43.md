@@ -274,4 +274,63 @@ Yazdırılabilir HTML; masaüstünde ve sitede ayrı pencerede açılır. Toplu 
 ---
 
 ## FAZ 3 – Yönetici raporu (görsel)
-_Faz 2'den sonra._
+
+Menüde **Detay denetim › Yönetici raporu → Raporu aç**: yazdırılabilir / PDF olarak kaydedilebilen tek sayfa. Masaüstünde ve sitede aynı kod. Kod: `fk/fatura_kontrol/yonetici.py` (hesap), `yonetici_rapor.py` (HTML), `/api/denetim/yonetici`.
+
+Rapor, denetimin muavininden kurulan mizandan hazırlanır: yılbaşından denetlenen aya kadar, ay sonu bakiyeleri.
+
+### 11. Aylık grafikler
+Grafikler satır içi SVG; dış kütüphane yok. Çubuğun üzerine gelince tutar görünür. Grafik kurallarıyla:
+- tek eksen;
+- tek renk tonu: seçili ay koyu, önceki aylar açık;
+- uyarı rengi yalnız vurgu için ve her zaman "▲" ve yazıyla birlikte;
+- yuvarlak eksen değerleri;
+- etiket yalnız seçili ayda ve vurgulu çubukta.
+
+Grafikler:
+- **Satışlar (600–602), ay ay:** her ayın altında önceki aya göre % değişim.
+- **Giderler (7xx ana hesaplar), her hesap ayrı küçük grafik:**
+  - 7x1 yansıtma ve 79x hesapları dahil değil;
+  - vurgu: bir ay, önceki ayların ortalamasının 1,5 katından fazla ve aradaki fark en az 1.000 TL ise;
+  - kartta neden yazar: "▲ Eylül: önceki ayların ortalamasının +450% üstünde".
+
+### 12. O ayın özeti ve rasyolar
+- **Kutular:**
+  - satışlar (önceki aya göre %);
+  - hesaplanan KDV (391) ve indirilecek KDV (191);
+  - ödenecek ya da sonraki aya devreden KDV: önceki devreden 190 dikkate alınır; 190 ay sonu bakiyesi de yazar;
+  - 360: tahakkuk eden, ödenen, bakiye;
+  - 361 SGK: tahakkuk ve ödeme.
+  - 360 alt hesap kırılımı tabloda.
+- **Rasyolar** (her ay sonu için, formülleri tabloda yazılı):
+
+  | Oran | Formül |
+  |---|---|
+  | Cari oran | 1xx ÷ 3xx |
+  | Asit-test | (1xx − 15x) ÷ 3xx |
+  | Nakit oranı | (10x + 11x) ÷ 3xx |
+  | Borç / özkaynak | (3xx + 4xx) ÷ (5xx + dönem kârı) |
+  | Kaldıraç | (3xx + 4xx) ÷ (1xx + 2xx) |
+  | Net kâr marjı | dönem kârı ÷ net satışlar |
+  | Brüt kâr marjı | (net satış − 62x) ÷ net satış |
+
+  - Dönem kârı = 6xx ve 7xx'in yıl içi neti. Kapanış yapılmadan hesaplanır; 7/A yansıtma hesapları birbirini götürür.
+  - Payda sıfır ya da eksi ise "—".
+- **Uyarılar:**
+  - Muavinde açılış fişi / devir yoksa: bilanço oranları yalnız yıl içi hareketlerle.
+  - Muavin Ocak'tan başlamıyorsa: önceki aylar boş görünür.
+  - Doğru oranlar için yıl başından itibaren, tüm hesapları içeren muavin gerekir. Yönetici gerçek Elektra dosyasını 6 aylık okuttu; bu tür yıllık muavinlerle tam çıkar.
+
+### Testler (Faz 3)
+- **`fk/tests/test_yonetici.py`** (4 test):
+  - aylık satış ve değişim;
+  - gider vurgusu;
+  - o ayın KDV ve 360 tutarları;
+  - rasyolar elle hesaplanan değerlerle aynı;
+  - açılışsız muavinde uyarı;
+  - HTML (2 grafik, ▲, formüller);
+  - API ve 404.
+- **Köprü:** yönetici raporu tarayıcıda.
+- **Görsel kontrol:** 9 aylık sahte veriyle render edilip ekran görüntüsüyle bakıldı.
+- **Sonuçlar:** pytest 190 geçti (16 hata main ile aynı ortam hataları); köprü 9/9; site_e2e TAMAM.
+- **Gerçek veriyle denenmedi.**
