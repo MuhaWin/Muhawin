@@ -134,7 +134,7 @@ th.kz-gizli,td.kz-gizli{display:none}
       <div class="mhead"><h2 id="okcModalT"></h2><button class="btn small ghost" data-okx="1" aria-label="Kapat">✕ Kapat</button></div>
       <div class="mbody" id="okcModalB"></div></div></div>
   </section>
-  <section id="mdPanel" hidden><iframe id="mdFrame" title="Muhasebe Denetimi"></iframe><div class="note" id="mdBekle" style="padding:30px">Muhasebe Denetimi açılıyor…</div></section>
+  <section id="mdPanel" hidden><div class="sitebag mdsite" id="mdSite"></div><iframe id="mdFrame" title="Muhasebe Denetimi"></iframe><div class="note" id="mdBekle" style="padding:30px">Muhasebe Denetimi açılıyor…</div></section>
   <section id="cekPanel" hidden>
     <div class="mmtop"><h2>Çek / Senet Kayıtları</h2><span class="note">Logo / Mikro çek-senet dosyaları → hesaplar Luca mizanından → rapor, Luca fiş dosyası ya da doğrudan Luca kaydı.</span><span style="flex:1"></span>
       <button class="btn small" id="cekRapor">Raporu Excel'e aktar</button>
@@ -147,7 +147,7 @@ th.kz-gizli,td.kz-gizli{display:none}
       <div class="mhead"><h2 id="cekModalT"></h2><button class="btn small ghost" data-cx="1" aria-label="Kapat">✕ Kapat</button></div>
       <div class="mbody" id="cekModalB"></div></div></div>
   </section>
-  <section id="hubPanel" hidden><h2 id="hubT"></h2><p id="hubP"></p><div id="hubGrid"></div></section>
+  <section id="hubPanel" hidden><h2 id="hubT"></h2><p id="hubP"></p><div id="hubGrid"></div><p class="note sitebag" id="hubSite" hidden></p></section>
   <section id="admPanel" hidden>
     <div class="mmtop"><h2>Yönetim</h2><span class="note">Üyeler, lisanslar, satışlar ve kodlar · yalnız program sahibi hesabı görür</span><span style="flex:1"></span><button class="btn small" id="admYenile">⟳ Yenile</button></div>
     <div class="admtabs" id="admTabs" role="tablist" aria-label="Yönetim sekmeleri"></div>
