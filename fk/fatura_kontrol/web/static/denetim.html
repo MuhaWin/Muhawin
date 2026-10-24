@@ -49,7 +49,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
 .yerel-bas{font-weight:600;font-size:12.5px;margin-bottom:4px}.yerel-satir{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:5px 0;border-top:1px dashed var(--line)}
 .yerel-satir:first-child{border-top:0}.yerel-satir .ipucu{font-size:11.5px}.yerel-dug{display:flex;gap:6px}.yerel-dug .btn{min-height:26px;padding:0 9px;font-size:12px}
 .fisbtn{white-space:nowrap;border:1px solid var(--line);background:var(--panel);color:var(--brand-2,#1f4aa8);border-radius:5px;padding:0 5px;font:inherit;font-size:11px;cursor:pointer;margin:1px 2px 0 0}
-.fisbtn:hover{background:var(--accent,#e7eefb)}
+.fisbtn:hover{background:var(--accent,#e7eefb)}a.fisbtn{text-decoration:none;display:inline-block}.fisbtn[disabled]{opacity:.5;cursor:default;color:var(--muted)}
 #fisPen{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;place-items:center;z-index:60}#fisPen.acik{display:grid}
 #fisPen .ic{background:var(--panel);color:inherit;border-radius:12px;width:min(980px,94vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)}
 #fisPen .bas{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}#fisPen .govde{overflow:auto;padding:12px 16px}
@@ -58,6 +58,16 @@ table.dt .durum{white-space:normal;line-height:1.3}
 .donem .yil{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}.donem .yil select{width:auto;min-height:28px;padding:0 6px}
 .aylar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.aylar button{min-height:28px;border-radius:6px;border:1px solid var(--line);background:var(--panel);font:inherit;font-size:12px;color:inherit;cursor:pointer;padding:0}
 .aylar button:hover{background:var(--accent,#e7eefb)}.aylar button[aria-pressed=true]{background:var(--brand-2,#1f4aa8);border-color:var(--brand-2,#1f4aa8);color:#fff;font-weight:600}
+#kontrolPen{position:fixed;inset:0;background:var(--bg,#f4f6fa);display:none;z-index:55;flex-direction:column}#kontrolPen.acik{display:flex}
+#kontrolPen .kbas{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+#kontrolPen .kgovde{flex:1;min-height:0;display:grid;grid-template-columns:minmax(380px,46%) 1fr;gap:12px;padding:12px}
+#kontrolPen .ksol{overflow:auto;display:flex;flex-direction:column;gap:10px;min-height:0}#kontrolPen .ksag{min-height:0;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+#kontrolPen iframe{width:100%;height:100%;border:0;display:block;background:#fff}
+#kontrolPen dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:13px}#kontrolPen dt{color:var(--muted)}#kontrolPen dd{margin:0}
+.kararlar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.btn.yesil{background:#13804f;border-color:#13804f;color:#fff;font-weight:600}.btn.kirmizi{background:#b42318;border-color:#b42318;color:#fff;font-weight:600}
+.kbd{font-size:10.5px;border:1px solid rgba(255,255,255,.6);border-radius:4px;padding:0 4px;margin-left:2px}
+.d-kural,.d-gecmis,.d-uygun{background:#dff5ea;color:#13694a}.d-uygun_degil{background:#fde7e7;color:#a3262c}.d-bekliyor{background:#fff1d6;color:#8a5a00}
+.oz.secili{outline:2px solid var(--brand-2,#1f4aa8)}
 .yukle{position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;place-items:center;z-index:50}.yukle.acik{display:grid}.yukle div{background:var(--panel);padding:20px 26px;border-radius:12px;font-weight:600}
 </style>
 </head>
@@ -100,8 +110,14 @@ table.dt .durum{white-space:normal;line-height:1.3}
         <button type="button" data-g="OIV"><b>ÖİV kontrolü</b><span id="nOIV"></span><small>Faturadaki Özel İletişim Vergisi ↔ fişteki 689 kayıtları</small></button>
         <button type="button" data-g="faturasiz"><b>Faturası olmayan kayıtlar</b><span id="nFaturasiz"></span><small>Muavinde e-belge no'lu ama faturası yüklenmemiş kayıtlar</small></button>
         <button type="button" data-g="red"><b>Red / iptal faturalar</b><span id="nRed"></span><small>Red / iptal listesindeki faturalar ↔ muavin kaydı</small></button>
-        <button type="button" data-g="muhtasar"><b>Muhtasar (deneme)</b><span id="nMuhtasar"></span><small>360 hesaplarındaki stopajlar</small></button>
+        <button type="button" data-g="muhtasar"><b>Muhtasar</b><span id="nMuhtasar"></span><small>360 stopajları · beyanname (PDF) ↔ muavin</small></button>
         <button type="button" data-g="beyan"><b>Beyanname ve çıktı raporu</b><span></span><small>KDV 1 · KDV 2 · çıktı raporu · Excel</small></button>
+        <div style="font-size:12px;color:var(--muted);margin:6px 2px 0">Detay denetim</div>
+        <button type="button" data-g="gider"><b>Gider kontrolü</b><span id="nGider"></span><small>Alış faturaları ↔ gider / stok hesabı ve fişi (7xx, 15x …)</small></button>
+        <button type="button" data-g="gelir"><b>Gelir kontrolü</b><span id="nGelir"></span><small>Satış faturaları ↔ gelir hesabı ve fişi (600 …)</small></button>
+        <button type="button" data-g="kurallar"><b>Kontrol kuralları</b><span id="nKural"></span><small>Kurala uyan fatura otomatik uygun sayılır (kayıt yapılmaz)</small></button>
+        <button type="button" data-g="rapor"><b>Denetim raporu</b><span></span><small>KDV + matrah kontrolü ve detay denetim sonuçları (yazdırılabilir)</small></button>
+        <button type="button" data-g="yonetici"><b>Yönetici raporu</b><span></span><small>Aylık satış / gider grafikleri, vergiler, rasyolar</small></button>
       </div>
     </section>
     <section class="kart" id="gecmisKart" hidden><h3>Önceki denetimler</h3><div id="gecmis" class="nav"></div></section>
@@ -111,6 +127,9 @@ table.dt .durum{white-space:normal;line-height:1.3}
 <div id="fisPen" role="dialog" aria-modal="true" aria-label="Fiş"><div class="ic"><div class="bas"><b id="fisBaslik">Fiş</b><span style="flex:1"></span>
   <button class="btn" type="button" id="fisYazdir">🖨 Yazdır</button><button class="btn" type="button" id="fisPdf">PDF</button><button class="btn" type="button" id="fisKapat">Kapat</button></div>
   <div class="govde" id="fisGovde"></div></div></div>
+<div id="kontrolPen" role="dialog" aria-modal="true" aria-label="Kontrol ekranı"><div class="kbas"><b id="kBaslik">Kontrol</b><span id="kSira" style="color:var(--muted)"></span><span style="flex:1"></span>
+  <span class="ipucu">U: uygun · D: uygun değil · ← →: önceki / sonraki · Esc: kapat</span><button class="btn" type="button" id="kKapat">Kapat</button></div>
+  <div class="kgovde"><div class="ksol" id="kSol"></div><div class="ksag"><iframe id="kFatura" sandbox="" title="Faturanın görünümü"></iframe></div></div></div>
 <div class="yukle" id="yukle"><div>Denetim yapılıyor… (faturalar okunuyor, muavinle karşılaştırılıyor)</div></div>
 <script>
 const $ = s => document.querySelector(s);
@@ -247,7 +266,7 @@ function tablo(L) {
     <tbody>${L.map(s => `<tr><td>${pdf(s)}</td><td><span class="durum ${sinif(s)}">${esc(s.durum)}</span></td><td>${esc(s.yon)}</td><td class="mono nw">${esc(s.belge_no)}</td><td class="nw">${tarih(s.tarih)}</td>
       <td><div class="kt" title="${esc(s.karsi_taraf)}">${esc(s.karsi_taraf)}</div><small style="color:var(--muted)">${esc(s.vkn || "")}${s.doviz ? " · " + esc(s.doviz) : ""}</small></td>
       <td class="n">${para(s.fatura_tutari)}</td><td class="n">${para(s.muavin_tutari)}</td><td class="n" style="${Math.abs(s.fark) > 0.05 ? "color:#a3262c;font-weight:600" : ""}">${para(s.fark)}</td>
-      <td><span class="mono">${esc(s.hesaplar)}</span><br>${fisDugmeleri(s.fisler)}</td><td>${esc(s.aciklama || "")}</td></tr>`).join("")}</tbody></table></div>`;
+      <td><span class="mono">${esc(s.hesaplar)}</span><br>${fisDugmeleri(s.fisler)}${faturaDugmesi(s.belge_no)}</td><td>${esc(s.aciklama || "")}</td></tr>`).join("")}</tbody></table></div>`;
 }
 // Hesap / fiş sütunu: "15619 (17.09.2026), 15620 (18.09.2026)" → fiş düğmeleri (muavinden fiş penceresi)
 function fisDugmeleri(fisler) {
@@ -256,6 +275,10 @@ function fisDugmeleri(fisler) {
     return m ? `<button type="button" class="fisbtn" data-fis="${esc(m[1])}" data-tarih="${esc(m[2])}" title="Fişi aç">🧾 ${esc(m[1])} <span style="color:var(--muted)">(${esc(m[2])})</span></button>` : `<small style="color:var(--muted)">${esc(x)}</small>`;
   }).join("");
 }
+// faturanın görünümü (GİB şablonu; masaüstünde PDF penceresi, sitede tarayıcıda) — fiş düğmelerinin yanında
+const faturaDugmesi = (belge, var_ = true) => !belge ? "" : var_ && veri && veri.rapor_id
+  ? `<a class="fisbtn" title="Faturayı aç (${esc(belge)})" target="_blank" data-pdfid="${esc(veri.rapor_id)}" data-pdfbelge="${esc(belge)}" href="/api/fatura/goruntu?id=${encodeURIComponent(veri.rapor_id)}&belge=${encodeURIComponent(belge)}">📄 Fatura</a>`
+  : `<button type="button" class="fisbtn" disabled title="Bu kaydın faturası yüklenen e-fatura dosyalarında yok">📄 Fatura yok</button>`;
 // tek fiş (fiş no + ISO tarih) → aynı düğme; tarih yoksa düz metin
 const fisDugmesi = (no, iso) => no && iso ? fisDugmeleri(`${no} (${tarih(iso)})`) : esc(no || "");
 let acikFis = null;
@@ -289,7 +312,7 @@ $("#fisPdf").onclick = async () => {
 };
 function ciz() {
   document.querySelectorAll("#nav [data-g]").forEach(b => { b.setAttribute("aria-pressed", String(b.dataset.g === gor)); b.disabled = !veri && b.dataset.g !== "ozet"; });
-  if (!veri) { $("#icerik").innerHTML = `<div class="bos">Soldan firmayı seçin, alış / satış XML'lerini ve ${esc(progAd())} muavinini yükleyip “Denetimi Başlat”a basın.</div>`; ["#nKDV", "#nMatrah", "#nCari", "#nFaturasiz", "#nOzet", "#nMuhtasar", "#nOIV"].forEach(x => rozet(x, null)); return; }
+  if (!veri) { $("#icerik").innerHTML = `<div class="bos">Soldan firmayı seçin, alış / satış XML'lerini ve ${esc(progAd())} muavinini yükleyip “Denetimi Başlat”a basın.</div>`; ["#nKDV", "#nMatrah", "#nCari", "#nFaturasiz", "#nOzet", "#nMuhtasar", "#nOIV"].forEach(x => rozet(x, null)); detay = null; detayId = ""; detayRozet(); return; }
   const o = veri.ozet || {}; const fs = (veri.faturasi_olmayanlar || []).filter(s => s.uygun == null).length;
   rozet("#nKDV", (o.KDV || {}).sorunlu || 0); rozet("#nMatrah", (o.Matrah || {}).sorunlu || 0); rozet("#nCari", (o.Cari || {}).sorunlu || 0); rozet("#nFaturasiz", fs);
   rozet("#nOzet", ((o.KDV || {}).sorunlu || 0) + ((o.Matrah || {}).sorunlu || 0) + ((o.Cari || {}).sorunlu || 0) + fs);
@@ -299,6 +322,7 @@ function ciz() {
   const oivL = veri.oiv || [], oivS = oivL.filter(x => x.sorunlu).length;
   rozet("#nOIV", oivL.length ? oivS : null); document.querySelector('#nav [data-g=OIV]').hidden = !oivL.length;
   $("#nMuhtasar").innerHTML = veri.muhtasar && veri.muhtasar.satirlar.length ? `<span class="rozet gri">${para(veri.muhtasar.odenecek)}</span>` : "";
+  if (detayId !== veri.rapor_id) detayYukle(); detayRozet();
   const bas = `<div class="araclar"><b style="font-size:15px">${esc(veri.firma || "")}</b><span style="color:var(--muted)">VKN ${esc(veri.vkn || "")} · ${tarih(veri.bas)} – ${tarih(veri.bit)} · ${veri.alis || 0} alış, ${veri.satis || 0} satış faturası</span><span style="flex:1"></span>
     ${["KDV", "Matrah", "Cari", "OIV"].includes(gor) ? `<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="sorunlu" style="width:auto;min-height:0" ${yalnizSorun ? "checked" : ""}> Yalnız sorunlular</label>` : ""}</div>
     ${(veri.uyarilar || []).length ? `<div class="uyari">${veri.uyarilar.map(esc).join("<br>")}</div>` : ""}`;
@@ -317,43 +341,241 @@ function ciz() {
       <p class="ipucu">${gor === "KDV" ? "Faturadaki KDV ↔ muavindeki 191 / 391 tutarı. KDV oranı hesabın adındaki ya da kodundaki orana (191.01.20 = %20) uymalı; KDV kaydı faturanın (cari / gider kaydıyla aynı) fişinde olmalı. Binek araçta KDV'nin %70'i, dövizli faturalarda TL karşılığı, tevkifatlı satışta tahsil edilen KDV beklenir." : gor === "Matrah" ? "Alışta gider / stok / duran varlık hesaplarının (binek araç KKEG ve indirilemeyen KDV dahil) toplamı, satışta 60x / 64x / 67x gelir hesapları faturanın matrahıyla karşılaştırılır. İade faturaları bu kontrole girmez." : "Faturanın ödenecek (tahsil edilecek) tutarı, faturanın fişindeki cari / ödeme hesaplarının (alışta alacak, satışta borç) toplamıyla karşılaştırılır; tevkifatta tevkif sonrası tutar beklenir."}</p>${tablo(L)}`;
   } else if (gor === "faturasiz") {
     const L = veri.faturasi_olmayanlar || [];
-    govde = L.length ? `<div class="tk"><table><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Fiş tarihi</th><th>Fiş no</th><th>Belge no</th><th>Ünvan</th><th class="n">Tutar</th></tr></thead><tbody>${L.map(s => `<tr><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)}</td><td>${tarih(s.fis_tarihi)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}</td><td class="mono">${esc(s.belge_no || "")}</td><td>${esc(s.unvan || "")}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Faturası bulunamayan kayıt yok.</div>';
+    govde = L.length ? `<div class="tk"><table><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Fiş tarihi</th><th>Fiş no</th><th>Belge no</th><th>Ünvan</th><th class="n">Tutar</th></tr></thead><tbody>${L.map(s => `<tr><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)}</td><td>${tarih(s.fis_tarihi)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}${faturaDugmesi(s.belge_no, false)}</td><td class="mono">${esc(s.belge_no || "")}</td><td>${esc(s.unvan || "")}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Faturası bulunamayan kayıt yok.</div>';
   } else if (gor === "OIV") {
     const L = (veri.oiv || []).filter(x => !yalnizSorun || x.sorunlu);
     govde = `<p class="ipucu">Faturadaki Özel İletişim Vergisi (ÖİV), faturanın fişindeki 689 hesap kayıtlarıyla karşılaştırılır (adında ÖİV / iletişim geçen 689 alt hesabı varsa yalnız o).</p>
       ${L.length ? `<div class="tk"><table class="dt"><colgroup><col style="width:120px"><col style="width:50px"><col style="width:150px"><col style="width:88px"><col style="width:180px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:68px"><col style="width:120px"><col></colgroup><thead><tr><th>Durum</th><th>Yön</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Matrah</th><th class="n">Fatura ÖİV</th><th class="n">689 kaydı</th><th class="n">Fark</th><th>Hesap / fiş</th><th>Açıklama</th></tr></thead>
       <tbody>${L.map(x => `<tr><td><span class="durum ${x.sorunlu ? "d-hata" : "d-ok"}">${esc(x.durum)}</span></td><td>${esc(x.yon)}</td><td class="mono nw">${esc(x.belge_no)}</td><td class="nw">${tarih(x.tarih)}</td>
         <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td><td class="n">${para(x.oiv)}</td><td class="n">${para(x.muavin)}</td>
-        <td class="n" style="${Math.abs(x.fark) > 0.05 ? "color:#a3262c;font-weight:600" : ""}">${para(x.fark)}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}</td><td>${esc(x.aciklama)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Kayıt yok.</div>'}`;
+        <td class="n" style="${Math.abs(x.fark) > 0.05 ? "color:#a3262c;font-weight:600" : ""}">${para(x.fark)}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}${faturaDugmesi(x.belge_no)}</td><td>${esc(x.aciklama)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Kayıt yok.</div>'}`;
   } else if (gor === "red") {
     const L = veri.red_iptal || [];
     govde = `<p class="ipucu">Red / iptal listesindeki faturalar muavinde kayıtlı olmamalı. Kayıtlıysa kayıt iptal edilmeli ya da ters kayıt yapılmalı.</p>
       ${L.length ? `<div class="tk"><table class="dt" style="min-width:1000px"><thead><tr><th>Sonuç</th><th>Red / iptal</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Matrah</th><th class="n">KDV</th><th>Döviz</th><th>e-Fatura dosyasında</th><th>Hesap / fiş</th><th>Liste durumu</th></tr></thead>
       <tbody>${L.map(x => `<tr><td><span class="durum ${x.muavinde ? "d-hata" : "d-ok"}">${x.muavinde ? "Muavinde kayıtlı" : "Kayıt yok – uyumlu"}</span></td><td>${esc(x.ne)}</td><td class="mono nw">${esc(x.belge_no)}</td><td class="nw">${tarih(x.tarih)}</td>
         <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td><td class="n">${para(x.kdv)}</td><td>${esc(x.doviz)}</td>
-        <td>${x.faturada ? "var" : "yok"}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}</td><td>${esc(x.durum)}<br><small style="color:var(--muted)">${esc(x.dosya)}</small></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Red / iptal listesi yüklenmedi.</div>'}`;
+        <td>${x.faturada ? "var" : "yok"}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}${faturaDugmesi(x.belge_no, x.faturada)}</td><td>${esc(x.durum)}<br><small style="color:var(--muted)">${esc(x.dosya)}</small></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Red / iptal listesi yüklenmedi.</div>'}`;
   } else if (gor === "muhtasar") {
-    const m = veri.muhtasar || {satirlar: []};
-    govde = `<div class="uyari">${esc(m.not || "")}</div>
+    const m = veri.muhtasar || {satirlar: []}; mbeyanYukle();
+    govde = `${mbeyanGovde()}<div class="uyari">${esc(m.not || "")}</div>
       <div class="tk"><table><thead><tr><th>Tür</th><th class="n">Oran</th><th class="n">Matrah (gayrisafi)</th><th class="n">Kesilen vergi</th><th class="n">Kayıt</th></tr></thead>
       <tbody>${m.satirlar.map(x => `<tr><td><b>${esc(x.baslik)}</b></td><td class="n">${x.oran ? "%" + x.oran : ""}</td><td class="n">${x.matrah != null ? para(x.matrah) : "—"}</td><td class="n">${para(x.vergi)}</td><td class="n">${x.adet}</td></tr>`).join("") || '<tr><td colspan="5" class="bos">Dönemde 360 stopaj tahakkuku yok.</td></tr>'}</tbody>
       <tfoot><tr><td colspan="3"><b>Muhtasar ile ödenecek (SGK hariç)</b></td><td class="n"><b>${para(m.odenecek)}</b></td><td></td></tr></tfoot></table></div>
       ${m.satirlar.map(x => `<details><summary style="cursor:pointer;font-size:13px">${esc(x.baslik)} · ${x.adet} kayıt</summary><div class="tk" style="margin-top:6px"><table><thead><tr><th>Tarih</th><th>Fiş</th><th>Hesap</th><th>Ünvan / açıklama</th><th class="n">Matrah</th><th class="n">Vergi</th></tr></thead><tbody>${x.satirlar.map(s => `<tr><td>${tarih(s.tarih)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}</td><td class="mono">${esc(s.hesap)}</td><td>${esc(s.unvan || "")} ${esc(s.aciklama || "")}</td><td class="n">${s.matrah != null ? para(s.matrah) : ""}</td><td class="n">${para(s.vergi)}</td></tr>`).join("")}</tbody></table></div></details>`).join("")}
       ${(m.eslesmeyen || []).length ? `<details><summary style="cursor:pointer;font-size:13px">Türü bulunamayan 360 kayıtları (${m.eslesmeyen.length})</summary><div class="tk"><table><tbody>${m.eslesmeyen.map(s => `<tr><td>${tarih(s.tarih)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}</td><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)} · ${esc(s.aciklama)}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
-      <p class="ipucu">Muhtasar ve prim hizmet beyannamesi örneğini gönderdiğinizde bu bölüm GİB biçimine göre tamamlanacak.</p>`;
+`;
+  } else if (gor === "gider" || gor === "gelir") {
+    govde = detayGovde(gor);
+  } else if (gor === "kurallar") {
+    govde = kurallarGovde();
+  } else if (gor === "rapor") {
+    govde = `<div class="ozetler"><div class="oz"><b style="font-size:16px">Denetim raporu</b><span>KDV ve matrah kontrolü, gider / gelir kontrolünün sonuçları (uygun, uygun değil, bekleyen ve gerekçeleri), imza alanları</span>
+      <div class="araclar" style="margin-top:8px"><button class="btn birincil" type="button" data-ac="/api/denetim/detay/rapor?id=${encodeURIComponent(veri.rapor_id || "")}">Raporu aç</button></div></div></div>`;
+  } else if (gor === "yonetici") {
+    govde = `<div class="ozetler"><div class="oz"><b style="font-size:16px">Yönetici raporu · ${esc(AYLAR[+String(veri.bas).slice(5, 7) - 1] || "")} ${esc(String(veri.bas).slice(0, 4))}</b>
+      <span>Yıllık muavinden: satışlar (600) ay ay ve önceki aya göre değişim; giderler (7xx) ay ay, yüksek artışlar vurgulu; o ayın KDV'si, satışı, 360 / 361 tahakkuk ve ödemeleri; cari oran, asit-test, nakit oran, borç / özkaynak, kâr marjı (formülleriyle). Yazdırılabilir / PDF.</span>
+      <span class="ipucu">Ocak'tan itibaren tüm hesapları içeren muavin yüklenirse aylar ve bilanço oranları tam çıkar.</span>
+      <div class="araclar" style="margin-top:8px"><button class="btn birincil" type="button" data-ac="/api/denetim/yonetici?id=${encodeURIComponent(veri.rapor_id || "")}">Raporu aç</button></div></div></div>`;
   } else if (gor === "beyan") {
     const id = encodeURIComponent(veri.rapor_id || "");
     govde = `<div class="ozetler">
       <div class="oz"><b style="font-size:16px">KDV 1 / KDV 2 beyannamesi</b><span>Denetlenen dönemin muavininden, GİB görünümünde</span><div class="araclar" style="margin-top:8px"><button class="btn birincil" type="button" data-ac="/beyanname?id=${id}">Beyannameyi aç</button></div></div>
       <div class="oz"><b style="font-size:16px">Çıktı raporu</b><span>Kontrol özeti, açıklamalı muavin dökümü, KDV / KDV2 beyanname örnekleri (yazdırılabilir)</span><div class="araclar" style="margin-top:8px"><button class="btn birincil" type="button" data-ac="/api/rapor/cikti?id=${id}">Çıktı raporunu aç</button></div></div>
       <div class="oz"><b style="font-size:16px">Excel raporu</b><span>Kontrol sonuçları ve faturalar</span><div class="araclar" style="margin-top:8px"><a class="btn" href="/api/rapor/excel?id=${id}">Excel'i indir</a></div></div>
+      <div class="oz"><b style="font-size:16px">Denetim raporu</b><span>KDV + matrah kontrolü ve detay denetim sonuçları</span><div class="araclar" style="margin-top:8px"><button class="btn" type="button" data-ac="/api/denetim/detay/rapor?id=${id}">Raporu aç</button></div></div>
       <div class="oz"><b style="font-size:16px">Muhtasar (deneme)</b><span>360 stopajlarından taslak</span><div class="araclar" style="margin-top:8px"><button class="btn" type="button" data-git="muhtasar">Muhtasar taslağı</button></div></div></div>`;
   }
   $("#icerik").innerHTML = bas + govde;
   const cb = $("#sorunlu"); if (cb) cb.onchange = () => { yalnizSorun = cb.checked; ciz(); };
+  detayBagla(); mbeyanBagla();
   $("#icerik").querySelectorAll("[data-git]").forEach(b => b.onclick = () => { gor = b.dataset.git; ciz(); });
   $("#icerik").querySelectorAll("[data-ac]").forEach(b => b.onclick = () => window.open(b.dataset.ac, "_blank"));
 }
+/* ---------- Muhtasar ve Prim Hizmet Beyannamesi (1003A PDF) ↔ muavin: PDF saklanmaz, çalışan bölümleri okunmaz ---------- */
+let mbeyan = null, mbeyanId = "";
+async function mbeyanYukle(zorla) {
+  if (!veri || !veri.rapor_id || (!zorla && mbeyanId === veri.rapor_id)) return;
+  const id = veri.rapor_id; mbeyanId = id; mbeyan = null;
+  try { const r = await fetch("/api/denetim/muhtasar?id=" + encodeURIComponent(id)); mbeyan = r.ok ? await r.json() : null; } catch (e) { mbeyan = null; }
+  if (mbeyan && gor === "muhtasar" && veri && veri.rapor_id === id && !kontrol) ciz();
+}
+function mbeyanGovde() {
+  const yukle = `<div class="araclar"><label class="alan" style="flex:1;min-width:260px">Muhtasar ve Prim Hizmet Beyannamesi (GİB PDF'i) — muavinle karşılaştırmak için
+      <input type="file" id="mbDosya" accept=".pdf,application/pdf"></label><button type="button" class="btn birincil" id="mbYukle">Karşılaştır</button></div>
+    <p class="ipucu">PDF bu ${MW ? "bilgisayarda" : "tarayıcıda"} okunur ve kaydedilmez; yalnız tutarlar saklanır. Çalışan bölümleri (vergi bildirimi, sigortalı çalışan bilgileri) okunmaz; kişi adları ve kimlik numaraları alınmaz.</p><p class="hata" id="mbHata"></p>`;
+  if (!mbeyan) return `<section class="kart">${yukle}</section>`;
+  const b = mbeyan.beyan || {}, ay = b.ay ? AYLAR[b.ay - 1] + " " + b.yil : "";
+  const sinifD = d => d === "fark" ? "d-hata" : d === "uyumlu" ? "d-ok" : "d-bilgi";
+  const tk = b.tevkifat || {};
+  return `<section class="kart" style="display:grid;gap:10px"><div class="araclar"><b>Muhtasar beyannamesi ${esc(b.form || "")} · ${esc(ay)}</b><span style="color:var(--muted)">${esc(b.unvan || "")} · VKN ${esc(b.vkn || "")}${b.onay ? " · onay " + esc(b.onay) : ""}</span>
+      <span style="flex:1"></span><span class="rozet ${mbeyan.sorunlu ? "kotu" : "ok"}">${mbeyan.sorunlu ? mbeyan.sorunlu + " fark" : "uyumlu"}</span></div>
+    ${(mbeyan.uyarilar || []).length ? `<div class="uyari">${mbeyan.uyarilar.map(esc).join("<br>")}</div>` : ""}
+    <div class="tk"><table><thead><tr><th>Kontrol</th><th class="n">Beyanname</th><th class="n">Muavin</th><th class="n">Fark</th><th>Sonuç</th><th>Açıklama</th></tr></thead>
+      <tbody>${(mbeyan.satirlar || []).map(x => `<tr><td>${esc(x.ad)}</td><td class="n">${x.beyan == null ? "—" : para(x.beyan)}</td><td class="n">${x.muavin == null ? "—" : para(x.muavin)}</td>
+        <td class="n" style="${x.durum === "fark" ? "color:#a3262c;font-weight:600" : ""}">${x.fark == null ? "" : para(x.fark)}</td><td><span class="durum ${sinifD(x.durum)}">${x.durum === "fark" ? "Fark" : x.durum === "uyumlu" ? "Uyumlu" : "Bilgi"}</span></td><td>${esc(x.aciklama || "")}</td></tr>`).join("")}</tbody></table></div>
+    <details><summary style="cursor:pointer;font-size:13px">Beyannamenin okunan bölümleri</summary>
+      <div class="tk" style="margin-top:6px"><table><thead><tr><th>Tür kodu</th><th>Ödeme türü</th><th class="n">Gayrisafi</th><th class="n">Vergi kesintisi</th><th class="n">Bildirimdeki kişi</th></tr></thead>
+      <tbody>${Object.entries(b.kodlar || {}).map(([k, x]) => `<tr><td class="mono">${esc(k)}</td><td>${esc(x.ad)}</td><td class="n">${para(x.gayrisafi)}</td><td class="n">${para(x.vergi)}</td><td class="n">${((tk.kodlar || {})[k] || {}).adet || ""}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td colspan="2">Toplam${b.kalan_vergi != null ? ` · terkin sonrası kalan ${para(b.kalan_vergi)}` : ""}${b.damga != null ? ` · damga ${para(b.damga)}` : ""}</td><td class="n">${para((b.toplam || {}).gayrisafi)}</td><td class="n">${para((b.toplam || {}).vergi)}</td><td></td></tr></tfoot></table></div>
+      ${(b.icmal || []).length ? `<div class="tk" style="margin-top:6px"><table><thead><tr><th>Tahakkuka esas icmal</th><th class="n">Matrah</th><th class="n">Tahakkuk eden</th><th class="n">Mahsup</th><th class="n">Ödenecek</th></tr></thead>
+        <tbody>${b.icmal.map(x => `<tr><td>${esc(x.ad)}</td><td class="n">${para(x.matrah)}</td><td class="n">${para(x.tahakkuk)}</td><td class="n">${para(x.mahsup)}</td><td class="n">${para(x.odenecek)}</td></tr>`).join("")}</tbody></table></div>` : ""}</details>
+    <details><summary style="cursor:pointer;font-size:13px">Başka bir beyanname yükle</summary>${yukle}</details></section>`;
+}
+function mbeyanBagla() {
+  const y = $("#mbYukle"); if (!y) return;
+  y.onclick = async () => {
+    const d = $("#mbDosya").files[0]; $("#mbHata").textContent = "";
+    if (!d) { $("#mbHata").textContent = "Beyanname PDF'ini seçin."; return; }
+    const fd = new FormData(); fd.append("id", veri.rapor_id); fd.append("beyanname", d);
+    y.disabled = true;
+    try { const r = await fetch("/api/denetim/muhtasar", {method: "POST", body: fd}); const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || "Beyanname okunamadı"); mbeyan = j; mbeyanId = veri.rapor_id; ciz(); }
+    catch (e) { $("#mbHata").textContent = e.message; } finally { y.disabled = false; }
+  };
+}
+/* ---------- Detay denetim (gider / gelir kontrolü): yalnız kontrol, hiçbir kayıt yapılmaz ---------- */
+let detay = null, detayId = "", detayFiltre = {gider: "bekliyor", gelir: "bekliyor"}, kontrol = null;
+const DRENK = {bekliyor: "#8a5a00", uygun_degil: "#a3262c", uygun: "#13694a", kural: "#13694a", gecmis: "#13694a"};
+const detayListe = tur => (detay && detay[tur]) || [];
+async function detayYukle(zorla) {
+  if (!veri || !veri.rapor_id) { detay = null; detayId = ""; return; }
+  if (!zorla && detayId === veri.rapor_id) return;
+  const id = veri.rapor_id; detayId = id; if (!zorla) detay = null;
+  try { const r = await fetch("/api/denetim/detay?id=" + encodeURIComponent(id)); const j = await r.json();
+    detay = r.ok ? j : {hata: j.detail || "Detay denetim yüklenemedi"}; } catch (e) { detay = {hata: e.message}; }
+  if (veri && veri.rapor_id === id && !kontrol) ciz();
+}
+function detayRozet() {
+  ["gider", "gelir"].forEach(t => { const el = $(t === "gider" ? "#nGider" : "#nGelir"); if (!el) return;
+    if (!detay || detay.hata) { el.innerHTML = ""; return; }
+    const o = (detay.ozet || {})[t] || {}, n = (o.bekliyor || 0) + (o.uygun_degil || 0);
+    el.innerHTML = detayListe(t).length ? `<span class="rozet ${n ? "kotu" : "ok"}">${n ? n + " açık" : "tamam"}</span>` : ""; });
+  $("#nKural").innerHTML = detay && (detay.kurallar || []).length ? `<span class="rozet gri">${detay.kurallar.length}</span>` : "";
+}
+const hesapMetni = x => (x.hesaplar || []).map(h => `<span class="mono">${esc(h.kod)}</span> ${esc(h.ad)} <b>${para(h.tutar)}</b>`).join("<br>") || '<span style="color:var(--muted)">—</span>';
+const fisMetni = x => fisDugmeleri((x.fisler || []).map(f => `${f.no} (${tarih(f.tarih)})`).join(", "));
+function detayGovde(tur) {
+  if (!detay) return '<div class="bos">Detay denetim hazırlanıyor…</div>';
+  if (detay.hata) return `<div class="uyari">${esc(detay.hata)}</div>`;
+  const L = detayListe(tur), o = (detay.ozet || {})[tur] || {}, f = detayFiltre[tur], ad = detay.durum_ad || {};
+  const kutu = (k, n, baslik) => `<div class="oz${f === k ? " secili" : ""}" style="cursor:pointer" data-dfiltre="${k}"><b style="color:${DRENK[k] || "inherit"}">${n}</b><span>${esc(baslik)}</span></div>`;
+  const S = L.filter(x => f === "tum" || x.durum === f), bekleyen = o.bekliyor || 0;
+  return `<p class="ipucu">${tur === "gider" ? "Alış faturalarının gider / stok / duran varlık hesabına (15x, 25x, 6xx gider, 7xx …) kaydı" : "Satış faturalarının gelir hesabına (60x, 64x, 67x) kaydı"}, fişi ve carisi.
+      Kurala uyan ve geçmişle uyumlu olanlar (önceki en az iki ayda aynı cari aynı hesaba, tutar önceki aralıkta) otomatik uygun sayılır. Burada hiçbir kayıt yapılmaz.</p>
+    <div class="ozetler">${["bekliyor", "uygun_degil", "uygun", "kural", "gecmis"].map(k => kutu(k, o[k] || 0, ad[k] || k)).join("")}${kutu("tum", L.length, "Tümü")}</div>
+    <div class="araclar"><button type="button" class="btn birincil" id="kBasla" ${bekleyen ? "" : "disabled"}>Kontrole başla (${bekleyen} bekleyen)</button><span class="ipucu">Büyük ekranda solda kayıt, sağda fatura; U / D ile karar.</span></div>
+    ${S.length ? `<div class="tk"><table class="dt"><colgroup><col style="width:130px"><col style="width:150px"><col style="width:88px"><col style="width:190px"><col style="width:96px"><col style="width:240px"><col style="width:150px"><col><col style="width:78px"></colgroup>
+      <thead><tr><th>Durum</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Matrah</th><th>Hesap</th><th>Fiş</th><th>Gerekçe</th><th></th></tr></thead>
+      <tbody>${S.map(x => `<tr><td><span class="durum d-${x.durum}">${esc(x.durum_ad)}</span></td><td class="mono nw">${esc(x.belge_no)}</td><td class="nw">${tarih(x.tarih)}</td>
+        <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td>
+        <td style="font-size:12px">${hesapMetni(x)}</td><td>${fisMetni(x)}${faturaDugmesi(x.belge_no)}</td><td style="font-size:12px">${esc(x.neden || "")}</td>
+        <td><button type="button" class="btn" style="min-height:26px;padding:0 8px;font-size:12px" data-incele="${esc(x.anahtar)}">İncele</button></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Bu durumda fatura yok.</div>'}`;
+}
+function kurallarGovde() {
+  if (!detay) return '<div class="bos">Yükleniyor…</div>';
+  if (detay.hata) return `<div class="uyari">${esc(detay.hata)}</div>`;
+  const L = detay.kurallar || [];
+  return `<p class="ipucu">Kontrol kuralı kayıt yapmaz: kurala uyan fatura (aynı VKN ya da ünvan, kaydı kuraldaki hesapla başlıyor) otomatik "uygun" sayılır ve kontrol listesine düşmez. Kurallar firmada saklanır, sonraki aylarda da geçerlidir.</p>
+    <div class="kart" style="display:grid;grid-template-columns:110px 130px 1fr 150px 1fr auto;gap:8px;align-items:end">
+      <label class="alan">Yön<select id="krYon"><option value="ALIS">Alış (gider)</option><option value="SATIS">Satış (gelir)</option></select></label>
+      <label class="alan">VKN / TCKN<input id="krVkn" inputmode="numeric"></label><label class="alan">ya da ünvan içerir<input id="krUnvan"></label>
+      <label class="alan">Hesap (ör. 770 ya da 770.01.01.001)<input id="krHesap"></label><label class="alan">Açıklama<input id="krAcik"></label>
+      <button type="button" class="btn birincil" id="krEkle">Kural ekle</button></div><p class="hata" id="krHata"></p>
+    ${L.length ? `<div class="tk"><table><thead><tr><th>No</th><th>Yön</th><th>VKN / ünvan</th><th>Hesap</th><th>Açıklama</th><th>Eklenme</th><th></th></tr></thead>
+      <tbody>${L.map(k => `<tr><td>${k.id}</td><td>${k.yon === "ALIS" ? "Alış" : "Satış"}</td><td class="mono">${esc(k.vkn || "")}${k.unvan ? `<span style="font-family:inherit">“${esc(k.unvan)}”</span>` : ""}</td>
+        <td class="mono">${esc(k.hesap)}</td><td>${esc(k.aciklama || "")}</td><td>${esc((k.zaman || "").replace("T", " "))}</td><td><button type="button" class="btn" data-krsil="${k.id}" style="min-height:26px;font-size:12px">Sil</button></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Henüz kural yok. Kontrol ekranında “Bu cari için kural” ile de eklenebilir.</div>'}`;
+}
+async function kuralGonder(govde) {
+  const r = await fetch("/api/denetim/detay/kural", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id: veri.rapor_id, ...govde})});
+  const j = await r.json(); if (!r.ok) throw new Error(j.detail || "Kural kaydedilemedi");
+  await detayYukle(true);
+}
+function detayBagla() {
+  $("#icerik").querySelectorAll("[data-dfiltre]").forEach(b => b.onclick = () => { detayFiltre[gor] = b.dataset.dfiltre; ciz(); });
+  $("#icerik").querySelectorAll("[data-incele]").forEach(b => b.onclick = () => kontrolAc(gor, b.dataset.incele));
+  const kb = $("#kBasla"); if (kb) kb.onclick = () => kontrolAc(gor);
+  const ke = $("#krEkle"); if (ke) ke.onclick = async () => { $("#krHata").textContent = "";
+    try { await kuralGonder({yon: $("#krYon").value, vkn: $("#krVkn").value.trim(), unvan: $("#krUnvan").value.trim(), hesap: $("#krHesap").value.trim(), aciklama: $("#krAcik").value.trim()}); }
+    catch (e) { $("#krHata").textContent = e.message; } };
+  $("#icerik").querySelectorAll("[data-krsil]").forEach(b => b.onclick = async () => { if (confirm("Kural silinsin mi?")) await kuralGonder({sil: +b.dataset.krsil}); });
+}
+/* Kontrol ekranı: solda fatura bilgisi, kayıt ve fiş; sağda faturanın görünümü. Karar verilince sıradaki faturaya geçer. */
+function kontrolAc(tur, anahtar) {
+  let liste = detayListe(tur).filter(x => x.durum === "bekliyor").map(x => x.anahtar);
+  if (anahtar && !liste.includes(anahtar)) liste = [anahtar, ...liste];
+  if (!liste.length) return;
+  kontrol = {tur, liste, i: anahtar ? liste.indexOf(anahtar) : 0};
+  $("#kontrolPen").classList.add("acik"); kontrolCiz();
+}
+function kontrolKapat() { kontrol = null; $("#kontrolPen").classList.remove("acik"); $("#kFatura").srcdoc = ""; ciz(); }
+let kSira = 0;
+async function kontrolCiz() {
+  const x = kontrol && detayListe(kontrol.tur).find(y => y.anahtar === kontrol.liste[kontrol.i]);
+  if (!x) { kontrolKapat(); return; }
+  const sira = ++kSira, kodlar = (x.hesaplar || []).map(h => h.kod), ortak = kodlar.length && kodlar.every(k => k === kodlar[0]) ? kodlar[0] : (kodlar[0] || "").slice(0, 3);
+  $("#kBaslik").textContent = (kontrol.tur === "gider" ? "Gider kontrolü" : "Gelir kontrolü") + " · " + x.belge_no;
+  $("#kSira").textContent = `${kontrol.i + 1} / ${kontrol.liste.length}`;
+  const g = x.gecmis || {};
+  $("#kSol").innerHTML = `<section class="kart"><dl><dt>Durum</dt><dd><span class="durum d-${x.durum}">${esc(x.durum_ad)}</span> ${esc(x.neden || "")}</dd>
+      <dt>Fatura</dt><dd class="mono">${esc(x.belge_no)} · ${tarih(x.tarih)}</dd><dt>${x.yon === "ALIS" ? "Satıcı" : "Alıcı"}</dt><dd>${esc(x.karsi_taraf)} <small style="color:var(--muted)">${esc(x.vkn || "")}</small></dd>
+      <dt>Tutar</dt><dd>Matrah <b>${para(x.matrah)}</b> · KDV ${para(x.kdv)} · Toplam ${para(x.toplam)}</dd>
+      <dt>Kayıt</dt><dd>${hesapMetni(x)}${x.hesap_toplam && Math.abs(x.hesap_toplam - x.matrah) > 0.05 ? `<br><span class="hata">Kayıt ${para(x.hesap_toplam)} ≠ matrah ${para(x.matrah)}</span>` : ""}</dd>
+      <dt>Cari</dt><dd>${x.cari ? `<span class="mono">${esc(x.cari.kod)}</span> ${esc(x.cari.ad)}` : "—"}</dd>
+      <dt>Geçmiş</dt><dd>${esc(g.aciklama || "—")}${g.aylar ? ` <small style="color:var(--muted)">(${g.aylar} ay, ${para(g.min)} – ${para(g.max)})</small>` : ""}</dd></dl></section>
+    <section class="kart"><h3>Fiş</h3><div id="kFis"><div class="ipucu">${(x.fisler || []).length ? "Fiş muavinden hazırlanıyor…" : "Fatura muavinde kayıtlı değil."}</div></div></section>
+    <section class="kart" style="display:grid;gap:8px"><label class="alan">Not (isteğe bağlı; rapora yazılır)<input id="kNot" value="${esc(x.durum === "uygun_degil" || x.durum === "uygun" ? x.neden || "" : "")}"></label>
+      <div class="kararlar"><button type="button" class="btn yesil" id="kUygun">✓ Uygun <span class="kbd">U</span></button><button type="button" class="btn kirmizi" id="kDegil">✗ Uygun değil <span class="kbd">D</span></button>
+        <span style="flex:1"></span><button type="button" class="btn" id="kOnceki">← Önceki</button><button type="button" class="btn" id="kSonraki">Sonraki →</button></div>
+      <details><summary class="ipucu" style="cursor:pointer">Bu cari için kontrol kuralı ekle (sonraki aylarda otomatik uygun)</summary>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:6px"><label class="alan">Hesap<input id="kKuralHesap" value="${esc(ortak)}"></label>
+        <label class="alan">Açıklama<input id="kKuralAcik"></label><button type="button" class="btn" id="kKural">Kural ekle</button></div><p class="hata" id="kHata"></p></details></section>`;
+  $("#kUygun").onclick = () => kararVer("uygun"); $("#kDegil").onclick = () => kararVer("uygun_degil");
+  $("#kOnceki").onclick = () => kontrolGit(-1); $("#kSonraki").onclick = () => kontrolGit(1);
+  $("#kKural").onclick = async () => { $("#kHata").textContent = "";
+    try { await kuralGonder({yon: x.yon, vkn: x.vkn || "", unvan: x.vkn ? "" : x.karsi_taraf, hesap: $("#kKuralHesap").value.trim(), aciklama: $("#kKuralAcik").value.trim()});
+      const y = detayListe(kontrol.tur).find(z => z.anahtar === x.anahtar); if (y && y.durum !== "bekliyor") kontrolCikar(); else kontrolCiz(); }
+    catch (e) { $("#kHata").textContent = e.message; } };
+  // fatura görünümü: içerik alınıp betiksiz çerçeveye yazılır (masaüstünde yan süreçten, sitede tarayıcıdaki köprüden)
+  $("#kFatura").srcdoc = '<p style="font:14px system-ui;padding:20px;color:#667">Fatura açılıyor…</p>';
+  fetch(`/api/fatura/goruntu?id=${encodeURIComponent(veri.rapor_id)}&belge=${encodeURIComponent(x.belge_no)}`).then(async r => {
+    const h = await r.text(); if (sira !== kSira) return;
+    $("#kFatura").srcdoc = r.ok ? h : `<p style="font:14px system-ui;padding:20px;color:#a3262c">${esc((() => { try { return JSON.parse(h).detail; } catch (e) { return "Fatura açılamadı"; } })())}</p>`;
+  }).catch(() => {});
+  const fisler = [];
+  for (const f of x.fisler || []) { try { const r = await fetch(`/api/denetim/fis?id=${encodeURIComponent(veri.rapor_id)}&fis=${encodeURIComponent(f.no)}&tarih=${encodeURIComponent(f.tarih)}`); if (r.ok) fisler.push(await r.json()); } catch (e) {} }
+  if (sira !== kSira) return;
+  const tb = (b, a) => `<td class="n">${b ? para(b) : ""}</td><td class="n">${a ? para(a) : ""}</td>`;
+  if (fisler.length) $("#kFis").innerHTML = fisler.map(j => `<div class="ipucu" style="margin:4px 0">Fiş ${esc(j.fis_no)} · ${tarih(j.tarih)}${j.tip ? " · " + esc(j.tip) : ""}${j.dengeli ? "" : " · <b class=hata>dengesiz</b>"}</div>
+    <div class="tk" style="max-height:none"><table style="table-layout:auto"><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Açıklama</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead>
+    <tbody>${j.satirlar.map(y => `<tr${(x.hesaplar || []).some(h => h.kod === y.hesap) ? ' style="background:#eef7f1"' : ""}><td class="mono">${esc(y.hesap)}</td><td>${esc(y.hesap_adi)}</td><td>${esc(y.aciklama)}</td>${tb(y.borc, y.alacak)}</tr>`).join("")}</tbody>
+    <tfoot><tr><td colspan="3">Toplam</td>${tb(j.borc, j.alacak)}</tr></tfoot></table></div>`).join("");
+  else if ((x.fisler || []).length) $("#kFis").innerHTML = '<div class="hata">Fiş muavinde bulunamadı.</div>';
+}
+function kontrolGit(d) { if (!kontrol) return; kontrol.i = Math.min(Math.max(kontrol.i + d, 0), kontrol.liste.length - 1); kontrolCiz(); }
+function kontrolCikar() {                     // karar verilen fatura sıradan çıkar, sıradaki açılır
+  kontrol.liste.splice(kontrol.i, 1);
+  if (!kontrol.liste.length) { kontrolKapat(); return; }
+  kontrol.i = Math.min(kontrol.i, kontrol.liste.length - 1); kontrolCiz();
+}
+let kararGidiyor = false;
+async function kararVer(karar) {
+  if (!kontrol || kararGidiyor) return;
+  const anahtar = kontrol.liste[kontrol.i], notu = ($("#kNot") || {}).value || "";
+  kararGidiyor = true;
+  try { const r = await fetch("/api/denetim/detay/karar", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id: veri.rapor_id, anahtar, karar, notu})});
+    if (!r.ok) { alert((await r.json()).detail || "Karar kaydedilemedi"); return; }
+    await detayYukle(true); kontrolCikar(); } finally { kararGidiyor = false; }
+}
+$("#kKapat").onclick = kontrolKapat;
+document.addEventListener("keydown", e => {
+  if (!kontrol || $("#fisPen").classList.contains("acik")) return;
+  if (e.key === "Escape") { e.preventDefault(); kontrolKapat(); return; }
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || "") || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLocaleLowerCase("tr-TR");
+  if (k === "u") { e.preventDefault(); kararVer("uygun"); } else if (k === "d") { e.preventDefault(); kararVer("uygun_degil"); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); kontrolGit(1); } else if (e.key === "ArrowLeft") { e.preventDefault(); kontrolGit(-1); }
+});
 // MuhaWin içinde: fatura PDF'e dönüştürülüp ayrı pencerede açılır (Fatura Kontrol raporundaki gibi)
 document.addEventListener("click", e => {
   const a = e.target.closest && e.target.closest("a[data-pdfbelge]");

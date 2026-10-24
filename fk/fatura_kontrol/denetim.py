@@ -206,6 +206,8 @@ def denetle(klasor: Path, bas: date, bit: date, vkn: str | None = None, firma: s
     v["oiv"] = oiv_kontrol(r, ft, muavin)
     ozet["OIV"] = {"ad": "ÖİV kontrolü", "adet": len(v["oiv"]), "sorunlu": sum(1 for x in v["oiv"] if x["sorunlu"]),
                    "durumlar": [{"ad": d, "adet": n, "sorunlu": d != OIV_UYUMLU} for d, n in Counter(x["durum"] for x in v["oiv"]).most_common()]}
+    from . import detay
+    v["detay"] = detay.hazirla(r, ft, muavin, bas, bit)          # Detay denetim (gider / gelir kontrolü)
     v["rapor_id"] = rapor_id
     v["bas"], v["bit"] = bas.isoformat(), bit.isoformat()
     (klasor / DENETIM_JSON).write_text(json.dumps(v, ensure_ascii=False), encoding="utf-8")
