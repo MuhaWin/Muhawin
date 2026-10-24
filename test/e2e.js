@@ -1010,6 +1010,34 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     await w.click('[data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kHesap');
     await w.fill('#kHesap', '770.01'); await w.click('#kKaydet'); await w.waitForTimeout(400);
     check(/kural/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'kural uygulandı');
+    check(/Ünvan içerir/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'listede uygulanan kural görünüyor (eski tek şartlı kural)');
+    // Görev 34 · 7: bu ekranın "Kural yap"ı çoklu şart (VE) ve "Hiç kaydetme"
+    { const sec0 = await w.evaluate(() => window.__fkayit._st.rows[0].sec);
+      await w.click('#fkkTable tbody tr[data-i] [data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kSartEkle');
+      await w.click('#kSartEkle'); const n2 = await w.$$eval('#kSartlar .ksart', l => l.length);
+      const ikinci = await w.$eval('#kSartlar .ksart:nth-child(2) [data-kalan]', e => e.value);
+      await w.fill('#kSartlar .ksart:nth-child(2) [data-kdeger]', 'BU KALEM YOK'); await w.waitForTimeout(100);
+      const say0 = await w.textContent('#kSay');
+      await w.click('#kSartEkle'); await w.click('#kSartlar .ksart:nth-child(3) [data-ksil]');
+      await w.selectOption('#kSartlar .ksart:nth-child(2) [data-kalan]', 'unvan'); await w.waitForTimeout(100);   // değer ünvanla dolar
+      const say1 = await w.textContent('#kSay');
+      await w.selectOption('#kEylem', 'atla'); const gizli = await w.isHidden('#kHesaplar');
+      await w.click('#kKaydet'); await w.waitForTimeout(400);
+      const r = await w.evaluate(() => { const st = window.__fkayit._st; const x = st.rows[0]; const k = Object.values(st.kural).find(y => y.eylem === 'atla');
+        return { atla: !!x.kuralAtla, sec: x.sec, k: k && { ek: k.ek, eylem: k.eylem, hesap: k.hesap } }; });
+      const metin = await w.textContent('#fkkTable');
+      check(n2 === 2 && ikinci === 'icerik' && /^0 fatura/.test(say0) && /^[1-9]\d* fatura/.test(say1) && gizli, '"+ Şart ekle" 2. şart açtı (VE), sayaç şartlarla daralıyor; "Hiç kaydetme"de hesap alanları gizli (' + say0 + ' / ' + say1 + ')');
+      check(r.atla && !r.sec && r.k && r.k.ek.length === 1 && r.k.eylem === 'atla' && !r.k.hesap, '"Hiç kaydetme" kuralı: fatura seçilmedi, fişe alınmayacak (' + JSON.stringify(r) + ')');
+      check(/kaydedilmeyecek \(kural\)/.test(metin), 'listede "kaydedilmeyecek (kural)" görünüyor');
+      await w.click('#fkkKurallar'); await w.waitForSelector('#fkkKuralTablo');
+      const kt = await w.textContent('#fkkKuralTablo');
+      check(/ VE /.test(kt) && /hiç kaydetme/.test(kt), 'kural listesinde şartlar VE ile ve sonuç "hiç kaydetme"');
+      // çok şartlı kuralı sil: eski tek şartlı kural yeniden uygulanır
+      const id = await w.evaluate(() => Object.values(window.__fkayit._st.kural).find(y => y.eylem === 'atla').id);
+      await w.click(`[data-kdel="${id}"]`); await w.waitForTimeout(400); await w.click('#fkkModal [data-kx]').catch(() => {});
+      const geri = await w.evaluate(() => { const x = window.__fkayit._st.rows[0]; return { atla: !!x.kuralAtla, hesap: x.hesap, kaynak: x.kaynak }; });
+      check(!geri.atla && geri.hesap === '770.01' && geri.kaynak === 'kural', 'çok şartlı kural silinince eski kural yeniden uygulandı (' + JSON.stringify(geri) + ')');
+      check(await w.evaluate(() => window.__fkayit._st.rows[0].sec) === sec0, 'kural kalkınca kullanıcının önceki seçimi geri geldi'); }
     await w.click('[data-fis]'); await w.waitForTimeout(200);
     const fis = await w.$$eval('#fkkTable table.mini tbody tr', t => t.map(x => [...x.children].map(c => { const i = c.querySelector('input'); return i ? i.value : c.textContent.trim(); })));
     check(JSON.stringify(fis.map(r => [r[0], r[3], r[4]])) === JSON.stringify([['770.01', '500,00', ''], ['191.10.20', '100,00', ''], ['320.01', '', '600,00']]), 'fiş: gider borç, KDV borç, cari alacak');
@@ -1098,6 +1126,75 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     await w.screenshot({ path: OUT + '/11-kayit-sonuc.png' });
     const log = await w.evaluate(() => { const d = window.__app.Store.local(); return d.fkayit && d.fkayit.kf1; });
     check(log && Object.keys(log.keys).length === 1, 'kaydedilen fatura işaretlendi (mükerrer koruması)');
+    // ---- Görev 34: kaydedilen fişin Luca'daki durumu, fişin muavinden açılması, "daha önce kaydedilenler", tek "Muavini Luca'dan çek"
+    await w.click('#fkkModal [data-kx]');           // kayıt sonucu penceresi (sonunda yeniden kaydedilip açık bırakılır)
+    check(await w.isVisible('#fkkCek') && !(await w.$('#fkkMiz')) && !(await w.$('#fkkMuavin')), 'tek düğme: "Muavini Luca\'dan çek" var, ayrı mizan / muavin düğmeleri yok');
+    { const k = await w.evaluate(() => { const F = window.__fkayit, st = F._st; const r = st.rows.find(x => x.logged);
+        const mv = o => ({ bas: '2026-01-01', bit: '2026-12-31', zaman: new Date(Date.now() + 60000).toISOString(), fisler: [['2026-09-30', '1']], ...o });
+        const say = m => F._silinenBul(st.rows, m, () => r.f.tarih).length;
+        const o = { n: r.logged.n, eskiMuavin: !!st.data.muavin && Date.parse(st.data.muavin.zaman) < Date.parse(r.logged.at), sil: say(mv()),
+          eski: say(mv({ zaman: new Date(Date.parse(r.logged.at) - 60000).toISOString() })), kapsamDisi: say(mv({ bit: '2026-08-31' })),
+          noVar: say(mv({ fisler: [['2026-09-20', '00' + r.logged.n + '.0']] })), muavinYok: say(null) };
+        r.f.kayitli = true; o.faturaMuavinde = say(mv()); r.f.kayitli = false; return o; });
+      check(k.n === '101' && k.sil === 1 && k.eski === 0 && k.kapsamDisi === 0 && k.noVar === 0 && k.muavinYok === 0 && k.faturaMuavinde === 0,
+        'silinen fiş kararı: yalnız kayıttan sonra çekilen ve fişin tarihini kapsayan muavinde fiş no yoksa ve fatura muavinde değilse (' + JSON.stringify(k) + ')');
+      check(k.eskiMuavin && await w.evaluate(() => window.__fkayit._st.rows.some(r => r.logged)), 'kayıttan önce indirilmiş muavin fişi "silinmiş" saymadı'); }
+    // "Luca fiş" çipi fişi muavinden açar
+    await w.click('#fkkBar [data-fkf=kaydedilen]'); await w.click('#fkkTable [data-lucafis]'); await w.waitForSelector('#fkkModal:not([hidden])');
+    await w.waitForFunction(() => !/hazırlanıyor/.test(document.getElementById('fkkModalB').textContent), null, { timeout: 15000 });
+    { const t = await w.textContent('#fkkModalT'), b = await w.textContent('#fkkModalB');
+      check(/Luca fiş 101/i.test(t) && /muavinde bulunamadı/.test(b), '"Luca fiş 101" çipine basınca fiş penceresi açıldı (fiş henüz muavinde yok): ' + t + ' / ' + b.slice(0, 120)); }
+    await w.click('#fkkModal [data-kx]');
+    await w.evaluate(async () => { const F = window.__fkayit, st = F._st; const r = st.rows.find(x => x.logged); const v = r.logged, t = r.f.tarih;
+      r.logged = { ...v, n: '1', b: 'yok' }; r.f.tarih = '2026-09-30'; await F._lucaFisAc(r); r.logged = v; r.f.tarih = t; });
+    { const t = await w.$$eval('#fkkFisTablo tbody tr', l => l.map(x => x.textContent));
+      check(t.length === 2 && t.every(x => /191\.10\.20/.test(x)) && /Luca fiş 1 · 30\.09\.2026/i.test(await w.textContent('#fkkModalT')), 'muavinde olan fiş satırlarıyla açıldı (' + t.length + ' satır)'); }
+    await w.click('#fkkModal [data-kx]');
+    // muavin çekildi, fiş Luca'da yok → "Luca'da bulunamadı (silinmiş)", fatura kayıtsıza döner
+    const sil = await w.evaluate(async () => { const F = window.__fkayit, st = F._st;
+      st.data.muavin = { bas: '2026-01-01', bit: '2026-12-31', zaman: new Date(Date.now() + 60000).toISOString(), fisler: [['2026-09-30', '1'], ['2026-09-30', '2']] };
+      await F._silinenleriIsle(); const d = window.__app.Store.local().fkayit[st.firm.id];
+      const r = st.rows.find(x => x.f.belge_no === 'YYY2026000000009');
+      return { keys: Object.keys(d.keys).length, isaret: d.batches.some(b => b.fisler.some(x => x.silindi && x.silindi.neden === 'muavin')), logged: !!r.logged, sec: r.sec }; });
+    await w.click('#fkkBar [data-fkf=kayitsiz]');
+    const kay = await w.$$eval('#fkkTable tbody tr[data-i]', l => l.map(x => x.textContent));
+    check(sil.keys === 0 && sil.isaret && !sil.logged && sil.sec && kay.some(x => /YYY2026000000009/.test(x) && /Luca'da bulunamadı \(silinmiş\)/.test(x)),
+      'silinen fiş: işaret kalktı, rapora not düşüldü, fatura "kayıtsız"da "Luca\'da bulunamadı (silinmiş)" ile (' + JSON.stringify(sil) + ')');
+    // tekrar kaydetme
+    const once = (await app.evaluate(() => global.__fis.length));
+    await w.click('#fkkGo'); await w.waitForSelector('#askModal:not([hidden])'); await w.click('#askYes');
+    await w.waitForSelector('#fkkModal:not([hidden]) #fkkYenile', { timeout: 15000 }); await w.click('#fkkModal [data-kx]');
+    check((await app.evaluate(() => global.__fis.length)) === once + 1 && await w.evaluate(() => window.__fkayit._st.rows.some(r => r.logged && r.logged.n === '102')), 'silinen fatura tekrar kaydedildi (Luca fiş 102)');
+    // daha önce kaydedilenler: liste ve "Luca'dan sildim"
+    await w.click('#fkkGecmis'); await w.waitForSelector('#fkkGecmisTablo');
+    let gt = await w.$$eval('#fkkGecmisTablo tbody tr', l => l.map(x => x.textContent));
+    check(gt.length === 2 && gt.some(x => /101/.test(x) && /Luca'da bulunamadı/.test(x)) && gt.some(x => /102/.test(x) && /kayıtlı/.test(x) && /YYY2026000000009/.test(x)), 'daha önce kaydedilenler: fatura, tarih, tutar, Luca fiş no, kayıt tarihi, durum (' + gt.length + ')');
+    await w.click('#fkkGecmisTablo [data-gsil]'); await w.waitForSelector('#askModal:not([hidden])'); await w.click('#askYes'); await w.waitForTimeout(400);
+    gt = await w.$$eval('#fkkGecmisTablo tbody tr', l => l.map(x => x.textContent));
+    const el = await w.evaluate(() => { const st = window.__fkayit._st; const r = st.rows.find(x => x.f.belge_no === 'YYY2026000000009'); return { logged: !!r.logged, keys: Object.keys(st.log.keys).length }; });
+    check(gt.every(x => /silin/.test(x)) && !el.logged && el.keys === 0, '"Luca\'dan sildim" işareti: fatura tekrar kayıtsız (' + JSON.stringify(el) + ')');
+    await w.click('#fkkModal [data-kx]');
+    check(/Luca'dan silindi · fiş 102/.test(await w.textContent('#fkkTable')), 'elle işaretlenen fatura "Luca\'dan silindi" ile görünüyor');
+    // tek düğme: mizan + hesap planı + muavin sırayla; hata veren adım adıyla yazılır
+    await app.evaluate(({ ipcMain }) => { ipcMain.removeHandler('luca-hesap-plani');
+      ipcMain.handle('luca-hesap-plani', () => ({ year: '2026', firma: 'X', hesaplar: [['320', 'SATICILAR'], ['320.01', 'SATICI 1'], ['770.01', 'KIRTASİYE']] })); });
+    await w.evaluate(() => { const F = window.__fkayit; F._beklemeMs(50); window.__muavinOk = false; F._muavinIs.eski = { ...F._muavinIs };
+      F._muavinIs.cek = async () => ({ ok: true });
+      F._muavinIs.durum = async () => ({ calisiyor: false, sonuclar: [{ id: '11', adimlar: [{ kod: 'muavin', durum: window.__muavinOk ? 'tamam' : 'hata' }] }], gunluk: ['Muavin: test Luca hatası'] }); });
+    await w.click('#fkkCek'); await w.waitForFunction(() => /alınamadı|alındı/.test((document.querySelector('#fkkModal .banner') || {}).textContent || ''), null, { timeout: 30000 });
+    let ad = await w.$$eval('#fkkCekAdim tr', l => l.map(x => x.dataset.adim + ':' + x.dataset.durum + ':' + x.textContent));
+    check(ad.length === 3 && /^mizan:hata:.*Mizan alınamadı: test: Luca mizanı yok/.test(ad[0]) && /^plan:tamam/.test(ad[1]) && /^muavin:hata:.*Muavin \(tüm yıl\) alınamadı: Muavin: test Luca hatası/.test(ad[2]),
+      'tek düğme: üç adım sırayla; hata veren adım adıyla yazıldı (' + ad.join(' | ') + ')');
+    await w.click('#fkkModal [data-kx]');
+    await w.evaluate(() => { window.__muavinOk = true; });
+    await w.click('#fkkCek'); await w.waitForFunction(() => /alınamadı|alındı/.test((document.querySelector('#fkkModal .banner') || {}).textContent || ''), null, { timeout: 30000 });
+    ad = await w.$$eval('#fkkCekAdim tr', l => l.map(x => x.dataset.adim + ':' + x.dataset.durum));
+    check(ad.join(',') === 'mizan:hata,plan:tamam,muavin:tamam' && /Mizan alınamadı; diğerleri alındı/.test(await w.textContent('#fkkModal .banner')) && await w.isVisible('#fkkTable tbody tr[data-i]'),
+      'muavin alınınca liste yeniden yüklendi; yalnız mizan hatası bildirildi (' + ad.join(',') + ')');
+    await w.click('#fkkModal [data-kx]');
+    await w.evaluate(() => { const F = window.__fkayit; Object.assign(F._muavinIs, F._muavinIs.eski); delete F._muavinIs.eski; F._beklemeMs(2500); });
+    await w.click('#fkkGo'); await w.waitForSelector('#askModal:not([hidden])'); await w.click('#askYes');
+    await w.waitForSelector('#fkkModal:not([hidden]) #fkkYenile', { timeout: 15000 });
     // taslak cari: mizanda / planda olmayan karşı taraf için sıradaki kod; fiş öncesi Luca'ya açılır
     await app.evaluate(({ ipcMain }) => { global.__hp2 = [];
       for (const ch of ['luca-hesap-plani', 'luca-hesap-ekle', 'luca-hesap-ara-vkn']) ipcMain.removeHandler(ch);
@@ -1142,7 +1239,8 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     await w.evaluate(async () => { const { Store } = window.__app; await Store.deleteFirm('kf2', {}); await Store.saveFirm({ id: 'kf3', name: 'EXPO İNŞ', lucaId: '11', banks: [] }); });
     const temiz = await w.evaluate(() => { const d = window.__app.Store.local(); return Object.keys((d.fkurallar || {}).kf3 || {}).length + (d.firms.kf3.mizanInfo ? 1 : 0); });
     check(temiz === 0, 'tam silmede kurallar ve mizan silindi');
-    await w.click('#fkkYenile'); await w.waitForTimeout(2500);
+    // kayıttan 4 sn sonra muavin yenilemesi kendiliğinden başlar ve pencereyi kapatır; düğme hâlâ açıksa kullanıcı gibi basılır
+    if (await w.isVisible('#fkkYenile')) await w.click('#fkkYenile'); await w.waitForTimeout(2500);
     check(!(await w.isHidden('#fkKayit')) && await w.isHidden('#fkkModal'), 'muavin yenileme arka planda başladı; kayıt ekranı açık kaldı (sayfa değişmedi)');
     // muavin indirilirken ekranın ortasında bekleme penceresi açıktır (yavaş makinede / CI'da hâlâ sürer): kullanıcı gibi "Arka planda devam etsin"
     if (await w.isVisible('#mwBusy')) { await w.click('#mwBusyIptal'); await w.waitForSelector('#mwBusy', { state: 'hidden', timeout: 10000 }); }

@@ -195,6 +195,12 @@ def muavin_oku(yol: Path) -> tuple[list[MuavinSatiri], dict]:
                 bilgi["firma"] = ilk.strip()
             if isinstance(ilk, str) and _kat(ilk).startswith("donem") and "donem" not in bilgi:
                 bilgi["donem"] = r[1] if len(r) > 1 else None
+            if isinstance(ilk, str) and _kat(ilk).startswith("tarih araligi") and "aralik" not in bilgi:
+                # Luca: "Tarih Aralığı : 01/01/2026-31/12/2026" (değer aynı hücrede ya da yanındakinde)
+                metin = " ".join(str(x) for x in r if x is not None)
+                t = [_tarih(m) for m in re.findall(r"\d{2}[./]\d{2}[./]\d{4}", metin)]
+                if len(t) >= 2 and t[0] and t[1]:
+                    bilgi["aralik"] = (t[0], t[1])
             if (k := _baslik(r)) is not None:
                 kolon = k
                 continue
