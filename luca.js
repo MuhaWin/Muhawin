@@ -443,38 +443,85 @@ async function calismaAc(kaynak) {
   goster(kaynak);
   return { ok: true, elle: true };
 }
-// Çalışma penceresine "Muavine dön" düğmesi: basınca Luca küçülür, MuhaWin öne gelip muavin ekranı açılır.
-// Düğme Luca'nın içerik çerçevesine (frm3; yoksa ana sayfaya) sayfanın sağ altına eklenir; Luca'nın kendi öğelerine dokunulmaz.
-const DON_JS = `(() => { try {
+// Çalışma penceresine "MuhaWin'e git" düğmesi (Görev 44): basınca MuhaWin ana penceresi öne gelir ve odak alır; Luca penceresi
+// olduğu gibi açık kalır (küçültülmez, kapatılmaz). Düğme pencerenin EN ÜSTÜNDEKİ çerçeveye (sol üst köşeden başlayan en kısa
+// çerçeve; çerçevesiz sayfada sayfanın kendisi), sol üstteki Luca logosunun sağındaki boş yere konur. Luca'nın öğelerinin üstüne
+// binmez: logonun sağından başlayıp bir Luca öğesine değmeyen ilk yeri seçer; şeritte yer yoksa düğme eski yerine, içerik
+// çerçevesinin sağ altına konur. Pencere boyu ya da
+// sayfa değişince yeniden yerleşir. Luca'nın kendi öğelerine ve işlerine (iş kilidi, fiş gösterme…) dokunulmaz.
+const GIT_ID = 'mwMuhaWineGit';
+const KONUM_JS = `(() => { try { if (!document.body || document.body.tagName === 'FRAMESET') return null;
+  let t = 0, l = 0; for (let w = window; w !== top; w = w.parent) { const r = w.frameElement.getBoundingClientRect(); t += r.top; l += r.left; }
+  return { t, l, h: innerHeight, w: innerWidth }; } catch (e) { return null; } })()`;
+const GIT_SIL_JS = `(() => { try { const b = document.getElementById('${GIT_ID}'); if (b) b.remove(); } catch (e) {} return ''; })()`;
+const gitJs = yedek => `(() => { try {
   if (!document.body || document.body.tagName === 'FRAMESET') return '';
-  if (document.getElementById('mwMuavineDon')) return 'var';
-  const b = document.createElement('button'); b.id = 'mwMuavineDon'; b.type = 'button'; b.textContent = '↩ Muavine dön';
-  b.title = "MuhaWin'e ve muavin ekranına dön (Luca bu pencerede açık kalır)";
-  b.style.cssText = 'position:fixed;right:14px;bottom:14px;z-index:2147483647;padding:7px 13px;border-radius:18px;border:1px solid #1f4aa8;background:#1f4aa8;color:#fff;font:600 12px Arial,sans-serif;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);opacity:.93';
-  b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); console.log('__MUHAWIN_MUAVINE_DON__');
-    try { const t = top.document.title; top.document.title = '__MW_DON__' + Date.now(); setTimeout(() => { try { top.document.title = t; } catch (x) {} }, 400); } catch (x) {} }, true);
-  document.body.appendChild(b); return 'eklendi'; } catch (e) { return ''; } })()`;
-let sonDon = 0;
-function muavineDon(w) {
-  if (Date.now() - sonDon < 1000) return; sonDon = Date.now();
-  try { if (w && !w.isDestroyed()) w.minimize(); } catch (e) {}
-  try { if (parent && !parent.isDestroyed()) { if (parent.isMinimized()) parent.restore(); parent.show(); parent.focus(); } } catch (e) {}
-  notify('muavineDon', {});
+  let b = document.getElementById('${GIT_ID}');
+  if (!b) {
+    b = document.createElement('button'); b.id = '${GIT_ID}'; b.type = 'button'; b.textContent = "MuhaWin'e git";
+    b.title = "MuhaWin programına dön (Luca bu pencerede açık kalır)";
+    b.style.cssText = 'position:fixed;z-index:2147483647;margin:0;padding:0 18px;height:32px;line-height:30px;border-radius:16px;border:1px solid #0e9483;background:#12B5A0;color:#fff;font:700 14px Arial,sans-serif;letter-spacing:.2px;white-space:nowrap;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.22)';
+    b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); console.log('__MUHAWIN_GIT__');
+      try { const t = top.document.title; top.document.title = '__MW_GIT__' + Date.now(); setTimeout(() => { try { top.document.title = t; } catch (x) {} }, 400); } catch (x) {} }, true);
+    document.body.appendChild(b);
+  }
+  const yer = () => { try {
+    if (${yedek ? 'true' : 'false'}) { b.hidden = false; b.style.cssText += ';left:auto;top:auto;right:14px;bottom:14px;visibility:visible'; return; }   // yedek yer: sağ alt
+    b.hidden = false; b.style.visibility = 'hidden'; b.style.left = '0px'; b.style.top = '0px';
+    const bw = b.offsetWidth, bh = b.offsetHeight, W = innerWidth, H = innerHeight;
+    // Luca'nın görünür öğeleri: metinli öğe, resim, bağlantı, düğme, kutu
+    const L = [];
+    for (const e of document.body.querySelectorAll('*')) { if (e === b || b.contains(e)) continue;
+      const tag = e.tagName; if (/^(SCRIPT|STYLE|NOSCRIPT|BR|OPTION)$/.test(tag)) continue;
+      const kutu = /^(IMG|SVG|CANVAS|INPUT|SELECT|TEXTAREA|BUTTON|A|IFRAME|OBJECT|EMBED)$/i.test(tag);
+      if (!kutu && ![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+      const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1 || r.bottom <= 0 || r.top >= H) continue;
+      const c = getComputedStyle(e); if (c.visibility === 'hidden' || c.display === 'none') continue;
+      L.push(Object.assign({ resim: /^(IMG|SVG|CANVAS)$/i.test(tag) }, r.toJSON())); }
+    // logo: sol üst bölgedeki ilk resim (yoksa ilk kısa metin / bağlantı)
+    const ust = L.filter(r => r.left < W * 0.45 && r.top < Math.min(H, 140) && r.width >= 24 && r.width < W * 0.45).sort((a, c) => a.left - c.left);
+    const logo = ust.find(r => r.resim) || ust[0] || null;
+    const y = Math.max(2, Math.round(logo && H > 140 ? logo.top + (logo.height - bh) / 2 : (Math.min(H, 140) - bh) / 2));
+    const bos = x => !L.some(r => r.left < x + bw + 8 && r.right > x - 8 && r.top < y + bh + 3 && r.bottom > y - 3);
+    let x = null;
+    for (let s = Math.round(logo ? logo.right + 24 : 16); s + bw + 8 <= W; s += 16) if (bos(s)) { x = s; break; }
+    if (x == null || H < bh + 4) { b.hidden = true; return; }
+    b.style.left = x + 'px'; b.style.top = y + 'px'; b.style.visibility = '';
+    const sil = w => { try { if (w !== window) { const e = w.document.getElementById('${GIT_ID}'); if (e) e.remove(); } for (let i = 0; i < w.frames.length; i++) sil(w.frames[i]); } catch (e) {} };
+    sil(top);   // yedek yerdeki (sağ alt) düğme kalmasın
+  } catch (e) {} };
+  yer();
+  if (!window.__mwGitYer) { window.__mwGitYer = true; let z = 0; const sonra = () => { clearTimeout(z); z = setTimeout(yer, 250); };
+    addEventListener('resize', sonra);
+    try { new MutationObserver(m => { if (m.some(x => x.target !== b && !b.contains(x.target))) sonra(); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class', 'src', 'hidden'] }); } catch (e) {} }
+  return b.hidden ? '' : 'yerinde'; } catch (e) { return ''; } })()`;
+const GIT_JS = gitJs(false), GIT_YEDEK_JS = gitJs(true);
+let sonGit = 0;
+function muhawineGit(w) {
+  if (Date.now() - sonGit < 1000) return; sonGit = Date.now();
+  try { if (parent && !parent.isDestroyed()) { if (parent.isMinimized()) parent.restore(); parent.show(); parent.moveTop(); parent.focus(); } } catch (e) {}
+  notify('muhawineGit', {});
 }
 async function donDugmesiEkle(w) {
   try {
     if (!w || w.isDestroyed()) return;
     const F = w.webContents.mainFrame.framesInSubtree;
-    const hedef = F.find(f => f.name === 'frm3');
-    for (const f of hedef ? [hedef] : [w.webContents.mainFrame, ...F.filter(f => f !== w.webContents.mainFrame)]) {
-      try { const r = await f.executeJavaScript(DON_JS, true); if (r) return; } catch (e) {}
-    }
+    const konum = [];
+    for (const f of F) { try { const k = await f.executeJavaScript(KONUM_JS, true); if (k) konum.push({ f, ...k }); } catch (e) {} }
+    // sol üst köşeden başlayan çerçeveler, en kısadan (üst şerit) uzuna
+    const aday = konum.filter(k => k.t <= 2 && k.l <= 2 && k.h >= 36).sort((a, c) => a.h - c.h);
+    let yeri = null;
+    for (const k of aday) { try { if (await k.f.executeJavaScript(GIT_JS, true)) { yeri = k.f; break; } } catch (e) {} }
+    // üst şeritte boş yer yoksa düğme kaybolmasın: içerik çerçevesinin (frm3; yoksa en büyük çerçeve) sağ altına konur
+    if (!yeri) { const ic = konum.find(k => k.f.name === 'frm3') || [...konum].sort((a, c) => c.h * c.w - a.h * a.w)[0];
+      if (ic) { try { if (await ic.f.executeJavaScript(GIT_YEDEK_JS, true)) yeri = ic.f; } catch (e) {} } }
+    for (const k of konum) if (k.f !== yeri) { try { await k.f.executeJavaScript(GIT_SIL_JS, true); } catch (e) {} }   // eski yerinde kalan olmasın
   } catch (e) {}
 }
 function donDugmesiBagla(w) {
   try {
-    w.webContents.on('console-message', (e, level, mesaj) => { const m = typeof mesaj === 'string' ? mesaj : (e && e.message) || ''; if (m === '__MUHAWIN_MUAVINE_DON__') muavineDon(w); });
-    w.on('page-title-updated', (e, baslik) => { if (String(baslik || '').startsWith('__MW_DON__')) { e.preventDefault(); muavineDon(w); } });
+    w.webContents.on('console-message', (e, level, mesaj) => { const m = typeof mesaj === 'string' ? mesaj : (e && e.message) || ''; if (m === '__MUHAWIN_GIT__') muhawineGit(w); });
+    w.on('page-title-updated', (e, baslik) => { if (String(baslik || '').startsWith('__MW_GIT__')) { e.preventDefault(); muhawineGit(w); } });
     w.webContents.on('did-frame-finish-load', () => donDugmesiEkle(w));
     w.webContents.on('did-finish-load', () => donDugmesiEkle(w));
     setTimeout(() => donDugmesiEkle(w), 1500);
@@ -1186,6 +1233,6 @@ const IS = {
   dovizKodlari: () => isle(null, dovizKodlari),
   kdvHesaplari: o => isle(fk(o), () => kdvHesaplari(o)),
 };
-module.exports = { calis, fisGoster, _fisNoBicim: fisNoBicim, captchaGir, captchaYenile, girisGoster, oturumCerezleri, hesapPlaniExcelOku, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status,
+module.exports = { _git: { GIT_JS, GIT_YEDEK_JS, KONUM_JS, GIT_ID, donDugmesiBagla }, calis, fisGoster, _fisNoBicim: fisNoBicim, captchaGir, captchaYenile, girisGoster, oturumCerezleri, hesapPlaniExcelOku, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status,
   logout, recheck, LOGIN_URL, ...IS, sayfaBilgisi, _normUye: normUye, _zamanAsimiGec: zamanAsimiGec,
   _kdvTablosuCoz: kdvTablosuCoz, _sayfaAyar: o => { if (o.kiraMs != null) KIRA_MS = o.kiraMs; if (o.ekBosMs != null) EK_BOS_MS = o.ekBosMs; if (o.bekleMs != null) BEKLE_EN_COK_MS = o.bekleMs; } };
