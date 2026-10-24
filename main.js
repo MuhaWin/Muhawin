@@ -3,6 +3,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage, nativeImage } =
 const path = require('path');
 const fs = require('fs');
 const luca = require('./luca');
+const { makeYz } = require('./yz');
 const { makeDataStore } = require('./datastore');
 const { makeCloud, kodUret, kodOzet, kodGrupla } = require('./cloud');
 const { makeKur } = require('./kur');
@@ -568,6 +569,15 @@ ipcMain.handle('fk-start', async () => {
 });
 ipcMain.handle('fk-info', () => fk.info());
 // Fatura Kontrol (Python) servisi: Muhasebe İşlemleri, Denetim ve Analiz ya da Özel İşlemler lisanslarından biri yeterli
+// Görev 43 Faz 4: Muhasebe Denetimi › yapay zekâ ile karşılaştırma. Anahtar ve ayar giriş yapan hesabın klasöründe; ayar ofis bazında.
+const yz = makeYz({ dir: () => acctDir || userDir(), safeStorage });
+const yzOfis = () => { try { const o = auth && auth.isAuthed() && auth.office(); return (o && o.id) || '-'; } catch (e) { return '-'; } };
+ipcMain.handle('yz-durum', () => yz.durum(yzOfis()));
+ipcMain.handle('yz-ayarla', (e, a) => yz.ayarla(yzOfis(), a || {}));
+ipcMain.handle('yz-anahtar-kaydet', (e, k) => { yz.anahtarKaydet(k); return yz.durum(yzOfis()); });
+ipcMain.handle('yz-anahtar-sil', () => { yz.anahtarSil(); return yz.durum(yzOfis()); });
+ipcMain.handle('yz-gosterim', (e, a) => yz.gosterim(a || {}));
+ipcMain.handle('yz-degerlendir', (e, a) => { fkLicensed(); return yz.degerlendir(yzOfis(), a || {}); });
 const fkLicensed = () => { const ls = ['fatura', 'denetim', 'ozel'].map(m => auth.moduleStatus(m)); if (!ls.some(l => l && l.valid)) throw new Error(((ls[0] || {}).reason) || 'Muhasebe İşlemleri lisansı geçerli değil.'); };
 // Firmalar: MuhaWin'deki (Luca'dan eklenmiş) firmalar ya da Luca'nın tüm listesi Fatura Kontrol'ün firma listesine yazılır
 ipcMain.handle('fk-set-firms', (e, firmalar, tam) => { fkLicensed(); return fk.request('POST', '/api/toplu/firmalar/muhawin', { firmalar: firmalar || [], tam: !!tam }); });

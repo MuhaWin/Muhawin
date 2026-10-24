@@ -16,6 +16,7 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.132.1",
     "@tesseract.js-data/tur": "^1.0.0",
     "electron-updater": "^6.3.9",
     "tesseract.js": "^5.1.1",
@@ -29,6 +30,7 @@
       "main.js",
       "preload.js",
       "luca.js",
+      "yz.js",
       "cloud.js",
       "kur.js",
       "datastore.js",

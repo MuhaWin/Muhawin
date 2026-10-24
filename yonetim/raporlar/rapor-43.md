@@ -335,3 +335,105 @@ Grafikler:
 - **Görsel kontrol:** 9 aylık sahte veriyle render edilip ekran görüntüsüyle bakıldı.
 - **Sonuçlar:** pytest 190 geçti (16 hata main ile aynı ortam hataları); köprü 9/9; site_e2e TAMAM.
 - **Gerçek veriyle denenmedi.**
+
+---
+
+## FAZ 4 – Yapay zekâ ile karşılaştırma (kullanıcı kararı 24.10.2026)
+
+**Veri bilgisayardan çıkar.** Bu özellik açıkken değerlendirilen faturaların maskeli özeti Anthropic'e (Claude) gönderilir. Bu durum Ayarlar'da, ilk açılıştaki onay sorusunda ve "Gönderilecek veriyi göster" penceresinde açıkça yazar.
+
+Yapay zekâ yalnız **öneri** verir: uygun / şüpheli / uygun değil, güven, kısa Türkçe gerekçe ve önerilen hesap.
+- Hiçbir kayıt yapmaz.
+- Kesin kararı kullanıcı U / D ile verir.
+- Önerisi olan fatura yine "Kontrol bekliyor" kalır.
+
+### Nasıl çalışır (masaüstü)
+1. **Fatura Kontrol (Python, `fk/fatura_kontrol/yz.py`, `/api/denetim/yz/*`):** Gönderilecek veriyi maskeli hazırlar; dışarıya hiç bağlanmaz.
+   - **Firma bağlamı:** firmanın kullandığı hesap planı (kod + ad, sıralı). Önbelleğe alınır.
+   - **Fatura isteği:**
+     - yön, tarih, karşı taraf;
+     - tutarlar ve mal / hizmet kalemleri;
+     - bu ayki kaydın hesapları ve fiş satırları (hesap, ad, borç, alacak);
+     - carinin önceki ay özeti.
+2. **Electron ana süreci (`yz.js`):**
+   - aynı maskelemeyi bir kez daha uygular;
+   - Claude'u resmî SDK ile çağırır (`@anthropic-ai/sdk` 0.132.1, sürüm sabit);
+   - yanıtı doğrular, kullanım ve maliyeti hesaplar.
+   - Anahtar yalnız burada; denetim çerçevesine ve Python'a hiç gelmez.
+3. **Öneri:** Firma klasöründe `detay-yz.json`'a, isteğin özetiyle (hash) birlikte yazılır. Aynı veriyle aynı fatura yeniden sorulmaz.
+
+### İstek ayrıntıları
+- **Model tek yerde** (`yz.js › MODELLER`):
+  - kalite: `claude-opus-5-5` (varsayılan);
+  - ekonomik: `claude-sonnet-5-5`.
+  - Ayarlar'dan seçilir.
+- **Yapılandırılmış çıktı:** `output_config.format` JSON şeması (`karar` enum, `guven`, `gerekce`, `onerilen_hesap`); `effort: "medium"`.
+- **İstem önbelleği:** talimat ve firma bağlamı `system`'de, bağlamın sonunda `cache_control`. Toplu değerlendirmede aynı firmanın istekleri önbellekten okunur.
+- **Güvenlik reddi:** `fallbacks: "default"` (sunucu tarafı yedek, beta `server-side-fallback-2026-07-01`). Bu ayarı ben açtım; istenmezse tek satırla kaldırılır. Ret olursa açık hata verir.
+- **Sınırlar:** bağlam ≤ 120 bin, istek ≤ 30 bin karakter; `max_tokens` 8000; 2 yeniden deneme; 120 sn zaman aşımı.
+
+### Gizlilik (madde 2)
+- **Açma / kapama:** ofis bazında; ayar, giriş yapan hesabın klasöründe ofis kimliğiyle tutulur. İlk açılışta tek seferlik bilgilendirme ve onay istenir; onay zamanı saklanır. Onaysız açılmaz.
+- **Gönderilmeyenler:**
+  - VKN / TCKN ve 10–11 haneli tüm numaralar, IBAN, e-posta, telefon (maskelenir);
+  - adres; fatura PDF / XML'i; belge numarası; fiş açıklamaları;
+  - gerçek kişi olabilecek unvanlar: TCKN'li karşı taraf ve şirket eki olmayan adlar "[gerçek kişi]" olur;
+  - cari, personel ve ortak hesaplarının adları (12x, 13x, 195, 196, 32x, 33x, 34x, 43x, 44x) ya hiç gönderilmez ya da "[cari hesap]" olur.
+- **"Gönderilecek veriyi göster":** Gönderilecek metnin aynısı (talimat, firma bağlamı, fatura) ana sürecin maskesinden geçmiş haliyle gösterilir.
+
+### API anahtarı (madde 3)
+- Kullanıcı kendi Anthropic anahtarını Ayarlar › "Yapay zekâ ile karşılaştırma"ya girer.
+- Anahtar Windows'un kullanıcıya özel şifrelemesiyle (`safeStorage` / DPAPI, Luca parolası gibi) `yz-anahtar.bin` dosyasında saklanır.
+- **Fark:** Luca parolasında şifreleme yoksa düz yazıya düşülüyor; burada şifreleme yoksa anahtar **hiç kaydedilmez**.
+- Anahtar ekrana, günlüğe, ayar dosyasına ve depoya yazılmaz.
+- Anahtar yoksa özellik kapalıdır ve nedeni açıklanır.
+
+### Maliyet (madde 4)
+- **Toplu değerlendirme:** Gider / gelir listesinde "Bekleyenleri yapay zekâya sor".
+  - Önce önerisi olmayan bekleyen fatura sayısı ve tahmini maliyet gösterilir; onay sorulur.
+  - Tahmin: bağlam bir kez yazma, sonra önbellekten okuma fiyatıyla; istek ve fatura başına ~900 çıktı token'ı, modelin fiyatıyla.
+  - Sonunda gerçekleşen maliyet gösterilir. "Durdur" ile kesilebilir.
+- **Tekil:** Kontrol ekranında "Yapay zekâya sor" / "Yeniden sor".
+- **Tekrar sorulmaz:** Sonuçlar firmada önbellekte; veri değişmedikçe aynı fatura yeniden sorulmaz.
+
+### Site (madde 5) — önerim: sitede kapalı
+- Tarayıcıya anahtar girilmesi, sızma yüzeyini büyütür (eklentiler, XSS, paylaşılan bilgisayar).
+- Site köprüsü `/api/denetim/yz/*` uçlarını kapalı tutuyor. Ekranda "Yapay zekâ önerisi yalnız MuhaWin masaüstü programında" yazıyor; bu, site testinde sınandı.
+- İleride istenirse ikinci yol: anahtar yalnız sekme belleğinde (sessionStorage değil, bellek), her oturumda yeniden girilir ve CSP'de yalnız `api.anthropic.com` açılır. Karar senin.
+
+### Değişen / yeni dosyalar (Faz 4)
+| Dosya | Değişiklik |
+|---|---|
+| `yz.js` (yeni) | Ana süreç modülü: ayar, şifreli anahtar, ikinci maskeleme, Claude çağrısı, yanıt doğrulama, maliyet |
+| `main.js` · `preload.js` | `yz-durum`, `yz-ayarla`, `yz-anahtar-kaydet`, `yz-anahtar-sil`, `yz-gosterim`, `yz-degerlendir` (lisans kontrollü) |
+| `renderer/app.js` | Ayarlar › "Yapay zekâ ile karşılaştırma" (açık / kapalı, model, anahtar, ilk onay); Muhasebe Denetimi çerçevesiyle mesaj köprüsü |
+| `fk/fatura_kontrol/yz.py` (yeni) | Maskeleme, istek, önbellek |
+| `fk/fatura_kontrol/web/app.py` | `/api/denetim/yz/istek`, `/yz/bekleyen`, `/yz/sonuc`; `/api/denetim/detay` öneriyi de döner |
+| `fk/fatura_kontrol/detay.py` | Faturanın mal / hizmet kalemleri (en fazla 15) detay bölümüne |
+| `fk/fatura_kontrol/web/static/denetim.html` | Liste rozeti, toplu sorma (adet + maliyet onayı), kontrol ekranında öneri, "Gönderilecek veriyi göster" |
+| `web/denetim/kopru.py` | Sitede `/api/denetim/yz/*` kapalı |
+| `package.json` · `package-lock.json` | `@anthropic-ai/sdk` 0.132.1 (sabit; 08.10.2026); `files`'a `yz.js` |
+| `.github/workflows/surum.yml` | `node test/yz.js` adımı |
+
+### Testler (Faz 4) — gerçek API'ye istek gitmiyor
+- **`test/yz.js`** (28 kontrol):
+  - anahtar yok → kapalı; geçersiz anahtar; şifreleme yoksa kaydedilmez; dosyada düz anahtar yok;
+  - onaysız açılmaz; ofis bazında;
+  - model tek yerden; ikinci maskeleme; `cache_control`; JSON şeması; fallbacks;
+  - yanıt ve maliyet; ret; bozuk yanıt; boyut sınırı; gösterim maskesi; anahtar silme.
+  - Gerçek SDK yerel sahte sunucuya bağlanarak sınandı: `/v1/messages`, `anthropic-beta` başlığı, `x-api-key`, gövde.
+- **`fk/tests/test_yz.py`** (13 test):
+  - maskeleme (IBAN / e-posta / TC / VKN / telefon; tutar ve tarih bozulmaz);
+  - gerçek kişi ayrımı (7 durum);
+  - istekte kişi adı, VKN, belge no ve fiş açıklaması yok;
+  - hesap planında cari / personel yok; sonuç doğrulama;
+  - API: bekleyen, istek, sonuç, aynı veri yeniden sorulmaz, öneri karar değildir;
+  - tarayıcıda program taklidiyle tam akış: maliyet onayı, rozet, kontrol ekranında öneri, veriyi göster, U ile karar.
+- **Köprü:** `/api/denetim/yz/*` sitede 404.
+- **site_e2e:** sitede kapalı.
+
+### Açık konular
+1. Gerçek API ile denenmedi: bu ortamda anahtar yok ve testler kasıtlı olarak sahte. İlk gerçek denemeyi kullanıcı kendi anahtarıyla az sayıda faturayla yapmalı; öneri kalitesi ve gerçek maliyet oradan görülür.
+2. "Ofis bazında": ayar bugün bu bilgisayarda ofis kimliğiyle tutuluyor. Ofisin bütün bilgisayarlarında ortak olsun istenirse Supabase'deki ofis kaydına bir alan gerekir (sunucu değişikliği).
+3. Site için karar senin; önerim kapalı kalması.
+4. Yeni bağımlılık `@anthropic-ai/sdk` kurulumla birlikte paketlenir (electron-builder bağımlılıkları alıyor); derlemede bir kez kontrol edilmeli.
