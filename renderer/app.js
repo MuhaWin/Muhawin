@@ -869,6 +869,10 @@ function virmanTL(r){
   return {tl,r:dv(pr,ar),p:dv(pp,ap),pr,pp};
 }
 function refreshVirman(){resetVirman();reassign();return detectVirman();}
+/* Görev 53: fiş çıktısı ortak yardımcıları (ana hesap özeti, imza alanları) renderer/fis-cikti.js'te */
+const {anaHesapOzeti,fisEkHtml,fisEkAoa,FIS_EK_CSS}=window.FisCikti;
+// fişin firmasının hesap planı / mizanı: ana hesap adı için (3 haneli kod planda varsa)
+async function anaAdBul(f){try{if(f&&typeof HESAP!=='undefined'){const m=await HESAP.hesaplar(f);return k=>m.get(k)||'';}}catch(e){}return ()=>'';}
 function askConfirm(title,text,yes){
   return new Promise(res=>{const m=$('#askModal');$('#askTitle').textContent=title;$('#askText').textContent=text;$('#askYes').textContent=yes||'Evet, sil';
     const prev=document.activeElement;m.hidden=false;$('#askNo').focus();
@@ -3212,24 +3216,26 @@ const MMUI=(()=>{
   }
   $('#mmFisX').onclick=()=>{$('#mmFis').hidden=true;};
   // PDF için sade sayfa (görüntüleyicide yazdır / kaydet)
-  function pdfSayfa(baslik,alt,basliklar,satirlar,sag,toplam){
+  function pdfSayfa(baslik,alt,basliklar,satirlar,sag,toplam,ek){
     const e=esc;return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>${e(baslik)}</title><style>
       body{font:11px/1.35 "Segoe UI",Arial,sans-serif;color:#111;margin:0}h1{font-size:16px;margin:0 0 2px}.alt{color:#555;margin:0 0 10px}
       table{width:100%;border-collapse:collapse}th{background:#eef2f7;text-align:left;font-weight:600;border-bottom:1px solid #999;padding:4px 6px}
       td{border-bottom:1px solid #ddd;padding:3px 6px;vertical-align:top}td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
       tfoot td{font-weight:700;border-top:1px solid #999;border-bottom:0}.kod{font-family:Consolas,monospace;white-space:nowrap}
-      .ayak{margin-top:10px;color:#777;font-size:9px}</style></head><body><h1>${e(baslik)}</h1><p class="alt">${e(alt)}</p>
+      .ayak{margin-top:10px;color:#777;font-size:9px}${ek?FIS_EK_CSS:''}</style></head><body><h1>${e(baslik)}</h1><p class="alt">${e(alt)}</p>
       <table><thead><tr>${basliklar.map((h,i)=>`<th class="${sag.has(i)?'n':''}">${e(h)}</th>`).join('')}</tr></thead>
       <tbody>${satirlar.map(r=>`<tr>${r.map((v,i)=>`<td class="${sag.has(i)?'n':i===0?'kod':''}">${e(v??'')}</td>`).join('')}</tr>`).join('')}</tbody>
-      ${toplam?`<tfoot><tr>${toplam.map((v,i)=>`<td class="${sag.has(i)?'n':''}">${e(v??'')}</td>`).join('')}</tr></tfoot>`:''}</table>
+      ${toplam?`<tfoot><tr>${toplam.map((v,i)=>`<td class="${sag.has(i)?'n':''}">${e(v??'')}</td>`).join('')}</tr></tfoot>`:''}</table>${ek||''}
       <p class="ayak">MuhaWin · ${e(new Date().toLocaleString('tr-TR'))}</p></body></html>`;}
   async function pdfAc(html,ad,yatay){try{await Busy.run('PDF hazırlanıyor…',ad,()=>window.desktop.htmlPdf({html,ad,yatay}));}catch(x){toast(clean(x));}}
   document.addEventListener('click',async e=>{
-    if(e.target.id==='mmFisPdf'&&st.fisAcik){const {r,fis,tb,ta,firma}=st.fisAcik;
+    // fiş çıktısı: ana hesap özeti (aynı ana hesap birden çok satırdaysa) ve imza alanları (Görev 53)
+    const fisOzet=async fis=>anaHesapOzeti(fis.map(x=>({kod:x.hesap_kodu,borc:x.borc,alacak:x.alacak})),await anaAdBul((Store.local().firms||{})[st.firm]));
+    if(e.target.id==='mmFisPdf'&&st.fisAcik){const {r,fis,tb,ta,firma}=st.fisAcik;const oz=await fisOzet(fis);
       pdfAc(pdfSayfa(`Fiş ${r.fis_no} · ${r.fis_tipi||''} · ${trd(r.tarih)}`,firma,['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],
-        fis.map(x=>[x.hesap_kodu,x.hesap_adi,x.aciklama,x.belge_no||'',x.borc?n2(x.borc):'',x.alacak?n2(x.alacak):'']),new Set([4,5]),['','','','Toplam',n2(tb),n2(ta)]),'Fis_'+r.fis_no);return;}
-    if(e.target.id==='mmFisXls'&&st.fisAcik){const {r,fis,tb,ta,firma}=st.fisAcik;
-      const aoa=[[`Fiş ${r.fis_no} · ${r.fis_tipi||''} · ${trd(r.tarih)}`],[firma],[],['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],...fis.map(x=>[x.hesap_kodu,x.hesap_adi,x.aciklama,x.belge_no||'',+x.borc||0,+x.alacak||0]),['','','','Toplam',tb,ta]];
+        fis.map(x=>[x.hesap_kodu,x.hesap_adi,x.aciklama,x.belge_no||'',x.borc?n2(x.borc):'',x.alacak?n2(x.alacak):'']),new Set([4,5]),['','','','Toplam',n2(tb),n2(ta)],fisEkHtml(oz)),'Fis_'+r.fis_no);return;}
+    if(e.target.id==='mmFisXls'&&st.fisAcik){const {r,fis,tb,ta,firma}=st.fisAcik;const oz=await fisOzet(fis);
+      const aoa=[[`Fiş ${r.fis_no} · ${r.fis_tipi||''} · ${trd(r.tarih)}`],[firma],[],['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],...fis.map(x=>[x.hesap_kodu,x.hesap_adi,x.aciklama,x.belge_no||'',+x.borc||0,+x.alacak||0]),['','','','Toplam',tb,ta],...fisEkAoa(oz)];
       const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Fiş');
       try{const x=await window.desktop.saveFile(('Fis_'+r.fis_no+'_'+trd(r.tarih)).replace(/[^\wÇĞİÖŞÜçğıöşü.-]+/g,'_')+'.xlsx',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})));if(x.ok)toast('Kaydedildi: '+x.path);}catch(x){toast(clean(x));}return;}
     if(e.target.id==='mmPdf'){const rows=filtered();if(!rows.length){toast('Yazdırılacak satır yok.');return;}if(rows.length>6000&&!(await askConfirm('Çok satır',`${rows.length} satır PDF yapılacak; biraz sürebilir. Devam edilsin mi?`,'Devam')))return;
@@ -6404,12 +6410,14 @@ const FISL=(()=>{
       </div>`;
     dahaKur(l);
   }
-  function fisHtml(sec,f){const e=esc;const rows=sec.satir.slice().sort((a,b)=>((+b.borc>0)-(+a.borc>0))||a.hesap_kodu.localeCompare(b.hesap_kodu,'tr',{numeric:true}));
+  // fiş çıktısı: ana hesap özeti ve imza alanları (Görev 53)
+  async function flOzet(sec,f){return anaHesapOzeti(sec.satir.map(s=>({kod:s.hesap_kodu,borc:s.borc,alacak:s.alacak})),await anaAdBul(f));}
+  function fisHtml(sec,f,oz){const e=esc;const rows=sec.satir.slice().sort((a,b)=>((+b.borc>0)-(+a.borc>0))||a.hesap_kodu.localeCompare(b.hesap_kodu,'tr',{numeric:true}));
     return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>body{font:11.5px/1.35 "Segoe UI",Arial,sans-serif;color:#111;margin:0;padding:18px}h1{font-size:16px;margin:0 0 2px}.alt{color:#555;margin:0 0 10px}table{width:100%;border-collapse:collapse}th{background:#eef2f7;text-align:left;border-bottom:1px solid #999;padding:4px 6px}td{border-bottom:1px solid #ddd;padding:3px 6px;vertical-align:top}td.n,th.n{text-align:right;white-space:nowrap}tfoot td{font-weight:700;border-top:1px solid #999}.kod{font-family:Consolas,monospace}</style></head><body>
       <h1>Fiş ${e(sec.no)} · ${e(TIP_AD[String(sec.tip)]||sec.tip)} · ${e(trd(sec.tarih))}</h1><p class="alt">${e(f?f.name:'')}${sec.ac?' · '+e(sec.ac):''}</p>
       <table><thead><tr><th>Hesap Kodu</th><th>Hesap Adı</th><th>Açıklama</th><th>Belge No</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead>
       <tbody>${rows.map(s=>`<tr><td class="kod">${e(s.hesap_kodu)}</td><td>${e(s.hesap_adi)}</td><td>${e(s.aciklama||'')}</td><td class="kod">${e(s.belge_no||'')}</td><td class="n">${+s.borc?n2(s.borc):''}</td><td class="n">${+s.alacak?n2(s.alacak):''}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="4">Toplam</td><td class="n">${n2(sec.borc)}</td><td class="n">${n2(sec.alacak)}</td></tr></tfoot></table><p class="alt" style="margin-top:10px;font-size:9px">MuhaWin · ${e(new Date().toLocaleString('tr-TR'))}</p></body></html>`;}
+      <tfoot><tr><td colspan="4">Toplam</td><td class="n">${n2(sec.borc)}</td><td class="n">${n2(sec.alacak)}</td></tr></tfoot></table>${fisEkHtml(oz)}<p class="alt" style="margin-top:10px;font-size:9px">MuhaWin · ${e(new Date().toLocaleString('tr-TR'))}</p></body></html>`;}
   document.addEventListener('click',async e=>{const t=e.target;if(!t.closest||!t.closest('#flPanel'))return;const f=firma();
     const th=t.closest('[data-flsort]');if(th){const k=th.dataset.flsort;st.sort=st.sort.k===k?{k,d:-st.sort.d}:{k,d:1};ciz();return;}
     const tr=t.closest('tr[data-fl]');if(tr){st.sec=st.sec===tr.dataset.fl?null:tr.dataset.fl;ciz();return;}
@@ -6425,8 +6433,8 @@ const FISL=(()=>{
       catch(x){toast(clean(x));}return;}
     if(t.id==='flYenile'){if(!f||!f.lucaId){toast('Firmanın Luca karşılığı yok.');return;}HESAP.kayitSonrasi(f,{mizan:false,muavin:true,plan:false,sonra:()=>yukle(true)});toast(`${f.name}: muavin arka planda Luca'dan indiriliyor (yalnız muavin); bitince Fiş Listesi kendiliğinden yenilenir.`);return;}
     const sec=st.sec?st.fisler.find(x=>x.k===st.sec):null;
-    if(t.id==='flPdf'&&sec){try{await mwBusy.run('PDF hazırlanıyor…','Fiş '+sec.no,()=>window.desktop.htmlPdf({html:fisHtml(sec,f),ad:'Fis_'+sec.no+'_'+trd(sec.tarih)}));}catch(x){toast(clean(x));}return;}
-    if(t.id==='flFisXls'&&sec){const aoa=[[`Fiş ${sec.no} · ${TIP_AD[String(sec.tip)]||sec.tip} · ${trd(sec.tarih)}`],[f?f.name:''],[],['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],...sec.satir.map(s=>[s.hesap_kodu,s.hesap_adi,s.aciklama||'',s.belge_no||'',+s.borc||0,+s.alacak||0]),['','','','Toplam',sec.borc,sec.alacak]];
+    if(t.id==='flPdf'&&sec){try{await mwBusy.run('PDF hazırlanıyor…','Fiş '+sec.no,async()=>window.desktop.htmlPdf({html:fisHtml(sec,f,await flOzet(sec,f)),ad:'Fis_'+sec.no+'_'+trd(sec.tarih)}));}catch(x){toast(clean(x));}return;}
+    if(t.id==='flFisXls'&&sec){const aoa=[[`Fiş ${sec.no} · ${TIP_AD[String(sec.tip)]||sec.tip} · ${trd(sec.tarih)}`],[f?f.name:''],[],['Hesap Kodu','Hesap Adı','Açıklama','Belge No','Borç','Alacak'],...sec.satir.map(s=>[s.hesap_kodu,s.hesap_adi,s.aciklama||'',s.belge_no||'',+s.borc||0,+s.alacak||0]),['','','','Toplam',sec.borc,sec.alacak],...fisEkAoa(await flOzet(sec,f))];
       const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Fiş');try{const r=await window.desktop.saveFile(('Fis_'+sec.no+'_'+trd(sec.tarih)).replace(/[^\wÇĞİÖŞÜçğıöşü.-]+/g,'_')+'.xlsx',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})));if(r.ok)toast('Kaydedildi: '+r.path);}catch(x){toast(clean(x));}return;}
     if(t.id==='flXls'){const l=gorunen();const aoa=[['Tarih','Fiş No','Tip','Açıklama','Hesaplar','Satır','Borç','Alacak'],...l.map(x=>[trd(x.tarih),x.no,TIP_AD[String(x.tip)]||x.tip,x.ac||'',x.hesaplar.join(', '),x.n,x.borc,x.alacak])];
       const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Fiş Listesi');try{const r=await window.desktop.saveFile(((f?f.name:'firma')+'_fis_listesi').replace(/[^\wÇĞİÖŞÜçğıöşü.-]+/g,'_')+'.xlsx',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})));if(r.ok)toast('Kaydedildi: '+r.path);}catch(x){toast(clean(x));}return;}
