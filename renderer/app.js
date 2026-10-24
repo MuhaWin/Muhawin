@@ -5976,7 +5976,7 @@ function geri(){
   if(!$('#cekPanel').hidden){CEK.hide();HUB.show('ozel');return true;}
   if(!$('#mdPanel').hidden){MDENET.hide();HUB.show('ozel');return true;}
   if(!$('#admPanel').hidden&&ADM.geri())return true;
-  if(!$('#fgPanel').hidden&&FISG.kirli()){toast('Fiş Girişi\'nde kaydedilmemiş satırlar var; Esc bu ekrandan çıkarmaz. Başka ekrana menüden geçebilirsiniz, satırlar korunur.');return true;}   // Görev 47
+  {const fg=$('#fgPanel');if(fg&&!fg.hidden&&FISG.kirli()){toast('Fiş Girişi\'nde kaydedilmemiş satırlar var; Esc bu ekrandan çıkarmaz. Başka ekrana menüden geçebilirsiniz, satırlar korunur.');return true;}}   // Görev 47 (panel Muhasebe açılınca oluşur)
   if(S.module==='fatura'&&typeof FKUI!=='undefined'&&FKUI._sayfa&&FKUI._sayfa()&&FKUI._sayfa()!=='toplu'){FKUI.sayfaAc('toplu');return true;}
   $('#modulesBtn').click();return true;}
 window.addEventListener('keydown',e=>{if(e.key!=='Escape'||e.defaultPrevented)return;
