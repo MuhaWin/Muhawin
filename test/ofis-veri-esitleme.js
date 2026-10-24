@@ -6,6 +6,7 @@ const sb = require('./sahte_sb');
 const { makeDataStore } = require('../datastore');
 const { makeCloud } = require('../cloud');
 const { makeOfisVeri } = require('../ofisveri');
+const { makeFkKaynak } = require('../fkesitle');
 const ok = [], bad = [];
 const check = (c, m) => { (c ? ok : bad).push(m); console.log((c ? '  ✓ ' : '  ✗ ') + m); };
 const now = () => new Date().toISOString();
@@ -16,11 +17,14 @@ async function bilgisayar(url, ad, hazirla) {
   if (hazirla) hazirla(ds, dir);
   const auth = makeCloud(dir, { _testUrl: url }); await auth.login({ email: 'test@ornek.com', password: 'Sifre1234' });
   let degisim = 0;
-  const yeni = () => makeOfisVeri({ dir, ds, rpc: (fn, a) => auth.ofis(fn, a), onChange: () => degisim++, cihaz: ad, aralik: 60000 });
-  const pc = { dir, ds, auth, ov: yeni(), degisim: () => degisim, op: (op, a) => { const d = ds.apply(op, a); pc.ov.yerelDegisti(d); return d; } };
+  const fk = makeFkKaynak(() => pc.fkKok);                    // Fatura Kontrol veri klasörü (FK_VERI)
+  const yeni = () => makeOfisVeri({ dir, ds, dis: [fk], rpc: (fn, a) => auth.ofis(fn, a), onChange: () => degisim++, cihaz: ad, aralik: 60000 });
+  const pc = { dir, ds, auth, fk, fkKok: path.join(dir, 'fatura_kontrol'), ov: yeni(), degisim: () => degisim, op: (op, a) => { const d = ds.apply(op, a); pc.ov.yerelDegisti(d); return d; } };
   pc.yenidenAc = () => { pc.ov = yeni(); return pc; };      // program kapatılıp açıldı: durum diskten okunur
   return pc;
 }
+const fkYaz = (pc, firma, dosya, v) => { const f = path.join(pc.fkKok, 'firmalar', firma, dosya); fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(v)); pc.ov.yerelDegisti(); };
+const fkOku = (pc, firma, dosya) => { try { return JSON.parse(fs.readFileSync(path.join(pc.fkKok, 'firmalar', firma, dosya), 'utf8')); } catch (e) { return null; } };
 const kurallar = (pc, fid) => Object.values((pc.ds.load().rules || {})[fid] || {}).map(r => r.k).sort().join(',');
 
 (async () => {
@@ -95,6 +99,36 @@ const kurallar = (pc, fid) => Object.values((pc.ds.load().rules || {})[fid] || {
     check(C.ds.load().firms['a-demo'] && C.ds.load().firms['c-kuzey'] && !C.ds.info().shared, 'C: ortak klasördeki firma bu bilgisayara alındı, ofis deposuyla birleşti (ortak klasör ayarı kalktı)');
     await A.ov.bosalt(1);
     check(A.ds.load().firms['c-kuzey'] && Object.keys((A.ds.load().okckural || {})['c-kuzey'] || {}).length === 1, 'A: C\'nin ortak klasörden taşınan firması ve ÖKC kuralı geldi');
+
+    console.log('Fatura Kontrol kural ve karar dosyaları');
+    fkYaz(A, 'DEMO', 'kaydedilmeyecek.json', { 'AAA2026000000001': { neden: 'iade', kim: 'ayse' } });
+    fkYaz(A, 'DEMO', 'detay-kurallari.json', [{ id: 1, alan: 'unvan', deger: 'GAMA', karar: 'uygun' }]);
+    fkYaz(A, 'DEMO', 'firma.json', { vkn: '1111111111', unvan: 'DEMO A.Ş.' });
+    await A.ov.bosalt(1); await B.ov.bosalt(1);
+    check(fkOku(B, 'DEMO', 'kaydedilmeyecek.json')?.AAA2026000000001?.neden === 'iade' && fkOku(B, 'DEMO', 'detay-kurallari.json')?.length === 1 && fkOku(B, 'DEMO', 'firma.json')?.vkn === '1111111111',
+      'A\'nın kaydedilmeyecekler, denetim kuralı ve FK firma bilgisi B\'nin klasörüne geldi');
+    // iki kişi aynı anda aynı dosyaya farklı kural ekledi: ikisi de kalır
+    fkYaz(A, 'DEMO', 'detay-kurallari.json', [...fkOku(A, 'DEMO', 'detay-kurallari.json'), { id: 2, alan: 'tutar', deger: '100', karar: 'uygun' }]);
+    fkYaz(B, 'DEMO', 'detay-kurallari.json', [...fkOku(B, 'DEMO', 'detay-kurallari.json'), { id: 3, alan: 'kdv', deger: '20', karar: 'sorunlu' }]);
+    await A.ov.bosalt(1); await B.ov.bosalt(1); await A.ov.bosalt(1);
+    const ids = pc => (fkOku(pc, 'DEMO', 'detay-kurallari.json') || []).map(x => x.id).sort().join(',');
+    check(ids(A) === '1,2,3' && ids(B) === '1,2,3', 'aynı dosyaya iki bilgisayardan eklenen kurallar birleşti (A: ' + ids(A) + ', B: ' + ids(B) + ')');
+    fkYaz(B, 'DEMO', 'kaydedilmeyecek.json', {});
+    fkYaz(B, 'DEMO', 'uygun-kararlar.json', { 'AAA2026000000005': { karar: 'uygun' } });
+    await B.ov.bosalt(1); await A.ov.bosalt(1);
+    check(Object.keys(fkOku(A, 'DEMO', 'kaydedilmeyecek.json') || { x: 1 }).length === 0 && fkOku(A, 'DEMO', 'uygun-kararlar.json')?.AAA2026000000005, 'B kaydedilmeyecekten çıkardı ve uygun kararı verdi → A\'da göründü');
+    // güvenlik: veri klasörü değişti / ulaşılamıyor → ofisteki kayıtlar silinmez
+    const say = () => [...fake.state.ofisVeri.values()].filter(x => x.tur.startsWith('fk_') && !x.silindi).length;
+    const n0 = say(), y1 = fake.state.yazmaSayisi;
+    B.fkKok = path.join(B.dir, 'yeni-fk-klasoru'); B.ov.yerelDegisti(); await B.ov.bosalt(1);
+    check(say() === n0 && fake.state.yazmaSayisi === y1, 'B veri klasörünü boş bir klasöre çevirdi: hiçbir kural silinmiş sayılmadı (' + n0 + ' satır)');
+    B.ov.yenidenBirlestir(); await B.ov.bosalt(1);
+    check(ids(B) === '1,2,3' && fkOku(B, 'DEMO', 'uygun-kararlar.json')?.AAA2026000000005, 'yeniden birleştirmede kurallar ve kararlar yeni klasöre ofis deposundan indi');
+    const engel = path.join(B.dir, 'erisilemez'); fs.mkdirSync(engel); fs.writeFileSync(path.join(engel, 'firmalar'), 'dosya, klasör değil');
+    B.fkKok = engel; B.ov.yerelDegisti(); await B.ov.bosalt(1);
+    check(say() === n0, 'veri klasörüne ulaşılamıyor (ağ sürücüsü kopuk): silme gönderilmedi');
+    fs.rmSync(path.join(A.fkKok, 'firmalar', 'DEMO', 'detay-kurallari.json')); A.ov.yerelDegisti(); await A.ov.bosalt(1);
+    check(say() === n0, 'A\'da kural dosyası tümden silindi: ofisteki kurallar silinmedi (yalnız dosyadan çıkarılan kayıt silinir)');
   } catch (e) { bad.push('HATA ' + e.stack); console.log(e); }
   finally { fake.server.close(); }
   console.log(`\n${ok.length} geçti, ${bad.length} başarısız`);

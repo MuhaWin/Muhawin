@@ -7,6 +7,7 @@ const luca = require('./luca');
 const { makeYz } = require('./yz');
 const { makeDataStore } = require('./datastore');
 const { makeOfisVeri } = require('./ofisveri');
+const { makeFkKaynak } = require('./fkesitle');
 const { makeCloud, kodUret, kodOzet, kodGrupla } = require('./cloud');
 const { makeKur } = require('./kur');
 const { makeSidecar } = require('./sidecar');
@@ -238,11 +239,14 @@ function veriBaslat(dir) {
   try { ds.load(); } catch (e) {}
   const degisti = () => { if (win && !win.isDestroyed()) win.webContents.send('data-changed'); };
   ds.watch(degisti);
-  ov = makeOfisVeri({ dir, ds, rpc: (fn, a) => auth.ofis(fn, a), onChange: degisti, cihaz: os.hostname(), log: m => console.log('[ofis-veri] ' + m) });
+  // Fatura Kontrol'ün firma kural/karar dosyaları (kaydedilmeyecekler, uygun kararları, denetim kuralları…) da ofis deposunda
+  const fkKaynak = makeFkKaynak(() => fkVeriKlasoru());
+  ov = makeOfisVeri({ dir, ds, dis: [fkKaynak], rpc: (fn, a) => auth.ofis(fn, a), onChange: degisti, cihaz: os.hostname(), log: m => console.log('[ofis-veri] ' + m) });
   ov.baslat();
   // Fatura Kontrol'ün (Python) yazdığı sorgulama kayıtları ofis işlem günlüğüne
   clearInterval(veriBaslat.fkGunluk);
   veriBaslat.fkGunluk = setInterval(() => {
+    try { if (fkKaynak.degisti() && ov) ov.yerelDegisti(); } catch (e) {}
     const f = path.join(dir, 'gunluk-fk.jsonl'), al = f + '.alindi';
     try { if (!fs.existsSync(f) || !fs.statSync(f).size) return; fs.renameSync(f, al); } catch (e) { return; }
     try { for (const satir of fs.readFileSync(al, 'utf8').split('\n')) { if (!satir.trim()) continue; try { const k = JSON.parse(satir); if (ov && /^[a-z_]{2,30}$/.test(k.tur || '')) ov.gunlukEkle(k); } catch (e) {} } } catch (e) {}
@@ -468,9 +472,10 @@ ipcMain.handle('fk-veri-klasoru-sec', async () => {
   const probe = path.join(hedef, '.yazma-denemesi-' + process.pid); fs.writeFileSync(probe, 'ok'); fs.unlinkSync(probe);   // yazma izni yoksa hata
   const c = hesapAyar(); c.fkVeriDir = r.filePaths[0]; hesapAyarYaz(c);
   await fkConfigure();
+  if (ov) ov.yenidenBirlestir();             // kurallar yeni klasöre ofis deposundan gelir; eski klasördekiler silinmiş sayılmaz
   return { ok: true, dir: hedef };
 });
-ipcMain.handle('fk-veri-klasoru-kendi', async () => { const c = hesapAyar(); delete c.fkVeriDir; hesapAyarYaz(c); await fkConfigure(); return { ok: true, dir: fkVeriKlasoru() }; });
+ipcMain.handle('fk-veri-klasoru-kendi', async () => { const c = hesapAyar(); delete c.fkVeriDir; hesapAyarYaz(c); await fkConfigure(); if (ov) ov.yenidenBirlestir(); return { ok: true, dir: fkVeriKlasoru() }; });
 ipcMain.handle('data-use-local', () => { const r = ds.useLocal(); ds.watch(); if (ov) ov.yerelDegisti(); return r; });
 
 // --- dosya kaydet ---
@@ -720,6 +725,6 @@ ipcMain.handle('fk-muavin-cek', async (e, b) => { fkLicensed(); const o = b || {
 ipcMain.handle('fk-toplu-durum', () => { fkLicensed(); return fk.request('GET', '/api/toplu/durum'); });
 ipcMain.handle('fk-muavin-get', (e, id) => { fkLicensed(); return fk.request('GET', '/api/muavin?id=' + encodeURIComponent(String(id || ''))); });
 ipcMain.handle('fk-storage', () => { fkLicensed(); return fk.request('GET', '/api/depolama'); });
-ipcMain.handle('fk-wipe', () => { fkLicensed(); return fk.request('POST', '/api/verileri-sil', { onay: 'SİL' }); });
+ipcMain.handle('fk-wipe', async () => { fkLicensed(); const r = await fk.request('POST', '/api/verileri-sil', { onay: 'SİL' }); if (ov) ov.yenidenBirlestir(); return r; });
 ipcMain.handle('fk-open-folder', () => { const d = fk.dataDir(); if (!d) throw new Error('Önce programa giriş yapın.'); fs.mkdirSync(d, { recursive: true }); return shell.openPath(d); });
 ipcMain.handle('fk-restart', async () => { fk.stop(); return fk.start(); });

@@ -31,7 +31,21 @@ function goruntu(d) {
   return out;
 }
 
-function makeOfisVeri({ dir, ds, rpc, onChange = () => {}, log = () => {}, cihaz = '', aralik = 5000 } = {}) {
+// dis: veri.json dışındaki kaynaklar (ör. fkesitle.js: Fatura Kontrol kural/karar dosyaları) {turler, goruntu(), uygula(satirlar)}.
+// Kaynağın goruntu()'sü null ise (klasöre ulaşılamıyor) ya da bir dosya yoksa o satırlar için silme gönderilmez.
+function makeOfisVeri({ dir, ds, rpc, dis = [], onChange = () => {}, log = () => {}, cihaz = '', aralik = 5000 } = {}) {
+  const TUM = TURLER.concat(...dis.map(s => s.turler));
+  // veri.json + dış kaynakların görüntüsü; koru(k): yerelde bulunmasa da silinmiş sayılmayacak satır
+  function tumGoruntu(d) {
+    const g = goruntu(d), korunan = [];
+    for (const s of dis) {
+      let r = null; try { r = s.goruntu(); } catch (e) { log('kaynak okunamadı: ' + e.message); }
+      if (!r) { korunan.push(t => s.turler.includes(t)); continue; }
+      Object.assign(g, r.satirlar);
+      korunan.push((t, f) => s.turler.includes(t) && !r.dosyaVar.has(t + '|' + f));
+    }
+    return { g, koru: k => { const [t, f] = k.split('|'); return korunan.some(p => p(t, f)); } };
+  }
   const durumF = path.join(dir, 'bulut.json'), gidenF = path.join(dir, 'giden.json'), gunlukF = path.join(dir, 'gunluk-giden.json');
   const oku = (f, v) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return v; } };
   const yaz = (f, v) => { try { const t = f + '.tmp'; fs.writeFileSync(t, JSON.stringify(v)); fs.renameSync(t, f); } catch (e) { log('yazılamadı ' + f + ': ' + e.message); } };
@@ -45,10 +59,10 @@ function makeOfisVeri({ dir, ds, rpc, onChange = () => {}, log = () => {}, cihaz
   function yerelDegisti(d) {
     if (kapali) return;
     d = d || ds.load();
-    const g = goruntu(d), yeniTaban = {};
+    const { g, koru } = tumGoruntu(d), yeniTaban = {};
     let n = 0;
     for (const [k, x] of Object.entries(g)) { const h = ozet(x.veri); yeniTaban[k] = h; if (st.taban[k] !== h) { giden[k] = { ...x, silindi: false }; n++; } }
-    for (const k of Object.keys(st.taban)) if (!(k in g)) { const [tur, firma, ...a] = k.split('|'); giden[k] = { tur, firma, anahtar: a.join('|'), veri: null, silindi: true }; n++; }
+    for (const k of Object.keys(st.taban)) if (!(k in g)) { if (koru(k)) { yeniTaban[k] = st.taban[k]; continue; } const [tur, firma, ...a] = k.split('|'); giden[k] = { tur, firma, anahtar: a.join('|'), veri: null, silindi: true }; n++; }
     st.taban = yeniTaban;
     if (n) { kaydet(); simdi(); }
     return n;
@@ -63,13 +77,20 @@ function makeOfisVeri({ dir, ds, rpc, onChange = () => {}, log = () => {}, cihaz
   // sunucudan gelen satırları yerele işle; tabanı güncelle (geri gönderilmesin)
   function uygula(satirlar) {
     // kendi gönderdiğimiz (yerelde zaten aynı olan) satırlar yeniden yazılmaz; arayüz boşuna yenilenmez
-    const L = satirlar.filter(x => TURLER.includes(x.tur) && (x.silindi ? anahtarOf(x) in st.taban : st.taban[anahtarOf(x)] !== ozet(x.veri)));
+    const L = satirlar.filter(x => TUM.includes(x.tur) && (x.silindi ? anahtarOf(x) in st.taban : st.taban[anahtarOf(x)] !== ozet(x.veri)));
     if (!L.length) return 0;
     for (const x of L) if (giden[anahtarOf(x)]) delete giden[anahtarOf(x)];   // aynı satırın bekleyen eski hâli sunucudakiyle değişti
-    const d = ds.apply('uzakUygula', { satirlar: L });
-    const g = goruntu(d);
-    for (const x of L) { const k = anahtarOf(x); if (g[k]) st.taban[k] = ozet(g[k].veri); else delete st.taban[k]; }
+    const { d, g } = isle(L);
+    for (const x of L) { const k = anahtarOf(x); if (g[k]) st.taban[k] = ozet(g[k].veri); else if (x.silindi) delete st.taban[k]; }
     return L.length;
+  }
+
+  // satırları sahiplerine dağıt: veri.json türleri datastore'a, ötekiler dış kaynağa
+  function isle(L) {
+    const ic = L.filter(x => TURLER.includes(x.tur));
+    let d = ic.length ? ds.apply('uzakUygula', { satirlar: ic }) : ds.load();
+    for (const s of dis) { const sL = L.filter(x => s.turler.includes(x.tur)); if (sL.length) try { s.uygula(sL); } catch (e) { log('kaynağa yazılamadı: ' + e.message); } }
+    return { d, g: tumGoruntu(d).g };
   }
 
   // ilk eşitleme: sunucudakini çek, firmaları eşle, yereldekileri yükle
@@ -90,16 +111,16 @@ function makeOfisVeri({ dir, ds, rpc, onChange = () => {}, log = () => {}, cihaz
     // büro bilgileri dahil sunucudaki esastır; yalnız aynı firmada sunucuda boş olan alanlar (ör. banka hesapları) yereldekinden
     // doldurulur ve birleşmiş hâl sunucuya gönderilir (ilk birleştirmede hiçbir bilgisayarın tanımı kaybolmasın)
     const bos = v => v == null || v === '' || (Array.isArray(v) && !v.length) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
-    const uygulanacak = canli.filter(x => TURLER.includes(x.tur)).map(x => {
+    const uygulanacak = canli.filter(x => TUM.includes(x.tur)).map(x => {
       const yf = x.tur === 'firma' && d.firms && d.firms[x.anahtar];
       if (!yf) return x;
       const { mizanInfo, ...yerelV } = yf; const v = { ...x.veri };
       for (const [k, val] of Object.entries(yerelV)) if (bos(v[k]) && !bos(val)) v[k] = val;
       return { ...x, veri: v };
     });
-    if (uygulanacak.length) d = ds.apply('uzakUygula', { satirlar: uygulanacak });
-    st.taban = {}; const g = goruntu(d);
-    for (const x of canli) { const k = anahtarOf(x); if (g[k] && TURLER.includes(x.tur)) st.taban[k] = ozet(g[k].veri); }
+    const { d: d2, g } = isle(uygulanacak); d = d2;
+    st.taban = {};
+    for (const x of canli) { const k = anahtarOf(x); if (g[k] && TUM.includes(x.tur)) st.taban[k] = ozet(g[k].veri); }
     st.sahip = sahip; st.surum = surum; st.ilk = false; kaydet();
     const yuklenen = yerelDegisti(d);
     log(`ilk eşitleme: sunucudan ${canli.length} satır, ${cevrilen} firma kimliği eşlendi, ${yuklenen} satır yüklenecek`);
@@ -153,6 +174,8 @@ function makeOfisVeri({ dir, ds, rpc, onChange = () => {}, log = () => {}, cihaz
   function simdi() { if (!durdu && !calisiyor) planla(50); }
   return {
     yerelDegisti, gunlukEkle, tur,
+    // veri klasörü değişti / silindi: sunucudakiyle yeniden birleştir (yereldeki eksiklik silme sayılmaz)
+    yenidenBirlestir() { st.ilk = true; kaydet(); simdi(); },
     baslat() { durdu = false; planla(10); },
     durdur() { durdu = true; clearTimeout(zamanlayici); },
     durum: () => ({ etkin: !kapali, ilk: !!st.ilk, bekleyen: Object.keys(giden).length, gunlukBekleyen: gunluk.length, hata, sonBasari, surum: st.surum }),

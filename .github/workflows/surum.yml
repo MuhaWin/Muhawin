@@ -96,6 +96,8 @@ jobs:
         run: node test/guncelleme.js
       - name: Yapay zekâ modülü testi (sahte istemci; dışarıya istek yok)
         run: node test/yz.js
+      - name: Ofis ortak verisi eşitleme testi (sahte Supabase, iki bilgisayar)
+        run: node test/ofis-veri-esitleme.js
       - name: Luca testleri
         run: for f in test/luca/*.js; do echo "== $f"; node "$f"; done
       - name: Uçtan uca test (e2e)

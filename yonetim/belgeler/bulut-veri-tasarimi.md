@@ -162,6 +162,9 @@ Bu bölüm yukarıdaki taslağın yerini alır; çelişen yerde bu bölüm geçe
   - Önce yerel yedek alınır.
   - Firmalar Luca firma no, sonra VKN, sonra ad ile eşlenir. Aynı firmanın kuralları birleşir.
 - **Fatura Kontrol dosyaları:** Eşitleyici, veri klasöründeki firma dosyalarını kayıt bazında iki yönlü eşitler. Son eşitlenen hâl saklanır; farkla gönderilir, gelen değişiklik dosyaya birleştirilir. Python kodu değişmez.
+  - Uygulama `fkesitle.js` (eşitleyicinin dış kaynağı). Dosya zamanları 5 sn'de bir denetlenir.
+  - Silme yalnız dosya duruyorken içinden çıkarılan kayıt için gönderilir. Dosya ya da klasör silinirse, veri klasörü değişirse ya da klasöre ulaşılamazsa ofisteki kayıtlar silinmez.
+  - Veri klasörü değişince ve "verileri sil"den sonra sunucudakiyle yeniden birleştirilir (kurallar yeni klasöre iner).
 - **Veri klasörü:** `ayarlar.json › fkVeriDir` (boşsa hesap klasörü). Python'a `FK_VERI` ve `FK_KULLANICI` (e-posta) verilir.
 - **Kim sorguladı:** `rapor.json` ve toplu özete `sorgulayan` ve `zaman` yazılır; Sonuçlar ekranında gösterilir.
 - **Güvenli yenileme (Python):**
