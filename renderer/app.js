@@ -4894,14 +4894,24 @@ const FKAYIT=(()=>{
   }
   const komMu=f=>!!f&&f.yon==='ALIS'&&(f.komisyoncu||f.tip==='KOMISYONCU');   // komisyoncu (HKS) faturası: mal sahibinin satışı
   const etkin=f=>komMu(f)?'SATIS':((f.yon==='ALIS')!==(f.tip==='IADE')?'ALIS':'SATIS');   // cari tarafı alış gibi mi (satıcı → 320)
+  // Fatura kuralı (Görev 34 · 7, Görev 21'deki banka kurallarıyla aynı yaklaşım): 1. şart {alan, deger}, "+" ile eklenen
+  // 2., 3. … şartlar ek: [{alan, deger}] — hepsi birlikte tutmalı (VE). eylem: '' = hesapla kaydet · 'atla' = hiç kaydetme.
+  // Eski kurallarda ek / eylem yok: tek şart, bugünkü gibi.
+  const KURAL_ALAN={unvan:'Ünvan içerir',vkn:'VKN/TCKN eşittir',icerik:'Fatura içeriği içerir'};
+  const fkSartlar=k=>[{alan:k.alan,deger:k.deger},...(Array.isArray(k.ek)?k.ek:[])].filter(x=>x&&N(x.deger));
+  const fkKuralMetni=k=>fkSartlar(k).map(x=>`${KURAL_ALAN[x.alan]||x.alan} “${String(x.deger).trim()}”`).join(' VE ');
+  function sartTutar(x,f){
+    if(x.alan==='vkn')return String(x.deger).split('|').some(v=>String(f.karsi_vkn)===v.trim());
+    if(x.alan==='unvan')return kuralTutar(x.deger,N(f.karsi_unvan));
+    if(x.alan==='icerik')return kuralTutar(x.deger,N((f.kalemler||[]).join(' | ')));
+    return false;
+  }
   function kuralBul(f){
-    const ks=Object.values(st.kural).filter(k=>!k.yon||k.yon==='*'||k.yon===f.yon);
+    const ks=Object.values(st.kural).filter(k=>(!k.yon||k.yon==='*'||k.yon===f.yon)&&fkSartlar(k).length);
     const sira={vkn:0,unvan:1,icerik:2};
-    ks.sort((a,b)=>(sira[a.alan]-sira[b.alan])||(String(b.deger).length-String(a.deger).length));
-    for(const k of ks){if(!N(k.deger))continue;
-      if(k.alan==='vkn'&&String(k.deger).split('|').some(v=>String(f.karsi_vkn)===v.trim()))return k;
-      if(k.alan==='unvan'&&kuralTutar(k.deger,N(f.karsi_unvan)))return k;
-      if(k.alan==='icerik'&&kuralTutar(k.deger,N((f.kalemler||[]).join(' | '))))return k;}
+    // çok şartlı kural daha özeldir, önce denenir; sonra eski sıra (VKN, ünvan, içerik; uzun değer önce)
+    ks.sort((a,b)=>(fkSartlar(b).length-fkSartlar(a).length)||(sira[a.alan]-sira[b.alan])||(String(b.deger).length-String(a.deger).length));
+    for(const k of ks)if(fkSartlar(k).every(x=>sartTutar(x,f)))return k;
     return null;
   }
   function kdvHesap(f,oran){
@@ -4936,6 +4946,7 @@ const FKAYIT=(()=>{
   function oner(f){
     const k=kuralBul(f),g=f.gecmis||{};const dv=(st.firm&&st.firm.fkVarsayilan)||{};
     let hesap='',cari='',kaynak='—';
+    if(k&&k.eylem==='atla')return {hesap:'',cari:'',kaynak:'kural',kuralAtla:true,kuralMetin:fkKuralMetni(k)};
     if(k&&k.hesap){hesap=k.hesap;kaynak='kural';}else if(g.hesap){hesap=g.hesap;kaynak=g.kaynak||'geçmiş';}else if(dv[f.yon]){hesap=dv[f.yon];kaynak='varsayılan';}
     const cariUygun=c=>!!c&&/^(1[0-9][0-9]|3[0-9][0-9]|4[0-9][0-9])/.test(c)&&(CARI.ALIS.concat(CARI.SATIS,['159','331','336','195','340']).includes(String(c).slice(0,3)));
     if(k&&k.cari)cari=k.cari;else if(cariUygun(g.cari))cari=g.cari;else cari=cariBul(f)||'';
@@ -4944,7 +4955,7 @@ const FKAYIT=(()=>{
         const re=o?new RegExp('(%\\s*'+o+'(?!\\d))|((^|\\D)'+o+'\\s*%)','i'):null;
         hesap=(dv.KOMISYONCU)||(re&&l.find(c=>re.test(st.acc.get(c)||'')))||l[0]||'';kaynak=hesap?'komisyoncu':'—';}
       if(cari&&!/^(12|13|34)/.test(cari))cari=(k&&k.cari&&/^(12|13|34)/.test(k.cari))?k.cari:(cariBul(f)||'');}
-    return {hesap,cari,kaynak,kural:k};
+    return {hesap,cari,kaynak,kural:k,kuralMetin:k&&kaynak==='kural'?fkKuralMetni(k):'',kuralAtla:false};
   }
 
   /* ---- fiş satırları ---- */
@@ -5046,7 +5057,7 @@ const FKAYIT=(()=>{
   const nazimCift=(re,refAd)=>nazimCiftBul(planLeaf(),hAd,re,refAd);
 
   /* ---- ekran ---- */
-  const haricMi=r=>!!(r.f.haric||r.haricBekle);
+  const haricMi=r=>!!(r.f.haric||r.haricBekle||r.kuralAtla);
   const KOL={tarih:r=>r.f.tarih,belge:r=>r.f.belge_no,yon:r=>(r.f.yon==='ALIS'?'Alış ':'Satış ')+(TYPE_NAMES[r.f.tip]||r.f.tip||''),
     karsi:r=>r.f.karsi_unvan+' '+r.f.karsi_vkn,matrah:r=>r.f.matrah,kdv:r=>r.f.kdv,toplam:r=>r.f.odenecek};
   const NUM=new Set(['matrah','kdv','toplam']);
@@ -5079,13 +5090,14 @@ const FKAYIT=(()=>{
     const sec=st.rows.filter(r=>r.sec&&!r.logged&&!haricMi(r));const bad=sec.filter(r=>satirlar(r).err.length);
     const bekleyen=st.rows.filter(r=>r.haricBekle&&!r.f.haric);
     const sayi={kayitsiz:st.rows.filter(r=>!r.f.kayitli&&!r.logged&&!r.f.haric).length,tumu:st.rows.length,kaydedilen:st.rows.filter(r=>r.logged).length,haric:st.rows.filter(haricMi).length};
-    $('#fkkHead').innerHTML=`<div><b>${esc(st.firm?st.firm.name:d.firma)}</b> · ${esc(dmyS(d.donem[0]||''))} – ${esc(dmyS(d.donem[1]||''))}${d.luca_id?'':' · <span class="chip aski">Luca firma no yok</span>'}
-        ${st.leaf.size?'':'<span class="chip aski">Mizan yok</span>'}
-        ${d.luca_id?`<button class="btn small" id="fkkCek" title="Mizan, hesap planı ve muavin (tüm yıl) Luca'dan sırayla çekilir; öneriler ve kayıt durumları yenilenir">Muavini Luca'dan çek</button>`:''}
-        <button class="btn small ghost" id="fkkGecmis" title="Bu firmada programdan Luca'ya kaydedilen faturalar">Daha önce kaydedilenler</button></div>
-      ${(()=>{const ac=st.rows.filter(r=>!r.logged&&!haricMi(r));const bh=ac.filter(r=>!r.hesap).length,bc=ac.filter(r=>!r.cari).length;
-        if(!st.leaf.size||(!bh&&!bc)||(bh+bc)<Math.max(2,ac.length*0.25))return '';
-        return `<div class="fkk-hatir"><b>Hesaplar / cariler boş geliyor:</b> ${bh?bh+' faturada hesap':''}${bh&&bc?', ':''}${bc?bc+' faturada cari':''} bulunamadı. Mizan eski olabilir ya da bu firmanın muavini (geçmiş kayıtları) eksik olabilir — yukarıdaki <b>Muavini Luca'dan çek</b> ile mizan, hesap planı ve muavini birlikte çekin; öneriler yeniden kurulur.</div>`;})()}`;
+    // başlık tek satır (Görev 34): firma · dönem ve kısa durum çipleri; "hesaplar boş" açıklaması ⓘ çipinin ipucunda.
+    // "Muavini Luca'dan çek" ve "Daha önce kaydedilenler" fiş seçeneğinin satırında (#fkkCekYer)
+    const bosUyari=(()=>{const ac=st.rows.filter(r=>!r.logged&&!haricMi(r));const bh=ac.filter(r=>!r.hesap).length,bc=ac.filter(r=>!r.cari).length;
+      if(!st.leaf.size||(!bh&&!bc)||(bh+bc)<Math.max(2,ac.length*0.25))return '';
+      const ne=[bh?bh+' faturada hesap':'',bc?bc+' faturada cari':''].filter(Boolean).join(', ');
+      return ` <span class="chip aski fkk-ipucu" style="cursor:help" title="Hesaplar / cariler boş geliyor: ${esc(ne)} bulunamadı. Mizan eski olabilir ya da bu firmanın muavini (geçmiş kayıtları) eksik olabilir. “Muavini Luca'dan çek” ile mizan, hesap planı ve muavini birlikte çekin; öneriler yeniden kurulur.">ⓘ ${esc(ne)} boş</span>`;})();
+    $('#fkkHead').innerHTML=`<b>${esc(st.firm?st.firm.name:d.firma)}</b> · ${esc(dmyS(d.donem[0]||''))} – ${esc(dmyS(d.donem[1]||''))}${d.luca_id?'':' <span class="chip aski">Luca firma no yok</span>'}${st.leaf.size?'':' <span class="chip aski" title="Mizan yok: “Muavini Luca\'dan çek” mizanı da çeker">Mizan yok</span>'}${bosUyari}`;
+    {const y=$('#fkkCekYer');if(y)y.innerHTML=`${d.luca_id?`<button class="btn small" id="fkkCek" title="Mizan, hesap planı ve muavin (tüm yıl) Luca'dan sırayla çekilir; öneriler ve kayıt durumları yenilenir">Muavini Luca'dan çek</button>`:''}<button class="btn small ghost" id="fkkGecmis" title="Bu firmada programdan Luca'ya kaydedilen faturalar">Daha önce kaydedilenler</button>`;}
     $('#fkkBar').innerHTML=`<div class="mmtabs">${[['kayitsiz','Kayıtsız'],['tumu','Tümü'],['kaydedilen','MuhaWin ile kaydedilen'],['haric','Kaydedilmeyecek']].map(([k,l])=>`<button class="btn small" data-fkf="${k}" aria-pressed="${st.filter===k}">${l} <span class="mono">${sayi[k]}</span></button>`).join('')}</div>
       <input type="search" id="fkkQ" placeholder="Belge, ünvan, VKN, içerik ara" value="${esc(st.q)}" style="width:auto;min-width:220px">
       <div class="mmtabs" title="Kurala göre süz">${[['','Tümü'],['kurallı','Kurallı'],['kuralsız','Kuralsız']].map(([k,l])=>`<button class="btn small" data-fkkf="${k}" aria-pressed="${(st.kf||'')===k}">${l} <span class="mono">${k===''?st.rows.length:st.rows.filter(r=>(r.kaynak==='kural')===(k==='kurallı')).length}</span></button>`).join('')}</div>
@@ -5104,8 +5116,8 @@ const FKAYIT=(()=>{
     const SM=silinmisler();const silOf=r=>r.silindi||SM.get(r.f.anahtar)||SM.get('b:'+r.f.belge_no);
     const silChip=v=>v.neden==='muavin'?`<span class="chip aski" title="Programın kaydettiği Luca fişi${v.n?' '+esc(v.n):''} son çekilen muavinde yok; fiş Luca'dan silinmiş sayıldı. Fatura yeniden kaydedilebilir.">Luca'da bulunamadı (silinmiş)${v.n?' · fiş '+esc(v.n):''}</span>`
       :`<span class="chip aski" title="Luca'dan sildiğiniz işaretlendi; fatura yeniden kaydedilebilir">Luca'dan silindi${v.n?' · fiş '+esc(v.n):''}</span>`;
-    const chip=r=>r.f.haric?(r.f.haric.kural?`<span class="chip" title="${esc(r.f.haric.aciklama||'')} — kuralı Fatura Kontrol raporundaki “Kullanıcı kararı” penceresinden silebilirsiniz">kaydedilmeyecek (kural)</span>`:'<span class="chip">kaydedilmeyecek</span>'):r.haricBekle?'<span class="chip aski">kaydedilmeyecek (onay bekliyor)</span>':r.logged?`<button type="button" class="chip kural" data-lucafis="${st.rows.indexOf(r)}" style="cursor:pointer;border:0" title="MuhaWin ile Luca'ya kaydedildi · fişi muavinden aç">Luca fiş ${esc(r.logged.n||'')}</button>`:r.f.kayitli?'<span class="chip cari">muavinde var</span>':silOf(r)?silChip(silOf(r)):'<span class="chip aski">kayıtsız</span>';
-    const src=k=>({kural:'<span class="chip kural">kural</span>','geçmiş':'<span class="chip cari">geçmiş</span>','benzer kalem':'<span class="chip cari" title="Geçmişte benzer kalemli faturaların kaydedildiği hesap">benzer kalem</span>',varsayılan:'<span class="chip">varsayılan</span>'}[k]||'');
+    const chip=r=>r.kuralAtla&&!r.f.haric&&!r.logged?`<span class="chip" title="Kural: ${esc(r.kuralMetin||'')} → hiç kaydetme">kaydedilmeyecek (kural)</span>`:r.f.haric?(r.f.haric.kural?`<span class="chip" title="${esc(r.f.haric.aciklama||'')} — kuralı Fatura Kontrol raporundaki “Kullanıcı kararı” penceresinden silebilirsiniz">kaydedilmeyecek (kural)</span>`:'<span class="chip">kaydedilmeyecek</span>'):r.haricBekle?'<span class="chip aski">kaydedilmeyecek (onay bekliyor)</span>':r.logged?`<button type="button" class="chip kural" data-lucafis="${st.rows.indexOf(r)}" style="cursor:pointer;border:0" title="MuhaWin ile Luca'ya kaydedildi · fişi muavinden aç">Luca fiş ${esc(r.logged.n||'')}</button>`:r.f.kayitli?'<span class="chip cari">muavinde var</span>':silOf(r)?silChip(silOf(r)):'<span class="chip aski">kayıtsız</span>';
+    const src=(k,r)=>k==='kural'&&r&&r.kuralMetin?`<span class="chip kural" title="Kural: ${esc(r.kuralMetin)}">kural</span><div class="note" style="max-width:160px">${esc(r.kuralMetin)}</div>`:({kural:'<span class="chip kural">kural</span>','geçmiş':'<span class="chip cari">geçmiş</span>','benzer kalem':'<span class="chip cari" title="Geçmişte benzer kalemli faturaların kaydedildiği hesap">benzer kalem</span>',varsayılan:'<span class="chip">varsayılan</span>'}[k]||'');
     const ok_=k=>st.sort&&st.sort.k===k?(st.sort.d>0?' ▲':' ▼'):'';
     const th=(k,l,n)=>`<th class="${n?'n':''}"><button class="srt" data-fksort="${k}" title="Sırala">${l}${ok_(k)}</button></th>`;
     const fl=(k,n)=>`<th><input data-fkfl="${k}" value="${esc(st.f[k]||'')}" placeholder="${n?'>1000':'filtre'}" title="${n?'Sayı: >1000, <500, =200, 100..200':'İçerir'}" aria-label="filtre"></th>`;
@@ -5118,7 +5130,7 @@ const FKAYIT=(()=>{
           <td><b class="hk">${esc(f.karsi_unvan)}</b><div class="note mono">${esc(f.karsi_vkn)}</div>${(f.kalemler||[]).length?`<div class="note" title="${esc(f.kalemler.join('\n'))}">${esc(f.kalemler[0].slice(0,60))}${f.kalemler.length>1?' +'+(f.kalemler.length-1):''}</div>`:''}</td>
           <td class="n">${fmt(f.matrah)}</td><td class="n">${fmt(f.kdv)}${f.tevkifat?`<div class="note">tevk. ${fmt(f.tevkifat)}</div>`:''}</td><td class="n">${fmt(f.odenecek)}</td>
           <td><button class="btn small ghost" data-pdf="${i}" title="Faturayı PDF olarak aç">📄 PDF</button></td>
-          <td><input class="mono" list="fkkAccList" data-h="${i}" value="${esc(r.hesap)}" style="width:120px">${src(r.kaynak)}<div class="note">${esc(st.acc.get(r.hesap)||'')}</div>
+          <td><input class="mono" list="fkkAccList" data-h="${i}" value="${esc(r.hesap)}" style="width:120px">${src(r.kaynak,r)}<div class="note">${esc(st.acc.get(r.hesap)||'')}</div>
             ${f.yon!=='ALIS'&&Object.keys(f.diger_vergiler||{}).length?`<input class="mono" list="fkkAccList" data-dg="${i}" value="${esc(r.diger||'')}" placeholder="diğer vergi" style="width:120px">`:''}</td>
           <td><input class="mono${cariTaslak(r)?' taslak':''}" list="fkkAccList" data-c="${i}" data-hsad="${esc(f.karsi_unvan||'')}" value="${esc(r.cari)}" style="width:120px"><div class="note">${cariTaslak(r)?`<span class="chip yeni" title="Mizanda / hesap planında bulunamadı; firmanın düzenine göre sıradaki kod önerildi. Luca'ya kaydederken önce hesap planına açılır.">yeni</span> ${esc(HESAP.taslakAd(st.firm.id,r.cari))}`:esc(st.acc.get(r.cari)||'')}</div>${!r.cari&&!r.logged&&st.firm&&st.firm.lucaId?`<button class="btn small" data-cariac="${i}" title="Bu karşı taraf için firmanın cari hesap düzenine göre sıradaki kodla Luca'da cari hesap aç">＋ Cari Aç</button>`:''}</td>
           <td>${chip(r)}${hr?'':s.err.length?`<div class="note" style="color:var(--out)">${esc(s.err[0])}${s.err.length>1?' +'+(s.err.length-1):''}</div>`:s.warn.length?`<div class="note" style="color:var(--warn)">${esc(s.warn[0])}</div>`:''}</td>
@@ -5173,8 +5185,8 @@ const FKAYIT=(()=>{
       if(st.firm&&!st.firm.mizanInfo&&await mizanOtoCek(st.firm,String(st.data.donem[0]||'').slice(0,4),async()=>{if(!$('#fkKayit').hidden){await resolveFirm();reapply();}}))await resolveFirm();
       st.belgeTuru=(st.firm&&st.firm.fkBelgeTuru)||'';
       st.grup=(st.firm&&st.firm.fkFisGrup)||'ayri';$('#fkkGrup').value=st.grup;
-      st.rows=st.data.faturalar.map(f=>{const o=oner(f);const logged=st.log.keys[f.anahtar]||null;const binek=f.yon==='ALIS'&&(/BINEK/.test(N(f.durum||''))||/BINEK/.test(N(st.acc.get(o.hesap)||'')));
-        return {f,...o,diger:'',fark:'',sec:!f.kayitli&&!logged&&!f.haric,logged,acik:false,haricBekle:false,binek};});
+      st.rows=st.data.faturalar.map(f=>{const o=oner(f);const logged=st.log.keys[f.anahtar]||null;if(o.kuralAtla)o.sec=false;const binek=f.yon==='ALIS'&&(/BINEK/.test(N(f.durum||''))||/BINEK/.test(N(st.acc.get(o.hesap)||'')));
+        return {f,...o,diger:'',fark:'',sec:!f.kayitli&&!logged&&!f.haric&&!o.kuralAtla,logged,acik:false,haricBekle:false,binek};});
       st.sort=null;st.f={};taslakAta();
       await silinenleriIsle();
       st.filter=st.rows.some(r=>!r.f.kayitli&&!r.logged&&!r.f.haric)?'kayitsiz':'tumu';
@@ -5224,32 +5236,53 @@ const FKAYIT=(()=>{
   function close(){$('#fkKayit').hidden=true;document.documentElement.style.overflow='';}
 
   /* ---- kurallar ---- */
+  // "Kural yap" (Görev 34 · 7): 1. şart, "+ Şart ekle" ile 2., 3. … şart (hepsi VE), en altta sonuç: kaydet ya da hiç kaydetme
   async function kuralYap(r){
     const f=r.f;const ilk=(f.kalemler||[])[0]||'';
+    const varsayilan=a=>a==='vkn'?f.karsi_vkn:a==='icerik'?ilk.split(/\s+/).slice(0,2).join(' '):f.karsi_unvan;
+    const alanSec=(a,ad)=>`<select data-kalan="${ad}" aria-label="Şart">${Object.entries(KURAL_ALAN).map(([k,l])=>`<option value="${k}"${k===a?' selected':''}>${l}</option>`).join('')}</select>`;
+    const sartSatiri=(n,a,v)=>`<div class="ksart" style="display:grid;grid-template-columns:auto minmax(150px,auto) 1fr auto;gap:8px;align-items:center">
+        <span class="note" style="min-width:52px">${n===1?'Şart 1':'VE · Şart '+n}</span>${alanSec(a,n)}<input data-kdeger value="${esc(v)}" placeholder="örn. KİRA + OCAK" aria-label="Şart değeri">
+        ${n===1?'<span></span>':'<button class="btn small ghost" type="button" data-ksil aria-label="Şartı kaldır" title="Şartı kaldır">×</button>'}</div>`;
     $('#fkkModalT').textContent='Fatura kuralı';
-    $('#fkkModalB').innerHTML=`<p class="note" style="margin:0">Bu firmada şartı tutan faturalar seçtiğiniz hesaplarla kaydedilir. KDV kendi oranındaki KDV hesabına, toplam cariye yazılır.</p>
+    $('#fkkModalB').innerHTML=`<p class="note" style="margin:0">Bu firmada bütün şartları tutan faturalara uygulanır. Şartın içinde <b>|</b> = ya da, <b>+</b> = hepsi geçmeli.</p>
+      <div id="kSartlar" style="display:grid;gap:8px">${sartSatiri(1,'unvan',f.karsi_unvan)}</div>
+      <div><button class="btn small" type="button" id="kSartEkle" title="Bir şart daha ekle: kural yalnız bütün şartlar birlikte tutunca uygulanır">+ Şart ekle</button></div>
       <div class="outgrid" style="gap:12px">
-        <div><label class="lbl">Şart</label><select id="kAlan"><option value="unvan">Ünvan içerir</option><option value="vkn">VKN/TCKN eşittir</option><option value="icerik">Fatura içeriği (mal/hizmet) içerir</option></select></div>
-        <div><label class="lbl">Değer <span class="note">(| = ya da · + = hepsi geçmeli)</span></label><input id="kDeger" value="${esc(f.karsi_unvan)}" placeholder="örn. KİRA + OCAK"></div>
-        <div><label class="lbl">Yön</label><select id="kYon"><option value="${f.yon}">${f.yon==='ALIS'?'Alış faturaları':'Satış faturaları'}</option><option value="*">Alış ve satış</option></select></div>
-        <div><label class="lbl">${f.yon==='ALIS'?'Gider / stok hesabı':'Gelir hesabı'} (matrah)</label><input id="kHesap" list="fkkAccList" class="mono" value="${esc(r.hesap)}"></div>
-        <div><label class="lbl">Cari hesap (boş: ünvandan bulunur)</label><input id="kCari" list="fkkAccList" class="mono" value="${esc(r.cari)}"></div>
+        <div><label class="lbl" for="kYon">Yön</label><select id="kYon"><option value="${f.yon}">${f.yon==='ALIS'?'Alış faturaları':'Satış faturaları'}</option><option value="*">Alış ve satış</option></select></div>
+        <div><label class="lbl" for="kEylem">Sonuç</label><select id="kEylem"><option value="">Kaydet (bu şartlar varsa şu hesapla)</option><option value="atla">Hiç kaydetme (faturayı fişe alma, bırak)</option></select></div>
       </div>
-      <div class="actions" style="justify-content:flex-end"><button class="btn" data-kx="1">Vazgeç</button><button class="btn primary" id="kKaydet">Kuralı kaydet ve uygula</button></div>`;
-    const al=$('#kAlan');al.onchange=()=>{$('#kDeger').value=al.value==='vkn'?f.karsi_vkn:al.value==='icerik'?ilk.split(/\s+/).slice(0,2).join(' '):f.karsi_unvan;};
-    $('#fkkModal').hidden=false;
+      <div class="outgrid" id="kHesaplar" style="gap:12px">
+        <div><label class="lbl" for="kHesap">${f.yon==='ALIS'?'Gider / stok hesabı':'Gelir hesabı'} (matrah)</label><input id="kHesap" list="fkkAccList" class="mono" value="${esc(r.hesap)}"></div>
+        <div><label class="lbl" for="kCari">Cari hesap (boş: ünvandan bulunur)</label><input id="kCari" list="fkkAccList" class="mono" value="${esc(r.cari)}"></div>
+      </div>
+      <div class="actions" style="justify-content:flex-end"><span class="note" id="kSay" style="margin-right:auto"></span><button class="btn" data-kx="1">Vazgeç</button><button class="btn primary" id="kKaydet">Kuralı kaydet ve uygula</button></div>`;
+    const B=$('#fkkModalB');
+    const oku=()=>[...B.querySelectorAll('.ksart')].map(x=>({alan:x.querySelector('[data-kalan]').value,deger:x.querySelector('[data-kdeger]').value.trim()}));
+    const say=()=>{const L=oku().filter(x=>N(x.deger));const yon=$('#kYon').value;
+      const n=L.length?st.rows.filter(x=>(yon==='*'||x.f.yon===yon)&&L.every(y=>sartTutar(y,x.f))).length:0;$('#kSay').textContent=`${n} fatura bu şartlara uyuyor`;};
+    const sonuc=()=>{const at=$('#kEylem').value==='atla';$('#kHesaplar').style.display=at?'none':'';say();};
+    B.addEventListener('change',e=>{const a=e.target.closest('[data-kalan]');if(a){const inp=a.parentElement.querySelector('[data-kdeger]');inp.value=varsayilan(a.value);}if(e.target.id==='kEylem')sonuc();else say();});
+    B.addEventListener('input',e=>{if(e.target.matches('[data-kdeger]'))say();});
+    B.addEventListener('click',e=>{if(e.target.id==='kSartEkle'){const L=$('#kSartlar');const n=L.querySelectorAll('.ksart').length+1;
+        L.insertAdjacentHTML('beforeend',sartSatiri(n,'icerik',varsayilan('icerik')));L.lastElementChild.querySelector('[data-kdeger]').focus();say();return;}
+      const x=e.target.closest('[data-ksil]');if(x){x.closest('.ksart').remove();[...B.querySelectorAll('.ksart')].forEach((s0,i)=>{s0.firstElementChild.textContent=i?'VE · Şart '+(i+1):'Şart 1';});say();}});
+    $('#fkkModal').hidden=false;sonuc();
     $('#kKaydet').onclick=async()=>{
-      const k={id:uid(),alan:al.value,deger:$('#kDeger').value.trim(),yon:$('#kYon').value,hesap:$('#kHesap').value.trim(),cari:$('#kCari').value.trim(),at:new Date().toISOString()};
-      if(!k.deger||!k.hesap){toast('Değer ve hesap gerekli.');return;}
+      const L=oku().filter(x=>N(x.deger));const eylem=$('#kEylem').value==='atla'?'atla':'';
+      if(!L.length){toast('Şartın değerini yazın.');return;}
+      const k={id:uid(),alan:L[0].alan,deger:L[0].deger,...(L.length>1?{ek:L.slice(1)}:{}),...(eylem?{eylem}:{}),yon:$('#kYon').value,
+        hesap:eylem?'':$('#kHesap').value.trim(),cari:eylem?'':$('#kCari').value.trim(),at:new Date().toISOString()};
+      if(!eylem&&!k.hesap){toast('Kaydetme hesabını yazın (ya da sonuç olarak "Hiç kaydetme"yi seçin).');return;}
       if(!st.firm){toast('Firma bulunamadı.');return;}
       await dataOp('addFKural',{fid:st.firm.id,kural:k});st.kural[k.id]=k;
-      reapply();$('#fkkModal').hidden=true;toast('Kural kaydedildi ve uygulandı.');};
+      reapply();$('#fkkModal').hidden=true;toast(eylem?'Kural kaydedildi: bu şartları tutan faturalar fişe alınmayacak.':'Kural kaydedildi ve uygulandı.');};
   }
   function kurallar(){
-    const ks=Object.values(st.kural);const AL={unvan:'Ünvan içerir',vkn:'VKN',icerik:'İçerik içerir'};
+    const ks=Object.values(st.kural);
     $('#fkkModalT').textContent='Fatura kuralları';
-    $('#fkkModalB').innerHTML=`${ks.length?`<div class="tablewrap" style="max-height:50vh"><table><thead><tr><th>Şart</th><th>Değer</th><th>Yön</th><th>Hesap</th><th>Cari</th><th></th></tr></thead><tbody>
-      ${ks.map(k=>`<tr><td>${AL[k.alan]||k.alan}</td><td>${esc(k.deger)}</td><td>${k.yon==='ALIS'?'Alış':k.yon==='SATIS'?'Satış':'Her ikisi'}</td><td class="mono">${esc(k.hesap)}<div class="note">${esc(st.acc.get(k.hesap)||'')}</div></td><td class="mono">${esc(k.cari||'otomatik')}</td><td><button class="btn small ghost danger" data-kdel="${esc(k.id)}">Sil</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="note">Henüz kural yok. Listeden bir faturada “Kural yap” deyin.</p>'}
+    $('#fkkModalB').innerHTML=`${ks.length?`<div class="tablewrap" style="max-height:50vh"><table id="fkkKuralTablo"><thead><tr><th>Şartlar</th><th>Yön</th><th>Sonuç</th><th>Cari</th><th></th></tr></thead><tbody>
+      ${ks.map(k=>`<tr><td>${esc(fkKuralMetni(k))}</td><td>${k.yon==='ALIS'?'Alış':k.yon==='SATIS'?'Satış':'Her ikisi'}</td><td class="mono">${k.eylem==='atla'?'<span class="chip">hiç kaydetme</span>':`${esc(k.hesap)}<div class="note">${esc(st.acc.get(k.hesap)||'')}</div>`}</td><td class="mono">${k.eylem==='atla'?'':esc(k.cari||'otomatik')}</td><td><button class="btn small ghost danger" data-kdel="${esc(k.id)}">Sil</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="note">Henüz kural yok. Listeden bir faturada “Kural yap” deyin.</p>'}
       <section style="display:grid;gap:8px;border-top:1px solid var(--line);padding-top:12px"><b>Kural tutmazsa varsayılan hesap</b>
         <div class="actions"><label class="note">Alış <input id="dvA" list="fkkAccList" class="mono" style="width:130px" value="${esc(((st.firm||{}).fkVarsayilan||{}).ALIS||'')}"></label>
         <label class="note">Satış <input id="dvS" list="fkkAccList" class="mono" style="width:130px" value="${esc(((st.firm||{}).fkVarsayilan||{}).SATIS||'')}"></label><button class="btn small" id="dvKaydet">Kaydet</button></div></section>
@@ -5285,7 +5318,9 @@ const FKAYIT=(()=>{
   }
   // kutudan çıkıp bir düğmeye tıklanırken tablo hemen yeniden çizilirse tıklama boşa gider; çizim kısa gecikmeyle
   let drawT=null;function drawSoon(){clearTimeout(drawT);drawT=setTimeout(()=>{drawT=null;draw();},280);}
-  function reapply(){for(const r of st.rows){if(r.elle)continue;const o=oner(r.f);r.hesap=o.hesap;r.cari=r.cariElle?r.cari:o.cari;r.kaynak=o.kaynak;}taslakAta();draw();}
+  function reapply(){for(const r of st.rows){if(r.elle)continue;const o=oner(r.f);r.hesap=o.hesap;r.cari=r.cariElle?r.cari:o.cari;r.kaynak=o.kaynak;r.kuralMetin=o.kuralMetin;
+      // "hiç kaydetme" kuralı faturayı seçimden çıkarır; kural kalkınca kullanıcının önceki seçimi geri gelir
+      if(o.kuralAtla!==!!r.kuralAtla){r.kuralAtla=o.kuralAtla;if(o.kuralAtla){r.secKural=r.sec;r.sec=false;}else{r.sec=r.secKural!=null?r.secKural:(!r.f.kayitli&&!r.logged&&!r.f.haric);delete r.secKural;}}}taslakAta();draw();}
 
   /* ---- fişler ---- */
   /* Fiş gruplama: her fatura ayrı fiş (varsayılan) ya da günlük / 10 günlük / 15 günlük / ay sonuna tek fiş.

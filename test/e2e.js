@@ -987,6 +987,34 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     await w.click('[data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kHesap');
     await w.fill('#kHesap', '770.01'); await w.click('#kKaydet'); await w.waitForTimeout(400);
     check(/kural/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'kural uygulandı');
+    check(/Ünvan içerir/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'listede uygulanan kural görünüyor (eski tek şartlı kural)');
+    // Görev 34 · 7: bu ekranın "Kural yap"ı çoklu şart (VE) ve "Hiç kaydetme"
+    { const sec0 = await w.evaluate(() => window.__fkayit._st.rows[0].sec);
+      await w.click('#fkkTable tbody tr[data-i] [data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kSartEkle');
+      await w.click('#kSartEkle'); const n2 = await w.$$eval('#kSartlar .ksart', l => l.length);
+      const ikinci = await w.$eval('#kSartlar .ksart:nth-child(2) [data-kalan]', e => e.value);
+      await w.fill('#kSartlar .ksart:nth-child(2) [data-kdeger]', 'BU KALEM YOK'); await w.waitForTimeout(100);
+      const say0 = await w.textContent('#kSay');
+      await w.click('#kSartEkle'); await w.click('#kSartlar .ksart:nth-child(3) [data-ksil]');
+      await w.selectOption('#kSartlar .ksart:nth-child(2) [data-kalan]', 'unvan'); await w.waitForTimeout(100);   // değer ünvanla dolar
+      const say1 = await w.textContent('#kSay');
+      await w.selectOption('#kEylem', 'atla'); const gizli = await w.isHidden('#kHesaplar');
+      await w.click('#kKaydet'); await w.waitForTimeout(400);
+      const r = await w.evaluate(() => { const st = window.__fkayit._st; const x = st.rows[0]; const k = Object.values(st.kural).find(y => y.eylem === 'atla');
+        return { atla: !!x.kuralAtla, sec: x.sec, k: k && { ek: k.ek, eylem: k.eylem, hesap: k.hesap } }; });
+      const metin = await w.textContent('#fkkTable');
+      check(n2 === 2 && ikinci === 'icerik' && /^0 fatura/.test(say0) && /^[1-9]\d* fatura/.test(say1) && gizli, '"+ Şart ekle" 2. şart açtı (VE), sayaç şartlarla daralıyor; "Hiç kaydetme"de hesap alanları gizli (' + say0 + ' / ' + say1 + ')');
+      check(r.atla && !r.sec && r.k && r.k.ek.length === 1 && r.k.eylem === 'atla' && !r.k.hesap, '"Hiç kaydetme" kuralı: fatura seçilmedi, fişe alınmayacak (' + JSON.stringify(r) + ')');
+      check(/kaydedilmeyecek \(kural\)/.test(metin), 'listede "kaydedilmeyecek (kural)" görünüyor');
+      await w.click('#fkkKurallar'); await w.waitForSelector('#fkkKuralTablo');
+      const kt = await w.textContent('#fkkKuralTablo');
+      check(/ VE /.test(kt) && /hiç kaydetme/.test(kt), 'kural listesinde şartlar VE ile ve sonuç "hiç kaydetme"');
+      // çok şartlı kuralı sil: eski tek şartlı kural yeniden uygulanır
+      const id = await w.evaluate(() => Object.values(window.__fkayit._st.kural).find(y => y.eylem === 'atla').id);
+      await w.click(`[data-kdel="${id}"]`); await w.waitForTimeout(400); await w.click('#fkkModal [data-kx]').catch(() => {});
+      const geri = await w.evaluate(() => { const x = window.__fkayit._st.rows[0]; return { atla: !!x.kuralAtla, hesap: x.hesap, kaynak: x.kaynak }; });
+      check(!geri.atla && geri.hesap === '770.01' && geri.kaynak === 'kural', 'çok şartlı kural silinince eski kural yeniden uygulandı (' + JSON.stringify(geri) + ')');
+      check(await w.evaluate(() => window.__fkayit._st.rows[0].sec) === sec0, 'kural kalkınca kullanıcının önceki seçimi geri geldi'); }
     await w.click('[data-fis]'); await w.waitForTimeout(200);
     const fis = await w.$$eval('#fkkTable table.mini tbody tr', t => t.map(x => [...x.children].map(c => { const i = c.querySelector('input'); return i ? i.value : c.textContent.trim(); })));
     check(JSON.stringify(fis.map(r => [r[0], r[3], r[4]])) === JSON.stringify([['770.01', '500,00', ''], ['191.10.20', '100,00', ''], ['320.01', '', '600,00']]), 'fiş: gider borç, KDV borç, cari alacak');
