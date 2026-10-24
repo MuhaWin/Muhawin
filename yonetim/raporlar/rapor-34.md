@@ -69,8 +69,9 @@ Derleme yapılmadı. Gerçek Luca'ya istek yapılmadı. Testlerde müşteri veri
 | Test | Sonuç |
 |---|---|
 | `fk/tests/test_kayit_silinen.py` (yeni) + `test_muavin_okuyucu.py` (Tarih Aralığı) | 29/29 |
-| `xvfb-run -a node test/e2e.js` | E2E_34 |
-| `node test/mobil.js` · tüm `pytest` · `test/luca/*` | SONUC_34 |
+| e2e'ye eklenen 7. madde adımları | 2. şart (VE) ve sayaç, "Hiç kaydetme"de hesap gizli, fatura seçilmiyor ve "kaydedilmeyecek (kural)", kural listesinde VE ve "hiç kaydetme", kural silinince eski kural ve kullanıcının seçimi geri, eski tek şartlı kural aynı ve metni listede |
+| `xvfb-run -a node test/e2e.js` | **311 geçti, 0 başarısız** |
+| `node test/mobil.js` · tüm `pytest` · `test/luca/*` | 45/45 · **162 geçti**, 1 atlandı · hepsi geçti |
 | `xvfb-run -a node test/olcum-fkk.js` (yeni; yerleşim ölçümü) | önce liste 160 px, sonra 268 px |
 
 e2e'ye eklenen adımlar (5. senaryo, sahte Luca):
@@ -97,3 +98,8 @@ e2e'ye eklenen adımlar (5. senaryo, sahte Luca):
 - **Silinme kararı muavine bağlı:** Muavin kayıttan önce indirildiyse ya da fişin tarihini kapsamıyorsa karar verilmiyor. Fiş "Luca fiş N" olarak kalıyor; kullanıcı "Daha önce kaydedilenler"den elle işaretleyebilir.
 - **Raporda tutar fişin tutarı:** Ayrı fiş düzeninde fatura tutarına eşit. Gruplu fişte (ay sonu / 10 günlük) belge no'lar birlikte listeleniyor.
 - **Eski kayıtlar:** Fiş tarihi yoksa fatura tarihi kullanılıyor. Fiş–fatura bağı yoksa belge no ile kuruluyor.
+
+## Test sırasında düzeltilenler
+- **Eski kayıt geçmişi:** Ekran kayıt geçmişini açılışta bir kez okuyordu. Kayıttan sonra eski nesne kaldığı için yeni fişler görünmüyordu. Artık her seferinde depodan güncel okunuyor (`logGuncel`).
+- **Kural penceresi:** Her açılışta dinleyici ekleniyordu; ikinci açılışta "+ Şart ekle" iki satır açıyordu. Dinleyiciler her açılışta yeniden oluşan forma bağlandı.
+- **e2e zamanlama yarışı (testteki eski yarış):** Kayıttan 4 sn sonra muavin yenilemesi kendiliğinden başlıyor. Test artık düğme yoksa bunu bekliyor.
