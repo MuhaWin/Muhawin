@@ -2259,6 +2259,8 @@ const Desk=(()=>{
       try{await y.anahtarKaydet(k);$('#yzAnahtar').value='';yzAyarCiz('Anahtar bu bilgisayara şifreli kaydedildi.');}catch(x){$('#yzMsg').textContent=cleanErr(x);}};
     $('#yzAnahtarSil').onclick=async()=>{if(!(await askConfirm('API anahtarı silinsin mi?','Yapay zekâ ile karşılaştırma anahtar yeniden girilene kadar kapalı olur.','Evet, sil')))return;
       try{await y.anahtarSil();yzAyarCiz('Anahtar silindi.');}catch(x){toast(cleanErr(x));}};}
+  // Görev 54: Ayarlar'ı (istenirse bir bölümüne kaydırarak) dışarıdan açmak için; komut paleti ve Ctrl+S bu kapsamın dışında
+  window.__ayarAc=(bolum,sonra)=>{openReg();setTimeout(()=>{const s=bolum&&document.getElementById(bolum);if(s)s.scrollIntoView({block:'start'});if(sonra)sonra();},120);};
   window.__yzAyarAc=()=>{openReg();setTimeout(()=>{const s=$('#yzSec');if(s)s.scrollIntoView({block:'start'});},120);};
   function openReg(){const cb=document.querySelector('#regModal [data-rgclose]');if(cb)cb.hidden=setupMode;$('#regModal').hidden=false;document.documentElement.style.overflow='hidden';renderReg();setTimeout(()=>{const i=$('#rg_buro');if(i)i.focus();},40);}
   function closeReg(){if(setupMode){toast('Devam etmek için büro bilgilerini doldurup Kaydet\'e basın.');return;}$('#regModal').hidden=true;document.documentElement.style.overflow='';}
@@ -6030,12 +6032,12 @@ const KOMUT=(()=>{
       {g:'Veri',b:'Yeni firma',d:'Elle firma ekle (Ayarlar › Firmalar)',f:()=>yeniFirma()},
       {g:'Veri',b:'Luca\'dan firma ekle',d:'Luca firma listesinden ekle (Ayarlar › Firmalar)',f:()=>Desk.openLuca('firms')},
       {g:'Luca',b:'Luca\'ya bağlan / pencereyi göster',d:'Luca giriş penceresi',f:()=>{const b=$('#lucaTopBtn');if(b)b.click();else window.__mwApi.luca.open();}},
-      {g:'Ayarlar',b:'Ayarlar',d:'Lisans, büro, Luca giriş, WhatsApp, yedek, firmalar',f:()=>openReg(),k:'Ctrl+S'},
+      {g:'Ayarlar',b:'Ayarlar',d:'Lisans, büro, Luca giriş, WhatsApp, yedek, firmalar',f:()=>window.__ayarAc(),k:'Ctrl+S'},
       // Görev 54: Veri ve yedek yalnız Ayarlar'da bir bölüm; palet oraya götürür
-      {g:'Ayarlar',b:'Veri ve yedek',d:'Veri klasörü, ofis deposu, Fatura Kontrol verileri, yedek',f:()=>{openReg();setTimeout(()=>{const x=document.getElementById('veriYedekSec');if(x)x.scrollIntoView({block:'start'});},80);}},
+      {g:'Ayarlar',b:'Veri ve yedek',d:'Veri klasörü, ofis deposu, Fatura Kontrol verileri, yedek',f:()=>window.__ayarAc('veriYedekSec')},
       {g:'Ayarlar',b:'Yedek al',d:'Tüm verileri bir klasöre kopyala',f:async()=>{try{const r=await mwBusy.run('Yedek alınıyor…','',()=>window.__mwApi.yedek.al());if(r&&r.ok)toast('Yedek alındı: '+r.path);}catch(e){toast(cleanErr(e));}}},
       {g:'Ayarlar',b:'Hata günlüğünü aç',d:'Belgeler\\MuhaWin Günlük\\hatalar.log',f:()=>window.__mwApi.hata.ac()},
-      {g:'Ayarlar',b:'Güncellemeleri denetle',d:'Yeni sürüm var mı?',f:()=>{openReg();setTimeout(()=>{const b=$('#updBtn');if(b)b.click();},400);}},
+      {g:'Ayarlar',b:'Güncellemeleri denetle',d:'Yeni sürüm var mı?',f:()=>window.__ayarAc(null,()=>setTimeout(()=>{const b=$('#updBtn');if(b)b.click();},280))},
       {g:'Ayarlar',b:'Yardım ve kısayollar',d:'Tüm klavye kısayolları',f:()=>YARDIM.ac(),k:'F1'},
       ...SKINS.map(([id,ad,d])=>({g:'Tema',b:'Tema: '+ad,d,f:()=>{curSkin=id;applySkin(id);try{localStorage.setItem('ekstre-luca-skin',id);}catch(_){}}})),
       ...S.firms.filter(f=>f.id!==EXAMPLE_ID).map(f=>({g:'Firma',b:f.name,d:'Firmayı seç'+(f.lucaId?' · Luca':''),f:()=>selectFirm(f.id)})),
@@ -6059,7 +6061,7 @@ const KOMUT=(()=>{
     if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key.toLowerCase()==='f'||e.code==='KeyF')){e.preventDefault();if(!M.hidden){kapat();EKRANARA.ac(Q.value);return;}if(EKRANARA.kapsam())EKRANARA.ac();else ac();return;}
     if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key.toLowerCase()==='k'||e.code==='KeyK')){e.preventDefault();EKRANARA.kapat();ac();return;}
     if(e.key==='F1'){e.preventDefault();YARDIM.ac();return;}
-    if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key.toLowerCase()==='s'&&!e.target.closest('input,textarea,select,[contenteditable]')){e.preventDefault();openReg();return;}
+    if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key.toLowerCase()==='s'&&!e.target.closest('input,textarea,select,[contenteditable]')){e.preventDefault();window.__ayarAc();return;}
     if(e.altKey&&!e.ctrlKey&&!e.shiftKey&&HIZLI[e.key]&&!e.target.closest('#fgPanel')&&!document.querySelector('#fgPanel:not([hidden])')){e.preventDefault();const [m,sayfa]=HIZLI[e.key].split(':');modul(m,sayfa?()=>FKUI.sayfaAc(sayfa):null);}
   },true);
   return {ac,kapat};
