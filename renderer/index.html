@@ -94,9 +94,7 @@ th.kz-gizli,td.kz-gizli{display:none}
 </head><body>
 <title>MuhaWin</title>
 <script src="vendor/xlsx.full.min.js"></script>
-<!-- pdf.js 3.11.174: her getDocument çağrısı isEvalSupported:false ile (CVE-2024-4367; yazı tipi gliflerinde kod derlenmez) -->
-<script src="vendor/pdf.min.js"></script>
-<script src="vendor/pdf.worker.min.js"></script>
+<!-- pdf.js 5.7.284 (pdfjs-dist legacy build, ES modülü): app.js ilk PDF'te vendor/pdf.min.mjs'yi yükler; worker vendor/pdf.worker.min.mjs -->
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="imlec.css">
 
