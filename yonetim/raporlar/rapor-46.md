@@ -48,7 +48,7 @@
 - e2e: kaydedilen satırda "Luca fiş N" düz etiket (satırda açma düğmesi yok); Fiş görünümündeki "Fişi aç" fiş penceresini açıyor.
 - e2e'deki Görev 41 ekran matrisi bu tabloyu da ölçüyor ("ekran uyumu: luca-kaydet" 18 boyda; yatay kaydırma denetimi 1280 px ve üstü). Mevcut Luca'ya kaydet denetimleri (sıralama, süzgeç, kural, fiş, kaydetme, PDF) aynen geçiyor.
 - Sonuçlar:
-  - `xvfb-run -a node test/e2e.js`: **E2E_SONUC**
+  - `xvfb-run -a node test/e2e.js`: **366 ✓, 0 başarısız**
   - `test/luca/*.js`: hepsi geçti
   - `node test/mobil.js`: **45/45**
 

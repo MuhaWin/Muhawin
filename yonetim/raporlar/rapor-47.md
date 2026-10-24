@@ -36,7 +36,7 @@ Bu pencerelerde ESC, imleç kutudayken bile pencereyi kapatıyordu. Hepsi artık
 - **Kural yap penceresi:** Kutuya " ESC" yazılınca ESC, pencere açık ve yazı duruyor. İkinci ESC pencereyi kapatıyor, ekran açık.
 - **Fiş Girişi:** Satır girildikten sonra iki kez ESC, ekran açık, satır duruyor.
 - **Değişmeyen davranış:** Önceki ESC denetimleri aynen geçiyor: Mizan paneli, Kod tanımları menüsü, yönetim penceresi, Belgeden Fiş'ten Modüller'e dönüş.
-- **Sonuç:** `xvfb-run -a node test/e2e.js` → **E2E_SONUC**
+- **Sonuç:** `xvfb-run -a node test/e2e.js` → **366 ✓, 0 başarısız**
 
 ## Değişen dosyalar
 - `renderer/app.js`: `escKutu()` yardımcısı, Luca'ya kaydet ESC işleyicisi, yukarıdaki pencerelerin ESC işleyicileri, hesap öneri listesi, `FISG.kirli()` ve `geri()`
