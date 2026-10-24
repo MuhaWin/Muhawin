@@ -18,6 +18,7 @@ from . import arsiv, depo
 from .eslestirme import ISTISNA_KAYITSIZ, MUAVINDE_YOK, esle, fatura_tipi, istisnali
 from .fatura_okuyucu import faturalari_oku, vkn_tespit
 from .kontrol import kimlik_sec, muavin_dosyalari, muavinleri_oku
+from .vkn import GENEL_ONEKLER, gecerli as vkn_gecerli, onek as fatura_oneki
 
 KDV_ANA = {"191", "391"}
 TEVKIFAT_ANA = {"360"}
@@ -110,6 +111,8 @@ def ogren(firma_klasoru: Path, vkn: str | None):
     adlar: dict[str, str] = {}
     gorulen: set = set()
     kelime: dict[tuple, Counter] = defaultdict(Counter)      # (yön, kalem kelimesi) → matrah hesabı
+    onek_vkn: dict[str, set] = defaultdict(set)               # fatura no ön eki → bu ön eki kullanan karşı taraflar (VKN)
+    onek_cari: dict[str, Counter] = defaultdict(Counter)      # fatura no ön eki → muavinde kaydedildiği cari
     # Muavin artık yıllık indirilir: tüm dönem klasörlerinin muavinleri ve faturaları birleştirilir (aynı satır bir kez),
     # böylece bir ayın faturası başka ayın klasöründeki (ya da yıllık) muavinde bulunsa da öğrenilir.
     muavin, gor_s = [], set()
@@ -159,6 +162,9 @@ def ogren(firma_klasoru: Path, vkn: str | None):
             tevk[s.hesap_kodu] += 1
     for f in ft_tum:
         b = f.belge_no.upper().replace(" ", "")
+        oe = fatura_oneki(b)
+        if oe and f.karsi_vkn:
+            onek_vkn[oe].add(f.karsi_vkn)
         satirlar = idx.get(b) or idx.get(f.belge_no)
         if satirlar:    # aynı numara başka firmaya / aya aitse öğrenmeye katılmaz (fatura no + ay, yoksa aynı cari)
             from .eslestirme import _faturanin_satirlari
@@ -170,6 +176,11 @@ def ogren(firma_klasoru: Path, vkn: str | None):
         # matrah hesabı alış faturasında borçta, satış faturasında alacakta (iadelerde de aynı yön kuralı)
         _grup_ogren(gecmis[f.karsi_vkn], satirlar, f.yon == "ALIS", w)
         _grup_ogren(unv[unvan_anahtari(f.karsi_unvan)], satirlar, f.yon == "ALIS", w)
+        if oe:
+            for x in satirlar:
+                if x.ana_hesap in CARI_ANA and ((x.alacak > 0) == (f.yon == "ALIS")):
+                    onek_cari[oe][x.hesap_kodu] += 1
+                    break
         mh = [x for x in satirlar if x.ana_hesap not in KDV_ANA and x.ana_hesap not in TEVKIFAT_ANA
               and x.ana_hesap not in CARI_ANA and ((x.borc > 0) == (f.yon == "ALIS"))]
         if mh:
@@ -200,6 +211,7 @@ def ogren(firma_klasoru: Path, vkn: str | None):
         return {v: {"cari": en(x["cari"]), "hesap": en(x["hesap"]), "fark": en(x["fark"]), "adet": x["adet"],
                     "kdv": {o: en(c) for o, c in x["kdv"].items()}} for v, x in d.items()}
     ogren.kelime = kelime          # adaylar() için (dönüş biçimi değişmesin)
+    ogren.onek = {e: {"firma": len(v), "cari": [k for k, _ in onek_cari[e].most_common()]} for e, v in onek_vkn.items()}
     return (ozet(gecmis), ozet(unv), {y: {o: en(c) for o, c in d.items()} for y, d in kdv.items()}, en(tevk), adlar)
 
 
@@ -290,6 +302,27 @@ def adaylar(rapor_id: str) -> dict:
             durum[a] = s.durum
     gecmis, gecmis_u, kdv_h, tevk_h, adlar = ogren(firma_k, vkn)
     kelime = getattr(ogren, "kelime", {})
+    onekler = getattr(ogren, "onek", {})
+
+    def _onek(f):
+        # Görev 35: fatura no ön eki destekleyici bilgi. Güçlü: ön eki yalnız bir karşı taraf kullanmış, genel ön ek
+        # (GIB, EAR, EFT …) değil ve bu ön ekli faturalar muavinde tek bir cariye kaydedilmiş.
+        e = fatura_oneki(f.belge_no)
+        if not e:
+            return None
+        o = onekler.get(e) or {"firma": 1 if f.karsi_vkn else 0, "cari": []}
+        guclu = e not in GENEL_ONEKLER and o["firma"] == 1 and len(o["cari"]) == 1
+        return {"ek": e, "firma": o["firma"], "genel": e in GENEL_ONEKLER, "cari": o["cari"][0] if guclu else None}
+
+    def _gecmis(f):
+        g = gecmis.get(f.karsi_vkn)
+        if g:
+            return {**g, "eslesme": "vkn"}
+        g = gecmis_u.get(unvan_anahtari(f.karsi_unvan))
+        if g:
+            return {**g, "eslesme": "unvan"}
+        g = _kelime_gecmis(f)
+        return {**g, "eslesme": "kelime"} if g else None
 
     def _kelime_gecmis(f):
         h = kelime_onerisi(kelime, f.yon, f.kalemler)
@@ -321,7 +354,7 @@ def adaylar(rapor_id: str) -> dict:
             "durum": dr, "kayitli": dr not in (MUAVINDE_YOK, ISTISNA_KAYITSIZ, ""),
             "haric": haric.get(a) or ((lambda k: {"kural": True, "aciklama": f"Kural: {KURAL_ALANLARI.get(k.get('alan'), '')} \"{k.get('ifade', '')}\""}
                                                    if k else None)(haric_kurali(f, kurallar))),
-            "gecmis": gecmis.get(f.karsi_vkn) or gecmis_u.get(unvan_anahtari(f.karsi_unvan)) or _kelime_gecmis(f),
+            "gecmis": _gecmis(f), "vkn_gecerli": vkn_gecerli(f.karsi_vkn), "onek": _onek(f),
         })
     return {"id": rapor_id, "firma": rapor_json.get("firma") or bilgi.get("firma") or firma_k.name, "klasor_ad": firma_k.name,
             "luca_id": bilgi_f.get("luca_id"), "vkn": vkn, "donem": [bas.isoformat() if bas else None, bit.isoformat() if bit else None],
