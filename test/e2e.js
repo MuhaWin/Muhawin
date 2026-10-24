@@ -364,6 +364,41 @@ wb.save(${JSON.stringify(mzx)})`]);
                  yatay: !!wr && wr.scrollWidth > wr.clientWidth + 1, ornek }; });
       check(mz.dh && mz.tutarli && !mz.yatay && mz.ornek['102.01.07.01'] === 'E' && ['102', '102.01', '102.01.07'].every(k => mz.ornek[k] === 'H'),
         'Görev 55: mizanda DH sütunu (E / H), H satırları kalın, yatay kaydırma yok (' + mz.n + ' satır)'); }
+    // Görev 55: mizandan muavine girince ← / → önceki / sonraki hesap; kutu odaktayken oklar hesap değiştirmez;
+    // yürüyen bakiye görünen sıraya göre yeniden hesaplanır (son satır = toplam bakiye)
+    { const kodlar = await w.$$eval('#mmTable tbody tr[data-mzhesap]', t => t.map(r => r.dataset.kod));
+      if (kodlar.length >= 2) {
+        const hf = () => w.evaluate(() => MMUI._st.hesapF);
+        await w.click(`#mmTable tbody tr[data-kod="${kodlar[0]}"] td >> nth=0`); await w.waitForTimeout(700);
+        const ilkH = await hf();
+        await w.keyboard.press('ArrowRight'); await w.waitForTimeout(700);
+        const ikinci = await hf();
+        await w.keyboard.press('ArrowLeft'); await w.waitForTimeout(700);
+        const geri = await hf();
+        await w.keyboard.press('ArrowLeft'); await w.waitForTimeout(400);
+        const basta = await hf();
+        await w.focus('#mmQ'); await w.keyboard.press('ArrowRight'); await w.waitForTimeout(400);
+        const kutuda = await hf();
+        await w.evaluate(() => document.activeElement && document.activeElement.blur());
+        const dug = !!(await w.$('[data-mmhgit="1"]'));
+        check(ilkH === kodlar[0] && ikinci !== ilkH && ikinci === kodlar[1] && geri === kodlar[0] && basta === kodlar[0] && kutuda === kodlar[0] && dug,
+          'Görev 55: muavinde → sonraki, ← önceki hesap; listenin başında durur; kutu odaktayken oklar hesap değiştirmez (' + [ilkH, ikinci, geri, basta, kutuda].join(' · ') + ')');
+        // bakiye: alacağa göre azalan sırala
+        const bk = async () => w.evaluate(() => { const st = MMUI._st; const cols = st.cols.map(c => c[0]); const bi = cols.indexOf('bakiye');
+          const satir = [...document.querySelectorAll('#mmTable tbody tr[data-kod]')]; const ft = document.querySelector('#mmTable tfoot td:nth-child(' + (bi + 1) + ')');
+          return { bi, n: satir.length, son: satir.length ? satir[satir.length - 1].cells[bi].textContent.trim() : '', top: ft ? ft.textContent.trim() : '', ilk: satir.length ? satir[0].cells[bi].textContent.trim() : '' }; });
+        const once = await bk();
+        if (once.bi >= 0 && once.n >= 2) {
+          await w.click('[data-mmsort=alacak]'); await w.click('[data-mmsort=alacak]'); await w.waitForTimeout(300);
+          const sonra = await bk();
+          const tutarli = await w.evaluate(() => { const st = MMUI._st; const cols = st.cols.map(c => c[0]); const bi = cols.indexOf('bakiye'), b = cols.indexOf('borc'), a = cols.indexOf('alacak');
+            const p = x => +String(x).replace(/[^\d,]/g, '').replace(',', '.') || 0; let t = st.acilis || 0;
+            return [...document.querySelectorAll('#mmTable tbody tr[data-kod]')].every(r => { t = Math.round((t + p(r.cells[b].textContent) - p(r.cells[a].textContent)) * 100) / 100;
+              return Math.abs(Math.abs(t) - p(r.cells[bi].textContent)) < 0.01; }); });
+          check(tutarli && sonra.son === sonra.top, 'Görev 55: alacağa göre sıralayınca yürüyen bakiye yeni sıraya göre; son satır = toplam bakiye (' + sonra.son + ' / ' + sonra.top + ')');
+        } else check(true, 'Görev 55: muavin bakiyesi (örnek hesapta tek hareket, atlandı)');
+        await w.click('[data-mmgeri]'); await w.waitForTimeout(600);
+      } else check(true, 'Görev 55: muavinde ← / → (örnek mizanda tek hesap, atlandı)'); }
     await w.click('[data-mmtab=muavin]'); await w.waitForTimeout(800);
     let n = await w.$$eval('#mmTable tbody tr', t => t.length);
     check(n === 3, 'muavin satırları listelendi (' + n + ')');

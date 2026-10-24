@@ -3124,7 +3124,7 @@ const MMUI=(()=>{
     const fkey=st.firm?'s:'+st.firm:'d:'+(st.dFirma||'');
     const dosyalar=fds.filter(d=>!mvYil||String(d.yil)===mvYil);
     st.donem=dosyalar.length?'B|'+fkey+'|'+(mvYil||'tum'):'';
-    $('#mmBar').innerHTML=(st.hesapF?`<span class="mmhesap" title="Mizandan seçilen hesabın muavini">Hesap <b class="mono">${esc(st.hesapF)}</b> ${esc(st.hesapAd||'')} <button class="x" data-mmhx="1" title="Tüm muavini göster">✕</button></span>${st.geriTab?`<button class="btn small" data-mmgeri="1" title="Esc">← ${st.geriTab==='plan'?'Hesap planına':'Mizana'} dön</button>`:''}`:'')+`<label class="note">Firma</label><select id="mmMvFirm">${tumFirmalar().map(x=>`<option value="${esc(x.key)}"${x.key===fkey?' selected':''}>${esc(x.ad)}${ds.some(d=>x.firm?donemFirmasi(d,x.firm):N(d.firma)===N(x.ad))?'':' · muavin yok'}</option>`).join('')}</select>
+    $('#mmBar').innerHTML=(st.hesapF?`<span class="mmhesap" title="Mizandan seçilen hesabın muavini">Hesap <b class="mono">${esc(st.hesapF)}</b> ${esc(st.hesapAd||'')} <button class="x" data-mmhx="1" title="Tüm muavini göster">✕</button></span>${(st.hesapListe||[]).length>1?`<span class="mmgez"><button class="btn small" data-mmhgit="-1" title="Önceki hesap (←)">&lt; önceki</button><span class="note">${hesapSira()}</span><button class="btn small" data-mmhgit="1" title="Sonraki hesap (→)">sonraki &gt;</button></span>`:''}${st.geriTab?`<button class="btn small" data-mmgeri="1" title="Esc">← ${st.geriTab==='plan'?'Hesap planına':'Mizana'} dön</button>`:''}`:'')+`<label class="note">Firma</label><select id="mmMvFirm">${tumFirmalar().map(x=>`<option value="${esc(x.key)}"${x.key===fkey?' selected':''}>${esc(x.ad)}${ds.some(d=>x.firm?donemFirmasi(d,x.firm):N(d.firma)===N(x.ad))?'':' · muavin yok'}</option>`).join('')}</select>
       <label class="note">Dönem</label><select id="mmDonem" title="Firmanın indirilmiş tüm muavinleri birleştirilir; buradan yıl ya da ay süzülür">${yillar.length?`${yillar.length>1?`<option value="tum"${st.mvDonem==='tum'?' selected':''}>Tüm dönemler</option>`:''}${yillar.map(y=>`<option value="${y}"${st.mvDonem===y?' selected':''}>${y} · tüm yıl</option>${AYLAR.map((a,i)=>{const v=y+'-'+String(i+1).padStart(2,'0');return `<option value="${v}"${st.mvDonem===v?' selected':''}>&nbsp;&nbsp;${a} ${y}</option>`;}).join('')}`).join('')}`:'<option value="">Muavin yok</option>'}</select>
       <label class="note">Tarih <input type="date" id="mmMvBas" value="${esc(st.mvBas||'')}" title="Başlangıç (boş: dönem başı)"> – <input type="date" id="mmMvBit" value="${esc(st.mvBit||'')}" title="Bitiş (boş: dönem sonu)"></label>
       <label class="note"><input type="checkbox" id="mmGrup"${st.grup?' checked':''}> Hesap bazında topla (mizan)</label>
@@ -3144,7 +3144,12 @@ const MMUI=(()=>{
       if(st.hesapF){   // mizandan tıklanan hesap: yalnız onun (ve alt hesaplarının) hareketleri, tarih sırasıyla, yürüyen bakiye
         const k=String(st.hesapF);L=L.filter(r=>r.hesap_kodu===k||String(r.hesap_kodu).startsWith(k+'.'));
         L.sort((a,b)=>String(a.tarih).localeCompare(String(b.tarih))||String(a.fis_no).localeCompare(String(b.fis_no),'tr',{numeric:true})||a._i-b._i);
-        let b=0;for(const r of L){b=Math.round((b+(+r.borc||0)-(+r.alacak||0))*100)/100;r.bakiye=b;}}
+        let b=0;for(const r of L){b=Math.round((b+(+r.borc||0)-(+r.alacak||0))*100)/100;r.bakiye=b;}
+        // Görev 55: yürüyen bakiye ekrandaki sıraya göre filtered()'da yeniden hesaplanır; dönem / tarih aralığından
+        // önceki hareketler açılış bakiyesi olur
+        const ilk=mvAy?mvAy+'-01':(st.mvBas||'');
+        st.acilis=ilk?Math.round(L.filter(r=>!arl(r)&&String(r.tarih||'')<ilk).reduce((t,r)=>t+(+r.borc||0)-(+r.alacak||0),0)*100)/100:0;}
+      else st.acilis=0;
       st.rows=L.filter(arl);}
     const son=dosyalar.map(x=>x.zaman||'').sort().pop();
     st.note=`${esc(m.firma||'')} · ${sat.length}${sat.length!==m.satirlar.length?' / '+m.satirlar.length:''} hareket${mvAy?' · '+esc(AYLAR[+mvAy.slice(5)-1]+' '+mvAy.slice(0,4)):''}${(st.mvBas||st.mvBit)?' · '+esc(trd(st.mvBas)||'…')+' – '+esc(trd(st.mvBit)||'…'):''}${dosyalar.length>1?` · ${dosyalar.length} muavin dosyası birleştirildi`:''} · son indirme ${son?new Date(son).toLocaleString('tr-TR',{dateStyle:'short',timeStyle:'short'}):''}`;
@@ -3160,6 +3165,9 @@ const MMUI=(()=>{
     if(st.q){const q=N(st.q);rows=rows.filter(r=>N(cols.map(([k])=>r[k]??'').join(' ')).includes(q));}
     for(const [k,v] of Object.entries(st.f))if(v&&v.trim()){const num=cols.find(c=>c[0]===k&&c[2]);rows=rows.filter(r=>match(k==='tarih'?trd(r[k]):r[k],v,!!num));}
     if(st.sort){const {k,d}=st.sort;const num=st.cols.find(c=>c[0]===k&&c[2]);rows=rows.slice().sort((a,b)=>{const x=a[k],y=b[k];const c=num?((+x||0)-(+y||0)):String(x??'').localeCompare(String(y??''),'tr',{numeric:true});return d*c;});}
+    // Görev 55: tek hesabın muavininde yürüyen bakiye görünen sıraya (sıralama + süzgeç) göre baştan; açılış bakiyesinden başlar.
+    // Alt hesaplarıyla birlikte listelenen üst hesapta (102 → 102.01.x) bakiye tek toplam olarak yürür (bugünkü gibi).
+    if(st.tab==='muavin'&&st.hesapF&&!st.grup){let b=st.acilis||0;rows=rows.map(r=>({...r,bakiye:(b=Math.round((b+(+r.borc||0)-(+r.alacak||0))*100)/100)}));}
     return rows;
   }
   // Büyük muavinler: ilk 400 satır hemen, kalanı aşağı kaydırdıkça parça parça eklenir (toplamlar her zaman tümünden)
@@ -3183,7 +3191,7 @@ const MMUI=(()=>{
     $('#mmTable').innerHTML=`<thead><tr>${cols.map(([k,l,num])=>`<th class="${num?'n':k==='dh'?'dh':''}"><button data-mmsort="${k}" title="${k==='dh'?'Detay hesap: E = en alt kırılım, H = altında hesap var (kalın). Tıklayın: sırala':'Sırala'}">${esc(l)}${arrow(k)}</button></th>`).join('')}</tr>
       <tr class="flt">${cols.map(([k,l,num])=>`<th><input data-mmf="${k}" value="${esc(st.f[k]||'')}" placeholder="${num?'>1000 · <500 · 1..9':k==='dh'?'E/H':'filtre'}" aria-label="${esc(l)} filtresi"></th>`).join('')}</tr></thead>
       <tbody>${rows.slice(0,PARCA).map(satirHtml).join('')||`<tr><td colspan="${cols.length}" class="bosliste">${st.note&&!st.rows.length?st.note:'Bu görünümde kayıt yok. Süzgeçleri temizleyin ya da Luca\'dan çekin.'}</td></tr>`}</tbody>
-      ${rows.length?`<tfoot><tr>${cols.map(([k,,num],i)=>`<td class="${num?'n':''}">${i===0?`Toplam · ${rows.length} satır`:k==='bakiye'?(()=>{const v=Math.round(((tot.borc||0)-(tot.alacak||0))*100)/100;return `<b>${n2(Math.abs(v))} ${v>0.004?'B':v<-0.004?'A':''}</b>`;})():num?(k==='adet'?tot[k]:k==='alt'?'':n2(tot[k])):''}</td>`).join('')}</tr></tfoot>`:''}`;
+      ${rows.length?`<tfoot><tr>${cols.map(([k,,num],i)=>`<td class="${num?'n':''}">${i===0?`Toplam · ${rows.length} satır`:k==='bakiye'?(()=>{const v=Math.round(((st.hesapF&&!st.grup?st.acilis||0:0)+(tot.borc||0)-(tot.alacak||0))*100)/100;return `<b>${n2(Math.abs(v))} ${v>0.004?'B':v<-0.004?'A':''}</b>`;})():num?(k==='adet'?tot[k]:k==='alt'?'':n2(tot[k])):''}</td>`).join('')}</tr></tfoot>`:''}`;
     const tn=st.tab==='mizan'?rows.filter(tersMi).length:0;
     const info=$('#mmInfo');if(info)info.innerHTML=(st.rows.length?st.note:'')+(tn?` · <span style="color:#c62828;font-weight:600">${tn} ters bakiyeli hesap</span>`:'')+(rows.length>PARCA?` · ilk ${PARCA} satır gösteriliyor, kaydırdıkça devamı gelir (toplamlar tümü için)`:'');
     dahaKur(rows,satirHtml);
@@ -3499,19 +3507,38 @@ const MMUI=(()=>{
     const b=e.target.closest('[data-gor]');if(!b)return;st.gorunum=b.dataset.gor;const sel=$('#mmGorunum');if(sel)sel.value=st.gorunum;menuKapat();draw();});
   document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('.mmmenu'))menuKapat();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hidden){e.stopPropagation();menuKapat();}},true);
+  // Görev 55: muavinde ↑ / ↓ satır seçer, ← / → önceki / sonraki hesabı açar. Kutu / süzgeç odaktayken oklar metinde kalır.
+  document.addEventListener('keydown',e=>{
+    if($('#mmPanel').hidden||st.tab!=='muavin'||!st.hesapF||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;
+    if(!/^Arrow(Left|Right|Up|Down)$/.test(e.key)||!$('#mmFis').hidden||!$('#mmYk').hidden||document.querySelector('.modal:not([hidden])'))return;
+    const t=e.target;if(t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))return;
+    e.preventDefault();
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){hesapGit(e.key==='ArrowRight'?1:-1);return;}
+    const rs=[...document.querySelectorAll('#mmTable tbody tr[data-kod]')];if(!rs.length)return;
+    st.secSatir=Math.max(0,Math.min(rs.length-1,(st.secSatir??-1)+(e.key==='ArrowDown'?1:-1)));
+    rs.forEach((r,i)=>r.classList.toggle('sec',i===st.secSatir));rs[st.secSatir].scrollIntoView({block:'nearest'});});
   document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#mmPanel').hidden)return;if(!$('#mmFis').hidden){$('#mmFis').hidden=true;return;}if(!$('#mmYk').hidden){if(escKutu(e,$('#mmYk')))return;ykKapat();return;}
     if(escKutu(e,$('#mmPanel')))return;if(st.hesapF&&st.geriTab&&$('#chooseModal').hidden){hesapGeri();return;}if($('#chooseModal').hidden)close();});
   // Mizanda bir hesaba tıklayınca: muavin sekmesinde yalnız o hesabın hareketleri (alt hesaplarıyla), tarih sırasıyla, yürüyen bakiye
   function hesapAc(kod){const r=(st.rows||[]).find(x=>x.kod===kod)||{};let f=null;try{f=(Store.local().firms||{})[st.firm];}catch(x){}
     st.mizanKonum={kod,top:($('#mmTable')&&$('#mmTable').closest('.mmwrap')||{}).scrollTop||0,f:{...st.f},sort:st.sort,q:st.q};
+    st.hesapListe=filtered().map(x=>({kod:x.kod,ad:x.ad||''}));   // ← / →: geldiği listenin görünen sırası (süzgeç, sıralama dahil)
     st.hesapF=kod;st.hesapAd=r.ad||'';st.geriTab=st.tab==='plan'?'plan':'mizan';st.hesapYil=f&&f.mizanInfo&&f.mizanInfo.year;st.hesapYeni=true;
-    st.tab='muavin';st.grup=false;st.f={};st.sort=null;st.q='';load();}
+    st.tab='muavin';st.grup=false;st.f={};st.sort=null;st.q='';st.secSatir=-1;load();}
+  // Görev 55: muavinde ← / → (ya da "< önceki / sonraki >"): geldiği listedeki önceki / sonraki hesabın muavini.
+  // Sıralama ve süzgeç tercihi korunur; bakiye yeni hesap için yeniden hesaplanır.
+  function hesapGit(d){const L=st.hesapListe||[];const i=L.findIndex(x=>x.kod===st.hesapF);const j=i+d;
+    if(i<0||j<0||j>=L.length){toast(d<0?'Listenin başındasınız.':'Listenin sonundasınız.');return false;}
+    st.hesapF=L[j].kod;st.hesapAd=L[j].ad;st.secSatir=-1;if(st.mizanKonum){st.mizanKonum.kod=L[j].kod;st.mizanKonum.top=0;}
+    const w=$('#mmTable')&&$('#mmTable').closest('.mmwrap');if(w)w.scrollTop=0;load();return true;}
+  const hesapSira=()=>{const L=st.hesapListe||[];const i=L.findIndex(x=>x.kod===st.hesapF);return i<0?'':`${i+1} / ${L.length}`;};
   function hesapGeri(){const k=st.mizanKonum||{};st.tab=st.geriTab||'mizan';st.hesapF=null;st.geriTab=null;st.f=k.f||{};st.sort=k.sort||null;st.q=k.q||'';
     Promise.resolve(load()).then(()=>{setTimeout(()=>{const w=$('#mmTable')&&$('#mmTable').closest('.mmwrap');if(w&&k.top)w.scrollTop=k.top;const tr=k.kod&&document.querySelector(`#mmTable tr[data-kod="${CSS.escape(k.kod)}"]`);if(tr){tr.classList.add('sec');if(!k.top)tr.scrollIntoView({block:'center'});}},60);});}
   $('#mmPanel').addEventListener('click',async e=>{
     const t=e.target.closest('[data-mmtab]');if(t){st.tab=t.dataset.mmtab;st.f={};st.sort=null;st.q='';st.hesapF=null;st.geriTab=null;load();return;}
     if(e.target.closest('[data-mmhx]')){st.hesapF=null;st.geriTab=null;st.f={};st.sort=null;load();return;}
     if(e.target.closest('[data-mmgeri]')){hesapGeri();return;}
+    {const g=e.target.closest('[data-mmhgit]');if(g){hesapGit(+g.dataset.mmhgit);return;}}
     {const tr=(st.tab==='mizan'||st.tab==='plan')&&!e.target.closest('input,button,select,a')&&e.target.closest('#mmTable tbody tr[data-mzhesap]');
       if(tr&&tr.dataset.kod){hesapAc(tr.dataset.kod);return;}}
     const fb=e.target.closest('[data-mmfis]');if(fb){showFis(fb.dataset.mmfis);return;}

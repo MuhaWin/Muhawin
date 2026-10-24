@@ -638,6 +638,7 @@ td.amt .dvz{display:block;font-size:10.5px;color:var(--muted);font-family:var(--
 #mmTable tbody tr.sec td{background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
 .mmhesap{display:inline-flex;gap:6px;align-items:center;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 6px 3px 12px;font-size:13px}
 .mmhesap .x{appearance:none;border:0;background:none;color:inherit;cursor:pointer;font-size:13px}
+.mmgez{display:inline-flex;gap:6px;align-items:center}.mmgez .note{min-width:54px;text-align:center}
 .bkA{color:var(--out)}.bkB{color:var(--ink)}
 /* Ekranda ara (Ctrl+F) */
 #mwAra{position:fixed;top:10px;right:16px;z-index:90;display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18)}

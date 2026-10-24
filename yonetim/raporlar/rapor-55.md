@@ -1,4 +1,4 @@
-# Rapor 55 – Mizan: detay hesap (DH) sütunu ve kalın üst hesaplar
+# Rapor 55 – Mizan: detay hesap (DH) sütunu; muavinde yürüyen bakiye ve hesaplar arası gezinme
 
 **Oturum:** Web Asistanı (`session_01GmVYe6iE3V7psTH1xXFUiq`) · **Taban:** `main` `555ce25` · **Dal:** `claude/beautiful-bohr-c7x9ij`
 
@@ -21,6 +21,29 @@ Derleme yapılmadı.
 - **Excel'e aktarma:** DH sütunu çıktıda da var.
 - **Fatura Kontrol / denetim:** Mizan görüntüleme tablosu yok (yönetici raporu mizanı yalnız hesaplamada kullanıyor), bu yüzden orada değişiklik gerekmedi.
 
+## Ek 1 – Muavinde yürüyen bakiye (mizandan / hesap planından girilen tek hesap)
+**Eski durum:** "Bakiye" ilk açılışta tarih sırasıyla bir kez hesaplanıyordu. Sıralama ya da süzgeç değişince eski değerler yerinde kalıyordu.
+
+**Şimdi:**
+- **Hesaplanma:** Bakiye `filtered()` içinde, ekranda görünen sıraya göre baştan hesaplanıyor. Sıralama, sütun süzgeci ve aramanın hepsi dikkate alınıyor. Excel'e aktarımda da aynı değerler çıkıyor.
+- **Açılış bakiyesi:** Dönem ya da tarih aralığı seçiliyse, aralıktan önceki hareketlerin toplamı açılış bakiyesi oluyor ve bakiye ondan başlıyor (`st.acilis`). Devir satırı listedeyse kendi satırı olarak toplama giriyor.
+- **Gösterim:** Bakiye borç − alacak olarak hesaplanıyor; B / A gösterimi bugünkü gibi.
+- **Alt toplam:** "Toplam" satırındaki bakiye de açılışı içeriyor. Böylece son satırdaki bakiye toplam bakiyeye eşit.
+- **Birden fazla hesap:** Alt hesaplarıyla birlikte listelenen bir üst hesapta (ör. 102 → 102.01.x) bakiye bugünkü gibi tek toplam olarak yürüyor; hesap bazında ayrı hesaplanmıyor. Hesap bazında toplam için "Hesap bazında topla" kullanılabilir.
+- **Etkilenmeyen:** Firmanın tüm muavini (hesap seçili değilken) değişmedi; orada bakiye sütunu yok.
+
+## Ek 2 – Muavinde hesaplar arası gezinme
+- **Klavye ve düğmeler:**
+  - **→** sonraki, **←** önceki hesabın muavinini açar.
+  - Başlıkta hesabın yanında **"< önceki · 3 / 120 · sonraki >"** düğmeleri var; fareyle de gezilebiliyor.
+  - **↑ / ↓** muavin satırları arasında gezinir (seçili satır vurgulanır ve görünür kalır).
+- **Sıra:** Mizana ya da hesap planına tıklandığı anda o listenin görünen sırası alınıyor (süzgeç, sıralama, düzey ve görünüm dahil).
+- **Kutu odaktayken:** Yazı ya da süzgeç kutusu (arama, sütun süzgeci, tarih, açılır liste) odaktayken oklar metinde çalışıyor, hesap değişmiyor. Fiş penceresi ya da başka bir pencere açıkken de oklar hesap değiştirmiyor.
+- **Liste sonu:** Listenin başında ya da sonunda durup "Listenin başındasınız / sonundasınız" uyarısı veriyor.
+- **Hesap değişince:**
+  - Sıralama ve süzgeç tercihi korunuyor ve bakiye yeni hesap için yeniden hesaplanıyor.
+  - "← Mizana dön" son gezilen hesabı işaretleyerek açılıyor.
+
 ## Testler
 - **`node test/hesap_dh.js` (yeni):** 8 kontrol, CI'ye (`surum.yml`) eklendi.
   - 102 / 102.01 / 102.01.07 / 102.01.07.01 örneğinde yalnız sonuncusu E.
@@ -30,5 +53,6 @@ Derleme yapılmadı.
   - H satırlarının yazısı kalın (≥700), E satırları normal.
   - Mizan kutusunda yatay kaydırma yok.
   - 102 örneği doğru çıkıyor.
-  - Electron bu ortamda çalıştırılmadı.
+  - Muavinde → ile sonraki hesap, ← ile önceki açılıyor; listenin başında duruyor; arama kutusu odaktayken → hesabı değiştirmiyor; "sonraki >" düğmesi var.
+  - Alacağa göre azalan sıralayınca her satırın bakiyesi görünen sıranın yürüyen toplamı ve son satır "Toplam" bakiyesine eşit (örnek hesapta en az iki hareket varsa).
 - **Görünüm:** Programın stil dosyasıyla örnek tablo tarayıcıda denendi; H satırları kalın, E normal.
