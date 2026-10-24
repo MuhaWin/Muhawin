@@ -717,3 +717,4 @@ tr.fiscikan td:last-child{opacity:1}
 #fkKayit thead tr.flt .flt2{display:grid;gap:2px}
 #fkKayit thead tr.flt input{min-width:44px}
 #fkKayit td,#fkKayit thead th{padding-left:8px;padding-right:8px}
+#fkKayit .fk-fisac{margin:0 0 8px}

@@ -1086,7 +1086,7 @@ document.addEventListener('click',e=>{
   if(e.target.closest('[data-close]')||(e.target.classList.contains('modal')&&downOnBackdrop)){closeModal();return;}
   const rt=e.target.closest('[data-rtab]');if(rt){S.rulesTab=rt.dataset.rtab;renderSide();}
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&(!$('#firmModal').hidden||!$('#rulesModal').hidden)){e.preventDefault();closeModal();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&(!$('#firmModal').hidden||!$('#rulesModal').hidden)){if(escKutu(e))return;e.preventDefault();closeModal();}});
 
 function filesHead(){
   const n=S.files.reduce((a,f)=>a+f.rows.length,0);
@@ -1967,7 +1967,7 @@ const Desk=(()=>{
     else if(g==='connectview'){mode='connect';renderConnect();}
   });
   $('#lucaModal').addEventListener('pointerdown',e=>{if(e.target.id==='lucaModal')closeLuca();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#lucaModal').hidden)closeLuca();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#lucaModal').hidden){if(escKutu(e,$('#lucaModal')))return;closeLuca();}});
 
   function firmMizanButton(){
     if(isExample())return '<button class="btn" disabled title="Örnek firmada kullanılamaz">Mizanı Luca\'dan çek</button>';
@@ -2078,7 +2078,7 @@ const Desk=(()=>{
     }catch(err){toast(cleanErr(err));}
   });
   $('#dataModal').addEventListener('pointerdown',e=>{if(e.target.id==='dataModal')closeData();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#dataModal').hidden&&$('#chooseModal').hidden&&$('#askModal').hidden)closeData();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#dataModal').hidden&&$('#chooseModal').hidden&&$('#askModal').hidden){if(escKutu(e,$('#dataModal')))return;closeData();}});
   if(Store.loadError)setTimeout(()=>toast('Ortak veri klasörüne ulaşılamadı: '+Store.loadError),800);
 
   /* ---- Ayarlar: büro bilgileri (e-posta) + Luca giriş (yerel) + firma listesi ---- */
@@ -2270,7 +2270,7 @@ const Desk=(()=>{
     if(!setupMode)toast('Büro bilgileri kaydedildi.');
   });
   $('#regModal').addEventListener('pointerdown',e=>{if(e.target.id==='regModal')closeReg();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#regModal').hidden)closeReg();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#regModal').hidden){if(escKutu(e,$('#regModal')))return;closeReg();}});
 
 
   /* ---- program girişi (sunucu: Supabase): üyelik + e-posta kodu + giriş + şifre sıfırlama ---- */
@@ -3308,7 +3308,7 @@ const MMUI=(()=>{
     P.hidden=false;hpCiz();setTimeout(()=>{const i=$('[data-hpk="0"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length);}},30);
     const kapat=()=>{P.hidden=true;};
     $('#hpKapat').onclick=kapat;$('#hpIptal').onclick=kapat;
-    P.onkeydown=e=>{if(e.key==='Escape'){e.stopPropagation();kapat();}};
+    P.onkeydown=e=>{if(e.key==='Escape'){e.stopPropagation();if(escKutu(e,P))return;kapat();}};
     $('#hpYeni').onclick=()=>{hp.satirlar.push({kod:'',ad:''});hp.odak=hp.satirlar.length-1;hpCiz();const i=$(`[data-hpk="${hp.odak}"]`);if(i)i.focus();};
     $('#hpOku').onclick=async()=>{try{const rows=await planCek(f,$('#hpYil').value.trim());hp.kodlar=new Map(rows.map(r=>[r[0],r[1]]));hp.kaynak=`Luca hesap planı (${rows.length} hesap)`;$('#hpKaynak').textContent=hp.kaynak;hpCiz();}catch(e){toast(clean(e));}};
     $('#hpRows').oninput=e=>{const t=e.target;const k=t.dataset.hpk,a=t.dataset.hpa;
@@ -3471,8 +3471,8 @@ const MMUI=(()=>{
     const b=e.target.closest('[data-gor]');if(!b)return;st.gorunum=b.dataset.gor;const sel=$('#mmGorunum');if(sel)sel.value=st.gorunum;menuKapat();draw();});
   document.addEventListener('click',e=>{if(!menu.hidden&&!e.target.closest('.mmmenu'))menuKapat();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!menu.hidden){e.stopPropagation();menuKapat();}},true);
-  document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#mmPanel').hidden)return;if(!$('#mmFis').hidden){$('#mmFis').hidden=true;return;}if(!$('#mmYk').hidden){ykKapat();return;}
-    if(st.hesapF&&st.geriTab&&$('#chooseModal').hidden){hesapGeri();return;}if($('#chooseModal').hidden)close();});
+  document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#mmPanel').hidden)return;if(!$('#mmFis').hidden){$('#mmFis').hidden=true;return;}if(!$('#mmYk').hidden){if(escKutu(e,$('#mmYk')))return;ykKapat();return;}
+    if(escKutu(e,$('#mmPanel')))return;if(st.hesapF&&st.geriTab&&$('#chooseModal').hidden){hesapGeri();return;}if($('#chooseModal').hidden)close();});
   // Mizanda bir hesaba tıklayınca: muavin sekmesinde yalnız o hesabın hareketleri (alt hesaplarıyla), tarih sırasıyla, yürüyen bakiye
   function hesapAc(kod){const r=(st.rows||[]).find(x=>x.kod===kod)||{};let f=null;try{f=(Store.local().firms||{})[st.firm];}catch(x){}
     st.mizanKonum={kod,top:($('#mmTable')&&$('#mmTable').closest('.mmwrap')||{}).scrollTop||0,f:{...st.f},sort:st.sort,q:st.q};
@@ -5219,7 +5219,7 @@ const FKAYIT=(()=>{
     const SM=silinmisler();const silOf=r=>r.silindi||SM.get(r.f.anahtar)||SM.get('b:'+r.f.belge_no);
     const silChip=v=>v.neden==='muavin'?`<span class="chip aski" title="Programın kaydettiği Luca fişi${v.n?' '+esc(v.n):''} son çekilen muavinde yok; fiş Luca'dan silinmiş sayıldı. Fatura yeniden kaydedilebilir.">Luca'da bulunamadı (silinmiş)${v.n?' · fiş '+esc(v.n):''}</span>`
       :`<span class="chip aski" title="Luca'dan sildiğiniz işaretlendi; fatura yeniden kaydedilebilir">Luca'dan silindi${v.n?' · fiş '+esc(v.n):''}</span>`;
-    const chip=r=>r.kuralAtla&&!r.f.haric&&!r.logged?`<span class="chip" title="Kural: ${esc(r.kuralMetin||'')} → hiç kaydetme">kaydedilmeyecek (kural)</span>`:r.f.haric?(r.f.haric.kural?`<span class="chip" title="${esc(r.f.haric.aciklama||'')} — kuralı Fatura Kontrol raporundaki “Kullanıcı kararı” penceresinden silebilirsiniz">kaydedilmeyecek (kural)</span>`:'<span class="chip">kaydedilmeyecek</span>'):r.haricBekle?'<span class="chip aski">kaydedilmeyecek (onay bekliyor)</span>':r.logged?`<button type="button" class="chip kural" data-lucafis="${st.rows.indexOf(r)}" style="cursor:pointer;border:0" title="MuhaWin ile Luca'ya kaydedildi · fişi muavinden aç">Luca fiş ${esc(r.logged.n||'')}</button>`:r.f.kayitli?'<span class="chip cari">muavinde var</span>':silOf(r)?silChip(silOf(r)):'<span class="chip aski">kayıtsız</span>';
+    const chip=r=>r.kuralAtla&&!r.f.haric&&!r.logged?`<span class="chip" title="Kural: ${esc(r.kuralMetin||'')} → hiç kaydetme">kaydedilmeyecek (kural)</span>`:r.f.haric?(r.f.haric.kural?`<span class="chip" title="${esc(r.f.haric.aciklama||'')} — kuralı Fatura Kontrol raporundaki “Kullanıcı kararı” penceresinden silebilirsiniz">kaydedilmeyecek (kural)</span>`:'<span class="chip">kaydedilmeyecek</span>'):r.haricBekle?'<span class="chip aski">kaydedilmeyecek (onay bekliyor)</span>':r.logged?`<span class="chip kural" title="MuhaWin ile Luca'ya kaydedildi. Fişi açmak için satırdaki Fiş düğmesine basın.">Luca fiş ${esc(r.logged.n||'')}</span>`:r.f.kayitli?'<span class="chip cari">muavinde var</span>':silOf(r)?silChip(silOf(r)):'<span class="chip aski">kayıtsız</span>';
     const src=(k,r)=>k==='kural'&&r&&r.kuralMetin?`<span class="chip kural" title="Kural: ${esc(r.kuralMetin)}">kural</span><div class="note" style="max-width:160px">${esc(r.kuralMetin)}</div>`:({kural:'<span class="chip kural">kural</span>','geçmiş':'<span class="chip cari">geçmiş</span>','benzer kalem':'<span class="chip cari" title="Geçmişte benzer kalemli faturaların kaydedildiği hesap">benzer kalem</span>',varsayılan:'<span class="chip">varsayılan</span>','kod tablosu':'<span class="chip cari" title="Firmanın kod tanımlarından, faturanın KDV oranına göre">kod tablosu</span>'}[k]||'')+(k==='kural'&&r&&r.kuralAna&&r.hesap?`<div class="note">ana ${esc(r.kuralAna)} → kod tablosu</div>`:'');
     const ok_=k=>st.sort&&st.sort.k===k?(st.sort.d>0?' ▲':' ▼'):'';
     // Görev 46: tablo yatay kaydırmasız sığsın diye tarih + belge no ve matrah + KDV tek hücrede iki satır; sıralama / süzgeç ikisinde de var
@@ -5242,7 +5242,7 @@ const FKAYIT=(()=>{
           <td class="fk-cari"><input class="mono${cariTaslak(r)?' taslak':''}" list="fkkAccList" data-c="${i}" data-hsad="${esc(f.karsi_unvan||'')}" value="${esc(r.cari)}" style="width:120px"><div class="note" title="${esc(cariTaslak(r)?HESAP.taslakAd(st.firm.id,r.cari):(st.acc.get(r.cari)||''))}">${cariTaslak(r)?`<span class="chip yeni" title="Mizanda / hesap planında bulunamadı; firmanın düzenine göre sıradaki kod önerildi. Luca'ya kaydederken önce hesap planına açılır.">yeni</span> ${esc(HESAP.taslakAd(st.firm.id,r.cari))}`:esc(st.acc.get(r.cari)||'')}</div>${cariNot(r)}${!r.cari&&!r.logged&&st.firm&&st.firm.lucaId?`<button class="btn small" data-cariac="${i}" title="Bu karşı taraf için firmanın cari hesap düzenine göre sıradaki kodla Luca'da cari hesap aç">＋ Cari Aç</button>`:''}</td>
           <td class="fk-durum">${chip(r)}${hr?'':s.err.length?`<div class="note" style="color:var(--out)">${esc(s.err[0])}${s.err.length>1?' +'+(s.err.length-1):''}</div>`:s.warn.length?`<div class="note" style="color:var(--warn)">${esc(s.warn[0])}</div>`:''}</td>
           <td class="fk-is"><div class="fk-isler"><button class="btn small ghost" data-pdf="${i}" title="Faturayı PDF olarak aç">📄 PDF</button><button class="btn small ghost" data-fis="${i}" title="Fiş satırlarını göster">Fiş</button><button class="btn small ghost" data-kural="${i}" title="Bu faturadan kural yap">Kural yap</button>${r.logged||(f.haric&&f.haric.kural)?'':f.haric?`<button class="btn small ghost" data-hgeri="${i}" title="Kaydedilmeyecek işaretini kaldır">Geri al</button>`:`<button class="btn small ghost${r.haricBekle?' danger':''}" data-haric="${i}" title="Bu fatura bu firmada kaydedilmeyecek; onaylayınca muavin kontrolünde eksik sayılmaz">${r.haricBekle?'✓ Kaydetme':'Kaydetme'}</button>`}</div></td></tr>
-          ${r.acik?`<tr class="fisdetay"><td></td><td colspan="9">${f.yon==='ALIS'&&f.tip!=='IADE'&&!r.logged?`<div class="binekkutu"><span class="binekres" aria-hidden="true">🚗</span><b>Binek araç gideri mi?</b><span class="note">Evet derseniz KDV'nin %30'u 770 İndirilemeyen Binek Araç KDV'ye, giderin %30'u 770 KKEG'ye; toplam %30 ayrıca 950 (borç) / 951 (alacak) binek araç nazım hesaplarına yazılır; fiş hemen değişir.</span><span class="mmtabs"><button class="btn small" data-binek="${i}" data-v="1" aria-pressed="${!!r.binek}">Evet</button><button class="btn small" data-binek="${i}" data-v="0" aria-pressed="${!r.binek}">Hayır</button></span></div>`:''}<table class="mini"><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Açıklama</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead><tbody>${[...s.L,...s.bosEk].map(x=>{const ro=r.logged;const tIn=(yon)=>ro?(x[yon]?fmt(x[yon]):''):`<input class="mono fktut" inputmode="decimal" data-ftut="${i}" data-key="${esc(x.key)}" data-yon="${yon}" value="${x[yon]?fmt(x[yon]):''}" style="width:110px;text-align:right${x.elleT?';border-color:var(--accent)':''}">`;
+          ${r.acik?`<tr class="fisdetay"><td></td><td colspan="9">${r.logged?`<div class="fk-fisac"><button class="btn small" data-lucafis="${i}" title="Luca'ya kaydedilen fişi muavinden aç">Fişi aç · Luca fiş ${esc(r.logged.n||'')}</button></div>`:''}${f.yon==='ALIS'&&f.tip!=='IADE'&&!r.logged?`<div class="binekkutu"><span class="binekres" aria-hidden="true">🚗</span><b>Binek araç gideri mi?</b><span class="note">Evet derseniz KDV'nin %30'u 770 İndirilemeyen Binek Araç KDV'ye, giderin %30'u 770 KKEG'ye; toplam %30 ayrıca 950 (borç) / 951 (alacak) binek araç nazım hesaplarına yazılır; fiş hemen değişir.</span><span class="mmtabs"><button class="btn small" data-binek="${i}" data-v="1" aria-pressed="${!!r.binek}">Evet</button><button class="btn small" data-binek="${i}" data-v="0" aria-pressed="${!r.binek}">Hayır</button></span></div>`:''}<table class="mini"><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Açıklama</th><th class="n">Borç</th><th class="n">Alacak</th></tr></thead><tbody>${[...s.L,...s.bosEk].map(x=>{const ro=r.logged;const tIn=(yon)=>ro?(x[yon]?fmt(x[yon]):''):`<input class="mono fktut" inputmode="decimal" data-ftut="${i}" data-key="${esc(x.key)}" data-yon="${yon}" value="${x[yon]?fmt(x[yon]):''}" style="width:110px;text-align:right${x.elleT?';border-color:var(--accent)':''}">`;
             if(x.ek!=null)return `<tr class="fkek"><td>${ro?esc(x.acc):`<input class="mono" list="fkkAccList" data-fek="${i}" data-id="${esc(x.ek)}" data-alan="acc" value="${esc(x.acc)}" placeholder="hesap kodu" style="width:130px${x.acc?'':';border-color:var(--out)'}">`}</td><td>${esc(hAd(x.acc))}</td><td>${ro?esc(x.desc):`<input data-fek="${i}" data-id="${esc(x.ek)}" data-alan="desc" value="${esc(x.desc)}" style="width:100%;min-width:120px">`}</td><td class="n">${ro?(x.b?fmt(x.b):''):`<input class="mono fktut" inputmode="decimal" data-fek="${i}" data-id="${esc(x.ek)}" data-alan="b" value="${x.b?fmt(x.b):''}" style="width:110px;text-align:right">`}</td><td class="n">${ro?(x.c?fmt(x.c):''):`<input class="mono fktut" inputmode="decimal" data-fek="${i}" data-id="${esc(x.ek)}" data-alan="c" value="${x.c?fmt(x.c):''}" style="width:110px;text-align:right">`}${ro?'':` <button class="btn small ghost danger fiscikar" data-feksil="${i}" data-id="${esc(x.ek)}" title="Satırı fişten çıkar" aria-label="Satırı fişten çıkar">−</button>`}</td></tr>`;
             return `<tr><td>${ro?`<span class="mono">${esc(x.acc||'—')}</span>`:`<input class="mono" list="fkkAccList" data-fel="${i}" data-key="${esc(x.key)}" data-hsad="${esc(x.desc==='cari'?(f.karsi_unvan||''):'')}" value="${esc(x.acc)}" placeholder="hesap kodu" style="width:130px${x.acc?'':';border-color:var(--out)'}">`}</td><td>${esc(hAd(x.acc))}${x.acc&&r.satirElle&&r.satirElle[x.key]?' <span class="chip kural">elle</span>':''}</td><td>${esc(x.desc)}${x.elleT?` <span class="chip kural" title="Önerilen: ${esc(fmt(x.oto.b||x.oto.c))}">tutar elle</span> <button class="btn small ghost" data-ftsif="${i}" data-key="${esc(x.key)}" title="Önerilen tutara dön">↺</button>`:''}</td><td class="n">${tIn('b')}</td><td class="n">${tIn('c')}${ro?'':` <button class="btn small ghost danger fiscikar" data-fcikar="${i}" data-key="${esc(x.key)}" title="Satırı fişten çıkar" aria-label="Satırı fişten çıkar">−</button>`}</td></tr>`;}).join('')}${r.logged?'':s.cikan.map(x=>`<tr class="fiscikan"><td><span class="mono">${esc(x.acc||'—')}</span></td><td>${esc(hAd(x.acc))}</td><td>${esc(x.desc)} <span class="chip">fişten çıkarıldı</span></td><td class="n">${x.oto.b?fmt(x.oto.b):''}</td><td class="n">${x.oto.c?fmt(x.oto.c):''} <button class="btn small ghost" data-fgeri="${i}" data-key="${esc(x.key)}" title="Satırı fişe geri ekle">↺ Geri ekle</button></td></tr>`).join('')}</tbody>
           <tfoot><tr><td colspan="3">${r.logged?'':`<button class="btn small" data-fekle="${i}" title="Fişe gelir / gider ya da başka bir hesap satırı ekleyin; cari kendiliğinden yeniden dengelenir">＋ Satır ekle</button> <span class="note">Tutarı değiştirmek için kutuya yazın; satırı çıkarmak için yanındaki − düğmesine basın.</span>`}</td>
@@ -5757,7 +5757,8 @@ const FKAYIT=(()=>{
   document.addEventListener('click',e=>{if(!e.target.closest('#fkkKod,#fkkKodMenu'))kodMenuKapat();},true);
   document.addEventListener('keydown',e=>{const m=$('#fkkKodMenu');if(!m||m.hidden||!/^Arrow(Up|Down)$/.test(e.key)||!(document.activeElement&&document.activeElement.getAttribute('role')==='menuitem'))return;e.preventDefault();
     const L=[...m.querySelectorAll('[role=menuitem]')],i=L.indexOf(document.activeElement);L[(i+(e.key==='ArrowDown'?1:L.length-1))%L.length].focus();});
-  document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#fkKayit').hidden)return;{const m=$('#fkkKodMenu');if(m&&!m.hidden){e.preventDefault();kodMenuKapat();$('#fkkKod').focus();return;}}if(!$('#fkkModal').hidden){if(!st.busy)$('#fkkModal').hidden=true;return;}if(!st.busy)close();});
+  document.addEventListener('keydown',e=>{if(e.key!=='Escape'||$('#fkKayit').hidden)return;{const m=$('#fkkKodMenu');if(m&&!m.hidden){e.preventDefault();kodMenuKapat();$('#fkkKod').focus();return;}}if(!$('#fkkModal').hidden){if(escKutu(e,$('#fkkModal')))return;if(!st.busy)$('#fkkModal').hidden=true;return;}
+    escKutu(e);});   // Görev 47: Esc bu ekranı kapatmaz (yazılanlar kaybolmasın); kutudaysa yalnız kutudan çıkar. Ekran "✕ Kapat" ile kapanır.
   return {open,close,_st:st,_satirlar:satirlar,_cariSec:cariSec,_vknOk:vknOk,_cariVknHatirla:cariVknHatirla,_fisler:fisler,_grupTarihi:grupTarihi,_oner:oner,_kodBirlestir:kodBirlestir,_kaynaklar:kaynaklar,_silinenBul:silinenBul,_fnoN:fnoN,_lucaFisAc:lucaFisAc,_muavinIs:muavinIs,_beklemeMs:o=>{muavinBekleMs=o;},_silinenleriIsle:async()=>{await silinenleriIsle();draw();},_firma:()=>st.firm,_yenile:async()=>{if(!st.data)return;await resolveFirm();reapply();}};
 })();
 window.__fkayit=FKAYIT;
@@ -5967,17 +5968,22 @@ const YARDIM=(()=>{
 const ESC_ACIK='#mwAra:not([hidden]),.modal:not([hidden]),#mmPanel:not([hidden]),#fkKayit:not([hidden]),#hsDrop:not([hidden]),#kzMenu,.mmmenu:not([hidden]),.thememenu:not([hidden]),#mwBusy:not([hidden]),#authGate:not([hidden]),#licGate:not([hidden]),#modGate:not([hidden]),#popForm,dialog[open]';
 const ESC_KAPAT={admModal:'[data-admx]',okcModal:'[data-okx]',cekModal:'[data-cx]',bmutModal:'[data-bmutx]',ozetModal:'[data-ozetx]'};
 const yaziKutusu=t=>!!t&&(t.isContentEditable||t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&!/^(checkbox|radio|button|submit|reset|file|range|color|image)$/i.test(t.type||'')));
+/* Görev 47: veri girilen pencerede / ekranda imleç bir giriş kutusundayken (ya da açılır listedeyken) Esc yalnız kutudan çıkarır;
+   yazılan durur, pencere / ekran kapanmaz. kap verilirse yalnız o kutunun içindeki alan sayılır. Kutudan çıkıldıysa true. */
+function escKutu(e,kap){const t=e.target;if(!(yaziKutusu(t)||(t&&t.tagName==='SELECT'))||(kap&&!kap.contains(t)))return false;e.preventDefault();t.blur();return true;}
 function geri(){
   if(document.querySelector(ESC_ACIK))return false;
   if(!$('#cekPanel').hidden){CEK.hide();HUB.show('ozel');return true;}
   if(!$('#mdPanel').hidden){MDENET.hide();HUB.show('ozel');return true;}
   if(!$('#admPanel').hidden&&ADM.geri())return true;
+  if(!$('#fgPanel').hidden&&FISG.kirli()){toast('Fiş Girişi\'nde kaydedilmemiş satırlar var; Esc bu ekrandan çıkarmaz. Başka ekrana menüden geçebilirsiniz, satırlar korunur.');return true;}   // Görev 47
   if(S.module==='fatura'&&typeof FKUI!=='undefined'&&FKUI._sayfa&&FKUI._sayfa()&&FKUI._sayfa()!=='toplu'){FKUI.sayfaAc('toplu');return true;}
   $('#modulesBtn').click();return true;}
 window.addEventListener('keydown',e=>{if(e.key!=='Escape'||e.defaultPrevented)return;
   // özel Esc dinleyicisi olmayan pencereler burada kapanır
   for(const [id,sec] of Object.entries(ESC_KAPAT)){const m=document.getElementById(id);if(m&&!m.hidden){
     if([...document.querySelectorAll('.modal:not([hidden])')].some(x=>x!==m&&!m.contains(x)))return;   // üstte soru penceresi var: o kapanır
+    if(escKutu(e,m))return;   // Görev 47: kutudaysa önce yalnız kutudan çıkılır
     const b=m.querySelector(sec);if(b){e.preventDefault();b.click();}return;}}
   if(document.querySelector(ESC_ACIK))return;           // pencere / menü kendi Esc'iyle kapanır
   const t=e.target;if(t&&t.tagName==='SELECT')return;     // açık açılır listeyi kapatıyor olabilir
@@ -6241,7 +6247,9 @@ const FISG=(()=>{
   async function show(){const P=$('#fgPanel');if(!P)return;P.hidden=false;if(!st.ust.tarih)st.ust.tarih=bugun();await hesaplariYukle();ciz();try{const a=document.activeElement;if(a&&a.closest&&a.closest('#fgPanel'))a.blur();}catch(e){}}   // açılınca hiçbir kutu seçili gelmez (hesap listesi açılmaz); fişe tarihten başlanır
   async function firmaDegisti(){const P=$('#fgPanel');if(!P||P.hidden)return;await hesaplariYukle();ciz();}
   firmaDinle(firmaDegisti);
-  return {show,firmaDegisti,_st:st,_yon:yon,_fis:fis,_firma:firma,_kdvAyir:kdvAyir,_toplam:toplam,_yenile:async()=>{await hesaplariYukle();ciz();}};
+  // Görev 47: girilmiş ama Luca'ya kaydedilmemiş satır var mı (Esc bu ekrandan çıkarmaz)
+  const kirli=()=>st.satir.some(x=>x.kod||String(x.b||'').trim()||String(x.c||'').trim());
+  return {show,firmaDegisti,kirli,_st:st,_yon:yon,_fis:fis,_firma:firma,_kdvAyir:kdvAyir,_toplam:toplam,_yenile:async()=>{await hesaplariYukle();ciz();}};
 })();
 window.__fisg=FISG;
 /* ---------- Muhasebe İşlemleri › Fiş Listesi: firmanın yıllık muavininden fişler (tarih sırasıyla); tıklayınca içerik ---------- */
@@ -6499,7 +6507,7 @@ const HESAP=(()=>{
   document.addEventListener('keydown',e=>{if(!aktif||e.target!==aktif||!drop||drop.hidden)return;const rs=[...drop.querySelectorAll('[data-hs]')];
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();sec=Math.max(0,Math.min(rs.length-1,sec+(e.key==='ArrowDown'?1:-1)));rs.forEach((r,i)=>r.classList.toggle('sec',i===sec));if(rs[sec])rs[sec].scrollIntoView({block:'nearest'});}
     else if(e.key==='Enter'&&sec>=0&&rs[sec]){e.preventDefault();sec_(rs[sec].dataset.hs);}
-    else if(e.key==='Escape'){kapat();}},true);
+    else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();kapat();}},true);   // Esc yalnız öneri listesini kapatır
   // olmayan hesap kodu yazıldıysa: eklensin mi?
   document.addEventListener('change',e=>{const t=e.target;if(!(t instanceof HTMLInputElement)||!t.dataset.hslist||t.dataset.hssorma!=null)return;const v=t.value.trim();   // data-hssorma: yalnız var olan hesap yazılır (kod tanımları)
     if(!/^\d{3}(\.[0-9A-Za-zÇĞİÖŞÜçğıöşü]+)+$/.test(v))return;if(secenekler(t).some(([k])=>k===v))return;

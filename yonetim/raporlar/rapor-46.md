@@ -1,6 +1,6 @@
 # Rapor 46 – "Faturaları Luca'ya kaydet" tablosu yatay kaydırmasız
 
-**Durum:** Yapıldı. İşçi oturumu: **Menü Düzenleme**. Görev 44 ile aynı dalda ve aynı PR'da. Derleme yok. Görüntüler `yonetim/raporlar/rapor-46/` klasöründe.
+**Durum:** Yapıldı. İşçi oturumu: **Menü Düzenleme**. Görev 44 (#78) birleştikten sonra güncel `main` üzerinde; Görev 47 (ESC) ile aynı PR. Derleme yok. Görüntüler `yonetim/raporlar/rapor-46/` klasöründe.
 
 ## Yeniden üretme
 - `test/ekran.js` örnek faturaları gerçekçi yapıldı:
@@ -27,6 +27,9 @@
   - **PDF** sütunu kaldırıldı; "📄 PDF" işlem düğmelerine katıldı.
   - İşlem düğmeleri (📄 PDF, Fiş, Kural yap, Kaydetme / Geri al) son hücrede **alt alta**.
   - Düğmeler ve davranışları aynı (`data-pdf`, `data-fis`, `data-kural`, `data-haric`, `data-hgeri`).
+- **"Luca fiş N" (Görev 34) artık düğme değil** (kullanıcı isteği, ek):
+  - Kaydedilmiş satırın durum hücresinde **düz etiket** olarak duruyor; tıklanınca bir şey açmıyor.
+  - Fiş, satırın **Fiş** görünümünün üstündeki **"Fişi aç · Luca fiş N"** düğmesiyle açılıyor. Açılan pencere eskisiyle aynı: fiş muavinden hazırlanır (`lucaFisAc`).
 - **Hücre iç boşlukları:** 10 px'ten 8 px'e.
 - **Taşma nedeni (genel):** Sütun genişliğini sürükleme tutamacı (`.kz-tut`) son sütunda tablonun 3 px dışına taşıyordu. Bu, tablo sığsa bile yatay kaydırma çubuğu çıkarıyordu. Son sütunda tutamaç içeri alındı (`renderer/index.html`); tüm sürüklenebilir sütunlu tablolar için geçerli.
 - **Kayıtlı sütun ayarları:** Sütun sayısı 13'ten 10'a indi. Kullanıcıların bu tabloda kaydettiği sütun genişliği / gizleme ayarları sütun sırasına göre tutulduğu için yanlış sütuna uygulanabilirdi.
@@ -42,6 +45,7 @@
 - **İstisna – en küçük pencere (980×640):** Tablo 1134 px, kutu 916 px; burada yatay kaydırma kalıyor. Bu boy istenen listede yok. Denetim bu yüzden 1280 px ve üstünde yapılıyor.
 
 ## Testler (Linux, xvfb; derleme yok)
+- e2e: kaydedilen satırda "Luca fiş N" düz etiket (satırda açma düğmesi yok); Fiş görünümündeki "Fişi aç" fiş penceresini açıyor.
 - e2e'deki Görev 41 ekran matrisi bu tabloyu da ölçüyor ("ekran uyumu: luca-kaydet" 18 boyda; yatay kaydırma denetimi 1280 px ve üstü). Mevcut Luca'ya kaydet denetimleri (sıralama, süzgeç, kural, fiş, kaydetme, PDF) aynen geçiyor.
 - Sonuçlar:
   - `xvfb-run -a node test/e2e.js`: **E2E_SONUC**
