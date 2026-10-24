@@ -720,6 +720,66 @@ def denetim_listesi():
     return {"liste": out}
 
 
+# ------------------------------------------------------------------ Yarım kalan denetim (Görev 49 · 9)
+# Kaldığı yer (bölüm, süzgeç, kaydırma, açık fatura, yazılmış not) dönem klasöründe ayrı dosyada; kararlar / kurallar zaten
+# firma klasöründe (detay-kararlar.json, detay-kurallari.json), evrak ve muavin dönem klasöründe. Görev 51 taşıyacak.
+YARIM_JSON = "denetim-yarim.json"
+
+
+class YarimDurum(BaseModel):
+    id: str
+    durum: dict = {}
+    sil: bool = False
+
+
+@app.post("/api/denetim/yarim")
+def denetim_yarim_kaydet(b: YarimDurum):
+    k, v = _denetim_veri(b.id)
+    y = k / YARIM_JSON
+    if b.sil:
+        y.unlink(missing_ok=True)
+        return {"tamam": True}
+    d = b.durum if isinstance(b.durum, dict) else {}
+    kontrol = d.get("kontrol") if isinstance(d.get("kontrol"), dict) else None
+    temiz = {"gor": str(d.get("gor") or "ozet")[:20], "filtre": {t: str((d.get("filtre") or {}).get(t) or "bekliyor")[:20] for t in ("gider", "gelir")},
+             "yalnizSorun": bool(d.get("yalnizSorun")), "kaydir": max(0, int(d.get("kaydir") or 0)), "detay": bool(d.get("detay")),
+             "kontrol": {"tur": "gelir" if kontrol.get("tur") == "gelir" else "gider", "anahtar": str(kontrol.get("anahtar") or "")[:200],
+                         "not": str(kontrol.get("not") or "")[:500]} if kontrol else None,
+             "zaman": datetime.now().isoformat(timespec="seconds")}
+    y.write_text(json.dumps({"rapor_id": b.id, "firma": v.get("firma"), "bas": v.get("bas"), "bit": v.get("bit"), **temiz},
+                            ensure_ascii=False, indent=1), encoding="utf-8")
+    return {"tamam": True, "zaman": temiz["zaman"]}
+
+
+@app.get("/api/denetim/yarim")
+def denetim_yarim(id: str = ""):
+    """id verilirse o denetimin kaldığı yer; yoksa detay denetimde kontrol bekleyen faturası kalmış yarım denetimler."""
+    from .. import detay
+    if id:
+        k = depo.rapor_klasoru(id)
+        try:
+            return json.loads((k / YARIM_JSON).read_text(encoding="utf-8")) if k else {}
+        except (OSError, ValueError):
+            return {}
+    kok = depo.firmalar_kok(); out = []
+    if kok.exists():
+        for y in kok.glob(f"*/*/*/{YARIM_JSON}"):
+            try:
+                d = json.loads(y.read_text(encoding="utf-8"))
+                k, v = _denetim_veri(depo.rapor_id(y.parent))
+            except (OSError, ValueError, HTTPException):
+                continue
+            if not d.get("detay"):
+                continue
+            u = detay.uygula(v["detay"], detay.kurallar(k.parent.parent), detay.kararlar(k.parent.parent))
+            bek = sum(u["ozet"][t].get("bekliyor", 0) for t in ("gider", "gelir"))
+            if bek:
+                out.append({"id": depo.rapor_id(y.parent), "firma": d.get("firma"), "bas": d.get("bas"), "bit": d.get("bit"),
+                            "bekleyen": bek, "zaman": d.get("zaman"), "gor": d.get("gor")})
+    out.sort(key=lambda x: x.get("zaman") or "", reverse=True)
+    return {"liste": out}
+
+
 # ------------------------------------------------------------------ Detay denetim (gider / gelir kontrolü; Görev 43 Faz 2)
 def _denetim_veri(id: str) -> tuple[Path, dict]:
     from ..denetim import DENETIM_JSON

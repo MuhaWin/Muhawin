@@ -888,7 +888,15 @@ _mikro(Path(${JSON.stringify(md)}, 'mikro_muavin.xlsx'), satis_matrah=1900, cari
       check(/Serbest meslek/i.test(await mf.textContent('#icerik')) && /2\.500,00/.test(await mf.textContent('#icerik')), 'Muhasebe Denetimi: muhtasar taslağı 360 serbest meslek stopajından (matrah 2.500)');
       await mf.click('#nav [data-g=beyan]'); await w.waitForTimeout(200);
       check(!!(await mf.$('[data-ac^="/beyanname?id="]')) && !!(await mf.$('[data-ac^="/api/rapor/cikti?id="]')), 'Muhasebe Denetimi: KDV 1 / KDV 2 beyannamesi ve çıktı raporu düğmeleri');
-      await w.screenshot({ path: OUT + '/15b-mikro-denetim.png' }); }
+      await w.screenshot({ path: OUT + '/15b-mikro-denetim.png' });
+      // Görev 49 · 9: başka modüle geçip dönünce denetim ekranı kapanmaz, kaldığı yerde (aynı bölüm) açılır
+      if (await w.$('#modSekme [data-modsekme=ozel]')) {
+        await w.click('#modSekme [data-modsekme=ekstre]'); await w.waitForTimeout(500);
+        const gizli = await w.isHidden('#mdPanel');
+        await w.click('#modSekme [data-modsekme=ozel]'); await w.waitForSelector('#mdPanel:not([hidden])', { timeout: 8000 }).catch(() => {});
+        check(gizli && await w.isVisible('#mdPanel') && await w.isHidden('#hubPanel') && await mf.getAttribute('#nav [data-g=beyan]', 'aria-pressed') === 'true',
+          'Görev 49: Banka\'ya geçip Ofisinize Özel\'e dönünce Muhasebe Denetimi aynı bölümde açık (sayfa yeniden yüklenmedi)');
+      } }
     await w.click('#homeLogo'); await w.waitForSelector('#modGate:not([hidden])');
     await w.click('.modcard[data-mod=ekstre]'); await w.waitForTimeout(600);
     check(await w.isHidden('#fkPanel'), 'Ekstre\'ye dönünce Fatura paneli gizli');

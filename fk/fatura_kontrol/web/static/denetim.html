@@ -56,7 +56,8 @@ table.dt .durum{white-space:normal;line-height:1.3}
 .ksart{display:grid;grid-template-columns:76px minmax(150px,220px) minmax(0,1fr) 38px;gap:8px;align-items:center}
 .kizgara{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .konum{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:3;background:var(--bg,#f4f6fa);padding:2px 0 6px}
-.konum b{font-size:15px}.konum .btn{min-height:28px;font-size:12.5px}
+.konum b{font-size:15px}.kayitbilgi{font-size:12px;color:#13694a;margin-left:auto}
+.yarim-satir{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center}.yarim-satir .btn{min-height:28px;font-size:12px}.konum .btn{min-height:28px;font-size:12.5px}
 #belgeKart.kapali > :not(.kbaslik){display:none}.kbaslik{display:flex;align-items:center;gap:8px;margin:0}.kbaslik .btn{min-height:26px;font-size:12px;margin-left:auto}
 #fisPen table{font-size:12.5px;table-layout:auto}#fisPen tfoot td{font-weight:700}
 .donem{display:grid;gap:6px;border:1px solid var(--line);border-radius:10px;padding:8px}
@@ -92,6 +93,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
   <span style="font-size:12.5px;opacity:.8">Muavin ve e-faturalarla firma denetimi: KDV · matrah · cari · beyanname</span></header>
 <main>
   <aside>
+    <section class="kart" id="yarimKart" hidden><h3>Yarım kalan denetimler</h3><p class="ipucu" style="margin:-4px 0 8px">Kararlar ve kaldığınız yer kaydedildi; “Devam et” ile sürdürün.</p><div id="yarimListe" class="nav"></div></section>
     <section class="kart">
       <h3>1. Firma</h3>
       <select id="firma"><option value="">Firma seçin…</option></select>
@@ -143,7 +145,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
 <div id="fisPen" role="dialog" aria-modal="true" aria-label="Fiş"><div class="ic"><div class="bas"><b id="fisBaslik">Fiş</b><span style="flex:1"></span>
   <button class="btn" type="button" id="fisYazdir">🖨 Yazdır</button><button class="btn" type="button" id="fisPdf">PDF</button><button class="btn" type="button" id="fisKapat">Kapat</button></div>
   <div class="govde" id="fisGovde"></div></div></div>
-<div id="kontrolPen" role="dialog" aria-modal="true" aria-label="Kontrol ekranı"><div class="kbas"><b id="kBaslik">Kontrol</b><span id="kSira" style="color:var(--muted)"></span><span style="flex:1"></span>
+<div id="kontrolPen" role="dialog" aria-modal="true" aria-label="Kontrol ekranı"><div class="kbas"><b id="kBaslik">Kontrol</b><span id="kSira" style="color:var(--muted)"></span><span style="flex:1"></span><span class="kayitbilgi" id="kKayit"></span>
   <span class="ipucu">A: uygun · S: uygun değil · ← →: önceki / sonraki · Esc: listeye dön</span><button class="btn" type="button" id="kKapat">Kapat</button></div>
   <div class="kgovde"><div class="ksol" id="kSol"></div><div class="ksag"><div class="kzoom"><span>Fatura</span><span style="flex:1"></span><span id="kzOran"></span>
     <button class="btn" type="button" id="kzEksi" title="Uzaklaştır" aria-label="Uzaklaştır">−</button><button class="btn" type="button" id="kzSigdir" title="Genişliğe sığdır">Sığdır</button><button class="btn" type="button" id="kzArti" title="Yakınlaştır" aria-label="Yakınlaştır">+</button></div>
@@ -277,7 +279,65 @@ async function listeYukle() { try { liste = (await (await fetch("/api/denetim/li
 async function ac(id) {
   const r = await fetch("/api/denetim?id=" + encodeURIComponent(id)); if (!r.ok) return;
   veri = await r.json(); veri.rapor_id = veri.rapor_id || id; gor = "ozet"; ciz(); gecmisCiz();
+  await kaldigiYerAc(id);
 }
+/* ---------- Görev 49 · 9: yarım kalan denetim. Kararlar / notlar / kurallar zaten firmada (karar verilince) yazılıyor;
+   kaldığı yer (bölüm, süzgeç, kaydırma, açık fatura, yazılmış ama karar verilmemiş not) dönem klasöründe
+   denetim-yarim.json'a kendiliğinden kaydedilir. Program yeniden açılınca "Yarım kalan denetimler" › Devam et. ---------- */
+let geriYukleniyor = false, detayGezildi = false, gezilenId = "", kayitT = 0, sonKayit = "", kayitMetni = "", yarimL = [];
+function kayitBilgi(z) {
+  kayitMetni = z ? "✓ Kaydedildi " + String(z).slice(11, 16) : "";
+  for (const id of ["#kayitBilgi", "#kKayit"]) { const el = $(id); if (el) el.textContent = kayitMetni; }
+}
+function durumKaydet() {
+  if (!veri || !veri.rapor_id || geriYukleniyor) return;
+  if (gezilenId !== veri.rapor_id) { gezilenId = veri.rapor_id; detayGezildi = false; }
+  if (kontrol || ["gider", "gelir", "kurallar"].includes(gor)) detayGezildi = true;
+  clearTimeout(kayitT);
+  kayitT = setTimeout(async () => {
+    if (!veri || !veri.rapor_id) return;
+    const durum = {gor, filtre: detayFiltre, yalnizSorun, detay: detayGezildi, kaydir: kontrol ? kontrol.kaydir : $("#icerik").scrollTop,
+      kontrol: kontrol ? {tur: kontrol.tur, anahtar: kontrol.liste[kontrol.i] || "", not: ($("#kNot") || {}).value || ""} : null};
+    const govde = JSON.stringify({id: veri.rapor_id, durum});
+    if (govde === sonKayit) return;
+    try { const r = await fetch("/api/denetim/yarim", {method: "POST", headers: {"Content-Type": "application/json"}, body: govde});
+      if (r.ok) { sonKayit = govde; kayitBilgi((await r.json()).zaman); } } catch (e) {}
+  }, 400);
+}
+async function kaldigiYerAc(id) {
+  let d = null; try { const r = await fetch("/api/denetim/yarim?id=" + encodeURIComponent(id)); d = r.ok ? await r.json() : null; } catch (e) {}
+  if (!d || !d.gor || !veri || veri.rapor_id !== id) return;
+  geriYukleniyor = true;
+  try {
+    gor = d.gor; Object.assign(detayFiltre, d.filtre || {}); yalnizSorun = d.yalnizSorun !== false;
+    gezilenId = id; detayGezildi = !!d.detay;
+    if (["gider", "gelir", "kurallar"].includes(gor) || d.kontrol) await detayYukle(true);
+    ciz(); $("#icerik").scrollTop = d.kaydir || 0;
+    const k = d.kontrol;
+    if (k && k.anahtar && detayListe(k.tur).some(x => x.anahtar === k.anahtar)) {
+      kontrolAc(k.tur, k.anahtar); kontrol.kaydir = d.kaydir || 0;
+      const n = $("#kNot"); if (n && k.not && !n.value) n.value = k.not;
+    }
+    kayitBilgi(d.zaman);
+  } finally { geriYukleniyor = false; }
+}
+async function yarimYukle() {
+  try { yarimL = (await (await fetch("/api/denetim/yarim")).json()).liste || []; } catch (e) { yarimL = []; }
+  $("#yarimKart").hidden = !yarimL.length;
+  $("#yarimListe").innerHTML = yarimL.slice(0, 8).map(x => `<div class="yarim-satir"><div><b>${esc(x.firma || "")}</b><br><span class="ipucu">${tarih(x.bas)} – ${tarih(x.bit)} · <b>${x.bekleyen}</b> fatura kontrol bekliyor · ${esc(String(x.zaman || "").slice(0, 16).replace("T", " "))}</span></div>
+    <div style="display:flex;gap:4px"><button type="button" class="btn birincil" data-devam="${esc(x.id)}">Devam et</button><button type="button" class="btn" data-yarimsil="${esc(x.id)}" title="Listeden kaldır (kararlar silinmez)" aria-label="Listeden kaldır">×</button></div></div>`).join("");
+  $("#yarimListe").querySelectorAll("[data-devam]").forEach(b => b.onclick = () => devamEt(b.dataset.devam));
+  $("#yarimListe").querySelectorAll("[data-yarimsil]").forEach(b => b.onclick = async () => {
+    await fetch("/api/denetim/yarim", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id: b.dataset.yarimsil, sil: true})}); yarimYukle(); });
+}
+async function devamEt(id) {
+  const x = yarimL.find(y => y.id === id) || {}, ad = String(x.firma || "").toLocaleUpperCase("tr-TR");
+  const f = mwListe.find(y => String(y.ad || "").toLocaleUpperCase("tr-TR") === ad || id.toLocaleUpperCase("tr-TR").startsWith(String(y.ad || "").toLocaleUpperCase("tr-TR") + "/"));
+  if (f && f.mw !== firmaK()) { firmaCiz(f.mw); if (MW) window.parent.postMessage({fk: true, tip: "firmaSec", mw: f.mw}, "*"); gecmisCiz(); yerelYukle(); }
+  await ac(id);
+}
+$("#icerik").addEventListener("scroll", () => durumKaydet(), {passive: true});
+document.addEventListener("input", e => { if (e.target && e.target.id === "kNot") durumKaydet(); });
 function rozet(id, n) { const el = $(id); if (el) el.innerHTML = n == null ? "" : `<span class="rozet ${n ? "kotu" : "ok"}">${n ? n + " sorun" : "temiz"}</span>`; }
 const sinif = s => s.sorunlu ? "d-hata" : /Uyumlu|uyumlu|Uygun/.test(s.durum) ? "d-ok" : "d-bilgi";
 function tablo(L) {
@@ -347,7 +407,7 @@ $("#fisPdf").onclick = async () => {
 // Görev 49: denetim sonucu açıkken "2. Belgeler" kapanır (yeni denetim için açılır): bölüm menüsü yukarıda, hep görünür
 let belgeAcik = false, belgeVeri = null;
 function belgeKartCiz() {
-  if (veri !== belgeVeri) { belgeVeri = veri; belgeAcik = false; }
+  if (veri !== belgeVeri) { belgeVeri = veri; belgeAcik = false; kayitMetni = ""; sonKayit = ""; }
   const k = $("#belgeKart"), b = $("#belgeAc"), kapali = !!veri && !belgeAcik;
   k.classList.toggle("kapali", kapali); b.hidden = !veri; b.setAttribute("aria-expanded", String(!kapali));
   b.textContent = kapali ? "Yeni denetim / belgeleri göster" : "Belgeleri gizle";
@@ -375,7 +435,7 @@ function ciz() {
   rozet("#nOIV", oivL.length ? oivS : null); document.querySelector('#nav [data-g=OIV]').hidden = !oivL.length;
   $("#nMuhtasar").innerHTML = veri.muhtasar && veri.muhtasar.satirlar.length ? `<span class="rozet gri">${para(veri.muhtasar.odenecek)}</span>` : "";
   if (detayId !== veri.rapor_id) detayYukle(); detayRozet();
-  const konum = `<div class="konum">${gor !== "ozet" ? '<button type="button" class="btn" data-git="ozet" title="Özete dön">← Özet</button>' : ""}<b>${esc(BOLUM_AD()[gor] || "")}</b></div>`;
+  const konum = `<div class="konum">${gor !== "ozet" ? '<button type="button" class="btn" data-git="ozet" title="Özete dön">← Özet</button>' : ""}<b>${esc(BOLUM_AD()[gor] || "")}</b><span class="kayitbilgi" id="kayitBilgi" title="Kararlar ve kaldığınız yer bu bilgisayarda kendiliğinden kaydedilir">${esc(kayitMetni)}</span></div>`;
   const bas = konum + `<div class="araclar"><b style="font-size:15px">${esc(veri.firma || "")}</b><span style="color:var(--muted)">VKN ${esc(veri.vkn || "")} · ${tarih(veri.bas)} – ${tarih(veri.bit)} · ${veri.alis || 0} alış, ${veri.satis || 0} satış faturası</span><span style="flex:1"></span>
     ${["KDV", "Matrah", "Cari", "OIV"].includes(gor) ? `<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="sorunlu" style="width:auto;min-height:0" ${yalnizSorun ? "checked" : ""}> Yalnız sorunlular</label>` : ""}</div>
     ${(veri.uyarilar || []).length ? `<div class="uyari">${veri.uyarilar.map(esc).join("<br>")}</div>` : ""}`;
@@ -444,7 +504,7 @@ function ciz() {
   const cb = $("#sorunlu"); if (cb) cb.onchange = () => { yalnizSorun = cb.checked; ciz(); };
   detayBagla(); mbeyanBagla();
   $("#icerik").querySelectorAll("[data-git]").forEach(b => b.onclick = () => { gor = b.dataset.git; ciz(); $("#icerik").scrollTop = 0; });
-  navGoster();
+  navGoster(); durumKaydet();
   $("#icerik").querySelectorAll("[data-ac]").forEach(b => b.onclick = () => window.open(b.dataset.ac, "_blank"));
 }
 /* ---------- Muhtasar ve Prim Hizmet Beyannamesi (1003A PDF) ↔ muavin: PDF saklanmaz, çalışan bölümleri okunmaz ---------- */
@@ -744,7 +804,7 @@ async function kontrolCiz() {
   if (!x) { kontrolKapat(); return; }
   const sira = ++kSira;
   $("#kBaslik").textContent = (kontrol.tur === "gider" ? "Gider kontrolü" : "Gelir kontrolü") + " · " + x.belge_no;
-  $("#kSira").textContent = `${kontrol.i + 1} / ${kontrol.liste.length}`;
+  $("#kSira").textContent = `${kontrol.i + 1} / ${kontrol.liste.length}`; durumKaydet();
   const g = x.gecmis || {};
   $("#kSol").innerHTML = `<section class="kart"><dl><dt>Durum</dt><dd><span class="durum d-${x.durum}">${esc(x.durum_ad)}</span> ${esc(x.neden || "")}</dd>
       <dt>Fatura</dt><dd class="mono">${esc(x.belge_no)} · ${tarih(x.tarih)}</dd><dt>${x.yon === "ALIS" ? "Satıcı" : "Alıcı"}</dt><dd>${esc(x.karsi_taraf)} <small style="color:var(--muted)">${esc(x.vkn || "")}</small></dd>
@@ -884,7 +944,7 @@ function donemCiz(yil) {
   });
 }
 $("#donemYil").onchange = () => donemCiz($("#donemYil").value);
-ciz(); listeYukle(); lucaCiz(); programlarYukle(); donemCiz();
+ciz(); listeYukle(); yarimYukle(); lucaCiz(); programlarYukle(); donemCiz();
 if (MW) window.parent.postMessage({fk: true, tip: "denetimHazir"}, "*");
 </script>
 </body>

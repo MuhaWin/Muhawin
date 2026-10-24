@@ -1,5 +1,6 @@
 """Görev 43 Faz 2: Detay denetim (gider / gelir kontrolü), geçmişle uyum, kontrol kuralları, kararlar, rapor."""
 import io
+import json
 import sys
 import zipfile
 from datetime import date
@@ -297,6 +298,94 @@ def test_tarayicida_kontrol_ekrani(tmp_path):
         icerik = pp.value.content()
         assert "Gider kontrolü" in icerik and "elektrik faturası" in icerik             # uygunlar notlarıyla (details içinde)
         assert "Kurala uygun" in icerik and "Hazırlayan" in icerik
+        assert not hatalar, hatalar
+    finally:
+        srv.should_exit = True
+        b.close(); p.stop()
+
+
+def test_yarim_denetim_api(c, tmp_path):
+    """Görev 49 · 9: kaldığı yer dönem klasöründe ayrı dosyada; detayda bekleyen varsa "yarım kalan" listesinde."""
+    from test_denetim import _mikro
+    from test_luca_otomasyon import ubl, FIRMA_VKN
+    zb = io.BytesIO()
+    with zipfile.ZipFile(zb, "w") as z:
+        z.writestr("a.xml", ubl("AAA2026000000001", "2026-09-05", "1", FIRMA_VKN, "1000.00", "200.00", 20))
+        z.writestr("b.xml", ubl("EX02026000000001", "2026-09-10", FIRMA_VKN, "9", "2000.00", "400.00", 20))
+    y = tmp_path / "m.xlsx"; _mikro(y)
+    rid = c.post("/api/denetim", data={"bas": "2026-09-01", "bit": "2026-09-30", "firma_ad": "YARIM A.Ş."},
+                 files=[("faturalar", ("p.zip", zb.getvalue(), "application/zip")), ("muavinler", ("m.xlsx", y.read_bytes(), "application/octet-stream"))]).json()["rapor_id"]
+    assert c.get("/api/denetim/yarim").json()["liste"] == [] and c.get("/api/denetim/yarim", params={"id": rid}).json() == {}
+    dt = c.get("/api/denetim/detay", params={"id": rid}).json()
+    anahtar, gelir = dt["gider"][0]["anahtar"], dt["gelir"][0]["anahtar"]
+    c.post("/api/denetim/yarim", json={"id": rid, "durum": {"gor": "ozet"}})
+    assert c.get("/api/denetim/yarim").json()["liste"] == []                      # detaya girilmediyse yarım sayılmaz
+    r = c.post("/api/denetim/yarim", json={"id": rid, "durum": {"gor": "gider", "filtre": {"gider": "tum"}, "kaydir": 120, "detay": True,
+                                                                "kontrol": {"tur": "gider", "anahtar": anahtar, "not": "yarım not"}}})
+    assert r.status_code == 200 and r.json()["zaman"]
+    from fatura_kontrol import depo
+    d = json.loads((depo.rapor_klasoru(rid) / "denetim-yarim.json").read_text(encoding="utf-8"))
+    assert d["kontrol"] == {"tur": "gider", "anahtar": anahtar, "not": "yarım not"} and d["filtre"]["gider"] == "tum" and d["kaydir"] == 120
+    L = c.get("/api/denetim/yarim").json()["liste"]
+    assert [(x["id"], x["bekleyen"]) for x in L] == [(rid, 2)]
+    c.post("/api/denetim/detay/karar", json={"id": rid, "anahtar": anahtar, "karar": "uygun"})
+    assert c.get("/api/denetim/yarim").json()["liste"][0]["bekleyen"] == 1
+    c.post("/api/denetim/detay/karar", json={"id": rid, "anahtar": gelir, "karar": "uygun_degil"})
+    assert c.get("/api/denetim/yarim").json()["liste"] == []                      # bekleyen kalmadı
+    c.post("/api/denetim/detay/karar", json={"id": rid, "anahtar": anahtar, "karar": ""})
+    assert len(c.get("/api/denetim/yarim").json()["liste"]) == 1
+    c.post("/api/denetim/yarim", json={"id": rid, "sil": True})
+    assert c.get("/api/denetim/yarim").json()["liste"] == []
+
+
+def test_tarayicida_yarim_denetime_devam(tmp_path):
+    """Kontrol ekranında bir faturada not yazılıyken program kapanır (sayfa yeniden yüklenir): "Yarım kalan denetimler" ›
+    Devam et aynı faturayı, notu ve süzgeci açar; belgeler yeniden yüklenmez. "Kaydedildi" bilgisi görünür."""
+    import os
+    from test_fis_ve_tumu import _sunucu
+    from test_denetim import _mikro
+    from test_luca_otomasyon import ubl, FIRMA_VKN
+    pw = pytest.importorskip("playwright.sync_api")
+    p = pw.sync_playwright().start()
+    try:
+        b = p.chromium.launch(executable_path=os.environ.get("PW_CHROMIUM") or None)
+    except Exception as e:
+        p.stop(); pytest.skip(f"Chromium yok: {e}")
+    z = tmp_path / "f.zip"
+    with zipfile.ZipFile(z, "w") as zz:
+        zz.writestr("a.xml", ubl("AAA2026000000001", "2026-09-05", "1", FIRMA_VKN, "1000.00", "200.00", 20))
+        zz.writestr("b.xml", ubl("EX02026000000001", "2026-09-10", FIRMA_VKN, "9", "2000.00", "400.00", 20))
+    m = tmp_path / "m.xlsx"; _mikro(m)
+    srv, adres = _sunucu(tmp_path / "veri")
+    try:
+        pg = b.new_page(viewport={"width": 1400, "height": 900}); hatalar = []; pg.on("pageerror", lambda e: hatalar.append(str(e)))
+        pg.goto(f"{adres}/denetim")
+        pg.wait_for_function("document.querySelectorAll('#program option').length === 3")
+        assert pg.is_hidden("#yarimKart")
+        pg.fill("#bas", "2026-09-01"); pg.fill("#bit", "2026-09-30")
+        pg.set_input_files("#xml", str(z)); pg.set_input_files("#muavin", str(m))
+        pg.click("#basla"); pg.wait_for_selector("#nGelir .rozet", timeout=30000)
+        pg.click("#nav [data-g=gelir]"); pg.click("#icerik [data-dfiltre=tum]")
+        pg.click("#kBasla"); pg.wait_for_selector("#kontrolPen.acik #kNot")
+        pg.fill("#kNot", "müşteri sözleşmesine bakılacak")
+        pg.wait_for_function("document.querySelector('#kKayit').textContent.includes('Kaydedildi')", timeout=5000)
+        pg.wait_for_timeout(700)
+        pg.reload()                                                    # program kapanıp açıldı
+        pg.wait_for_selector("#yarimKart:not([hidden]) [data-devam]", timeout=10000)
+        assert "2 fatura kontrol bekliyor" in pg.inner_text("#yarimKart")      # gider 1 + gelir 1
+        pg.click("#yarimKart [data-devam]")
+        pg.wait_for_selector("#kontrolPen.acik #kNot", timeout=15000)
+        assert "EX02026000000001" in pg.inner_text("#kBaslik") and pg.input_value("#kNot") == "müşteri sözleşmesine bakılacak"
+        pg.keyboard.press("Escape"); pg.keyboard.press("Escape")       # kutudan çık, listeye dön
+        pg.wait_for_selector("#kontrolPen.acik", state="detached")
+        assert pg.get_attribute("#nav [data-g=gelir]", "aria-pressed") == "true"
+        assert "secili" in (pg.get_attribute("#icerik [data-dfiltre=tum]", "class") or "")         # süzgeç korundu
+        assert "Kaydedildi" in pg.inner_text("#kayitBilgi")
+        pg.click("#kBasla"); pg.wait_for_selector("#kontrolPen.acik"); pg.click("#kSira"); pg.keyboard.press("a")
+        pg.wait_for_selector("#kontrolPen.acik", state="detached")
+        pg.wait_for_timeout(700); pg.reload()
+        pg.wait_for_selector("#yarimKart:not([hidden]) [data-devam]", timeout=10000)
+        assert "1 fatura kontrol bekliyor" in pg.inner_text("#yarimKart")      # gelir bitti, giderde 1 kaldı
         assert not hatalar, hatalar
     finally:
         srv.should_exit = True
