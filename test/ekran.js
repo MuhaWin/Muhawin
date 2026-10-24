@@ -53,9 +53,16 @@ async function olc(w, ekran) {
   const sonuc = { cakisan: ana.cakisan, tasan: [...ana.tasan, ...ana.kesik.map(x => 'kesik metin: ' + x)], sayfaTasma: ana.sayfaTasma ? ['sayfa ' + ana.sayfaTasma] : [], n: ana.n, boy: await w.evaluate(() => innerWidth + '×' + innerHeight + ' @' + devicePixelRatio) };
   sonuc.tasan.push(...await w.evaluate(seciliTasma, ekran.kok || null));        // Görev 54: seçili sekme / çip taşmıyor
   if (ekran.cerceve && await w.isVisible('#fkFrame')) {
-    const fr = await fkFrame(w); const c = await fr.evaluate(cakisma, null);
+    const fr = await fkFrame(w); const fy = ekran.cerceveYatay && await w.evaluate(() => innerWidth >= 1280);
+    const c = await fr.evaluate(cakisma, fy ? { kok: null, yatay: ekran.cerceveYatay } : null);
     sonuc.tasan.push(...(await fr.evaluate(seciliTasma, null)).map(x => 'çerçeve: ' + x));
     sonuc.cakisan.push(...c.cakisan.map(x => 'çerçeve: ' + x)); sonuc.tasan.push(...c.tasan.map(x => 'çerçeve: ' + x), ...c.kesik.map(x => 'çerçeve: kesik metin: ' + x)); if (c.sayfaTasma) sonuc.sayfaTasma.push('çerçeve ' + c.sayfaTasma); sonuc.n += c.n;
+  }
+  // Görev 54: 1366×768'de liste en az N satır göstermeli (üst alan sade)
+  if (ekran.satir && await w.evaluate(() => innerWidth === 1366 && innerHeight === 768)) {
+    const n = await w.evaluate(([s, k]) => { const kb = document.querySelector(k); if (!kb) return -1; const z = kb.getBoundingClientRect();
+      return [...document.querySelectorAll(s)].filter(x => { const r = x.getBoundingClientRect(); return r.height && r.top >= z.top - 1 && r.bottom <= z.bottom + 1; }).length; }, [ekran.satir.sec, ekran.satir.kutu]);
+    if (n < ekran.satir.en) sonuc.tasan.push('listede ' + n + ' satır görünüyor (en az ' + ekran.satir.en + ')');
   }
   return sonuc;
 }
@@ -65,13 +72,13 @@ const EKRANLAR = [
   { ad: 'giris', kok: '#authGate', git: async () => {} },
   { ad: 'moduller', kok: '#modGate', git: async ({ w }) => { await giris(w); } },
   { ad: 'ayarlar', kok: '#regModal', git: async ({ w }) => { await w.click('#modSettings'); await w.waitForSelector('#regModal:not([hidden])'); await w.waitForTimeout(500); }, son: async ({ w }) => { await w.click('#regModal [data-rgclose]'); } },
-  { ad: 'banka', git: async ({ w }) => { await modulAc(w, 'ekstre'); } },
-  { ad: 'mizan', kok: '#mmPanel', git: async ({ w }) => { await w.click('#mmBtn'); await w.waitForSelector('#mmPanel:not([hidden])'); await w.waitForTimeout(400); }, son: async ({ w }) => { await w.click('#mmClose'); } },
+  { ad: 'banka', yatay: ['.tablewrap'], git: async ({ w }) => { await modulAc(w, 'ekstre'); } },
+  { ad: 'mizan', kok: '#mmPanel', yatay: ['#mmPanel .mmwrap'], git: async ({ w }) => { await w.click('#mmBtn'); await w.waitForSelector('#mmPanel:not([hidden])'); await w.waitForTimeout(400); }, son: async ({ w }) => { await w.click('#mmClose'); } },
   { ad: 'belgeden-fis', git: async ({ w }) => { await modulAc(w, 'okc'); } },
-  { ad: 'muhasebe-toplu', cerceve: true, git: async ({ w }) => { await modulAc(w, 'fatura'); const fr = await fkFrame(w); await fr.waitForSelector('#sekmeler', { timeout: 20000 }); await w.waitForTimeout(800); } },
+  { ad: 'muhasebe-toplu', cerceve: true, cerceveYatay: ['.tablo-kap'], git: async ({ w }) => { await modulAc(w, 'fatura'); const fr = await fkFrame(w); await fr.waitForSelector('#sekmeler', { timeout: 20000 }); await w.waitForTimeout(800); } },
   { ad: 'muhasebe-tek', cerceve: true, git: async ({ w }) => { await w.click('#fkNav [data-fksayfa=tek]'); const fr = await fkFrame(w); await fr.waitForSelector('#program', { timeout: 20000 }); await w.waitForTimeout(800); } },
   { ad: 'muhasebe-kdv', cerceve: true, git: async ({ w }) => { await w.click('#fkNav [data-fksayfa=kdv]'); await fkFrame(w); await w.waitForTimeout(1200); } },
-  { ad: 'luca-kaydet', kok: '#fkKayit', yatay: ['#fkKayit .mmwrap'], git: async ({ w, cfg }) => {
+  { ad: 'luca-kaydet', kok: '#fkKayit', yatay: ['#fkKayit .mmwrap'], satir: { sec: '#fkkTable tbody tr[data-i]', kutu: '#fkKayit .mmwrap', en: 10 }, git: async ({ w, cfg }) => {
     await w.click('#fkNav [data-fksayfa=toplu]'); const fr = await fkFrame(w); await fr.waitForSelector('#sekmeler', { timeout: 20000 });
     const hd = fs.readdirSync(path.join(cfg, 'MuhaWin', 'hesaplar')).map(d => path.join(cfg, 'MuhaWin', 'hesaplar', d, 'fatura_kontrol')).find(d => fs.existsSync(d));
     const k = path.join(hd, 'firmalar', 'EXPO İNŞ', '2026', '09'); fs.mkdirSync(k, { recursive: true });
@@ -84,7 +91,7 @@ k = Path(${JSON.stringify(k)}); muavin_yaz(k / 'muavin.xlsx')
 with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     UZUN = ['ÖRNEK İNŞAAT TAAHHÜT SANAYİ VE TİCARET LİMİTED ŞİRKETİ', 'ANTALYA AKARYAKIT OTOMOTİV TURİZM GIDA PAZARLAMA ANONİM ŞİRKETİ', 'KISA LTD']
     KALEM = ['Ofis kırtasiye malzemesi, A4 fotokopi kağıdı 80 gr (koli) ve toner', 'Motorin (Euro Diesel) — araç yakıt alımı', 'Danışmanlık hizmet bedeli']
-    for i in range(1, 9):
+    for i in range(1, 17):
         no = 'YYY2026%09d' % (100 + i)
         mat = '1234567.89' if i % 3 == 0 else '500.00'; kdv = '246913.58' if i % 3 == 0 else '100.00'
         x = ubl(no, '2026-09-%02d' % i, str(10000000000 + i) if i % 2 else str(1000 + i), FIRMA_VKN, mat, kdv, 20).decode()
