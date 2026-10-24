@@ -830,3 +830,4 @@ header.top>div:first-child{flex:0 0 auto;max-width:280px;min-width:0}
 .thememenu[hidden]{display:none}
 #fkKayit td.fk-durum .note{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
 #fkKayit .fkk-ad .chip,#fkKayit .fkk-hs .chip{font-size:10px;line-height:1.25;padding:0 5px}
+#fkKayit .fkk-suz{padding-top:0;padding-bottom:6px;gap:8px}#fkKayit .fkk-suz[hidden]{display:none}
