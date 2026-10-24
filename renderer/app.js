@@ -3579,7 +3579,7 @@ const MMUI=(()=>{
     const ad=(st.tab==='plan'?(((S.firms||[]).find(x=>x.id===st.firm)||{}).name||'firma')+'_hesap_plani':st.tab==='mizan'?(((S.firms||[]).find(x=>x.id===st.firm)||{}).name||'firma')+'_mizan':st.donem.replace(/\//g,'_')+'_muavin'+(st.grup?'_ozet':''));
     try{const r=await window.desktop.saveFile(ad.replace(/[^\wÇĞİÖŞÜçğıöşü.-]+/g,'_')+'.xlsx',new Uint8Array(XLSX.write(wb,{type:'array',bookType:'xlsx'})));if(r.ok)toast('Kaydedildi: '+r.path);}catch(x){toast(clean(x));}
   };
-  return {open,close,_st:st,_mojibake:mojibakeDuzelt};
+  return {open,close,_st:st,_mojibake:mojibakeDuzelt,_draw:draw};
 })();
 window.__mmui=MMUI;   // testler için
 $('#mmBtn').addEventListener('click',()=>MMUI.open('mizan'));

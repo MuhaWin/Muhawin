@@ -383,20 +383,20 @@ wb.save(${JSON.stringify(mzx)})`]);
         const dug = !!(await w.$('[data-mmhgit="1"]'));
         check(ilkH === kodlar[0] && ikinci !== ilkH && ikinci === kodlar[1] && geri === kodlar[0] && basta === kodlar[0] && kutuda === kodlar[0] && dug,
           'Görev 55: muavinde → sonraki, ← önceki hesap; listenin başında durur; kutu odaktayken oklar hesap değiştirmez (' + [ilkH, ikinci, geri, basta, kutuda].join(' · ') + ')');
-        // bakiye: alacağa göre azalan sırala
-        const bk = async () => w.evaluate(() => { const st = window.__mmui._st; const cols = st.cols.map(c => c[0]); const bi = cols.indexOf('bakiye');
-          const satir = [...document.querySelectorAll('#mmTable tbody tr[data-kod]')]; const ft = document.querySelector('#mmTable tfoot td:nth-child(' + (bi + 1) + ')');
-          return { bi, n: satir.length, son: satir.length ? satir[satir.length - 1].cells[bi].textContent.trim() : '', top: ft ? ft.textContent.trim() : '', ilk: satir.length ? satir[0].cells[bi].textContent.trim() : '' }; });
-        const once = await bk();
-        if (once.bi >= 0 && once.n >= 2) {
-          await w.click('[data-mmsort=alacak]'); await w.click('[data-mmsort=alacak]'); await w.waitForTimeout(300);
-          const sonra = await bk();
-          const tutarli = await w.evaluate(() => { const st = window.__mmui._st; const cols = st.cols.map(c => c[0]); const bi = cols.indexOf('bakiye'), b = cols.indexOf('borc'), a = cols.indexOf('alacak');
-            const p = x => +String(x).replace(/[^\d,]/g, '').replace(',', '.') || 0; let t = st.acilis || 0;
-            return [...document.querySelectorAll('#mmTable tbody tr[data-kod]')].every(r => { t = Math.round((t + p(r.cells[b].textContent) - p(r.cells[a].textContent)) * 100) / 100;
-              return Math.abs(Math.abs(t) - p(r.cells[bi].textContent)) < 0.01; }); });
-          check(tutarli && sonra.son === sonra.top, 'Görev 55: alacağa göre sıralayınca yürüyen bakiye yeni sıraya göre; son satır = toplam bakiye (' + sonra.son + ' / ' + sonra.top + ')');
-        } else check(true, 'Görev 55: muavin bakiyesi (örnek hesapta tek hareket, atlandı)');
+        // bakiye: örnek hesabın satırları yerine üç hareketli bir hesap konur (açılış 100); alacağa göre azalan sıralanır
+        const bk = await w.evaluate(() => { const M = window.__mmui, st = M._st, f = st.f, so = st.sort, ro = st.rows, ac = st.acilis;
+          st.rows = [{ tarih: '2026-09-01', fis_no: '1', hesap_kodu: st.hesapF, aciklama: 'a', borc: 500, alacak: 0, _i: 0 },
+                     { tarih: '2026-09-02', fis_no: '2', hesap_kodu: st.hesapF, aciklama: 'b', borc: 0, alacak: 300, _i: 1 },
+                     { tarih: '2026-09-03', fis_no: '3', hesap_kodu: st.hesapF, aciklama: 'c', borc: 0, alacak: 50, _i: 2 }];
+          st.acilis = 100; st.f = {}; st.sort = { k: 'alacak', d: -1 }; M._draw();
+          const cols = st.cols.map(c => c[0]), bi = cols.indexOf('bakiye'), ai = cols.indexOf('alacak');
+          const tr = [...document.querySelectorAll('#mmTable tbody tr[data-kod]')];
+          const sonuc = { alacak: tr.map(x => x.cells[ai].textContent.trim()), bakiye: tr.map(x => x.cells[bi].textContent.trim()),
+                          top: document.querySelector('#mmTable tfoot td:nth-child(' + (bi + 1) + ')').textContent.trim() };
+          st.rows = ro; st.f = f; st.sort = so; st.acilis = ac; M._draw(); return sonuc; });
+        // azalan alacak: 300, 50, 500 (borç) → 100 − 300 = 200 A, 200 A − 50 = 250 A, 250 A + 500 = 250 B
+        check(/^300/.test(bk.alacak[0]) && /^200,00 A/.test(bk.bakiye[0]) && /^250,00 A/.test(bk.bakiye[1]) && /^250,00 B/.test(bk.bakiye[2]) && bk.top.startsWith(bk.bakiye[2]),
+          'Görev 55: alacağa göre sıralayınca yürüyen bakiye yeni sıraya göre (açılış 100); son satır = toplam bakiye (' + bk.bakiye.join(' · ') + ' / ' + bk.top + ')');
         await w.click('[data-mmgeri]'); await w.waitForTimeout(600);
       } else check(true, 'Görev 55: muavinde ← / → (örnek mizanda tek hesap, atlandı)'); }
     await w.click('[data-mmtab=muavin]'); await w.waitForTimeout(800);
@@ -431,9 +431,15 @@ wb.save(${JSON.stringify(mzx)})`]);
                  pasif: l ? l.disabled : null, ipucu: l ? l.title : '' }; });
       let istek = null;
       if (yer.var && !yer.pasif) {
-        await w.evaluate(() => { window.__fgEski = window.__mwApi.luca.fisGoster; window.__fgIstek = null; window.__mwApi.luca.fisGoster = a => { window.__fgIstek = a; return Promise.resolve({ ok: true }); }; });
-        await w.click('#mmFisLuca'); await w.waitForTimeout(1500);
-        istek = await w.evaluate(() => { const a = window.__fgIstek; window.__mwApi.luca.fisGoster = window.__fgEski; const r = window.__mmui._st.fisAcik.r; return a && { ...a, beklenen: { fisNo: String(r.fis_no), year: String(r.tarih).slice(0, 4) } }; });
+        // Luca bağlı ve fişi gösteriyormuş gibi (ana süreçte istek yakalanır; gerçek Luca'ya gidilmez), sonra eski hâline
+        await app.evaluate(({ ipcMain }) => { const H = ipcMain._invokeHandlers; global.__fgAsil = ['luca-status', 'luca-fis-goster'].map(ch => [ch, H && H.get(ch)]); global.__fgIstek = null;
+          for (const [ch] of global.__fgAsil) ipcMain.removeHandler(ch);
+          ipcMain.handle('luca-status', () => ({ loggedIn: true })); ipcMain.handle('luca-fis-goster', (e, a) => { global.__fgIstek = a; return { ok: true }; }); });
+        await w.click('#mmFisLuca');
+        for (let i = 0; i < 40 && !(await app.evaluate(() => global.__fgIstek)); i++) await w.waitForTimeout(150);
+        const a = await app.evaluate(({ ipcMain }) => { const a = global.__fgIstek; for (const [ch, h] of global.__fgAsil) { ipcMain.removeHandler(ch); if (h) ipcMain.handle(ch, h); } return a; });
+        istek = await w.evaluate(a => { const r = window.__mmui._st.fisAcik.r; return a && { ...a, beklenen: { fisNo: String(r.fis_no), year: String(r.tarih).slice(0, 4) } }; }, a);
+        await w.waitForFunction(() => document.querySelector('#mwBusy') ? document.querySelector('#mwBusy').hidden : true, null, { timeout: 8000 }).catch(() => {});
       }
       check(yer.var && yer.solda && (yer.pasif ? /Luca karşılığı yok/.test(yer.ipucu) : !!istek && istek.fisNo === istek.beklenen.fisNo && istek.year === istek.beklenen.year),
         'Görev 55: fiş penceresinde "Luca\'da aç" PDF / Excel düğmelerinin solunda; ' + (yer.pasif ? 'firmanın Luca karşılığı yok: pasif, nedeni ipucunda' : 'Luca\'da aç isteği doğru fiş / yılla gitti (' + JSON.stringify(istek) + ')')); }
