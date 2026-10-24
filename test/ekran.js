@@ -47,7 +47,9 @@ async function boyutla(app, w, cw, ch) {
   await w.waitForTimeout(450);
 }
 async function olc(w, ekran) {
-  const ana = await w.evaluate(cakisma, ekran.kok || null);
+  // yatay kaydırma denetimi 1280 px ve üstü için (en küçük pencerede, 980 px, geniş tablolar kaydırılabilir)
+  const yatay = ekran.yatay && await w.evaluate(() => innerWidth >= 1280);
+  const ana = await w.evaluate(cakisma, yatay ? { kok: ekran.kok || null, yatay: ekran.yatay } : (ekran.kok || null));
   const sonuc = { cakisan: ana.cakisan, tasan: [...ana.tasan, ...ana.kesik.map(x => 'kesik metin: ' + x)], sayfaTasma: ana.sayfaTasma ? ['sayfa ' + ana.sayfaTasma] : [], n: ana.n, boy: await w.evaluate(() => innerWidth + '×' + innerHeight + ' @' + devicePixelRatio) };
   if (ekran.cerceve && await w.isVisible('#fkFrame')) {
     const fr = await fkFrame(w); const c = await fr.evaluate(cakisma, null);
@@ -67,7 +69,7 @@ const EKRANLAR = [
   { ad: 'muhasebe-toplu', cerceve: true, git: async ({ w }) => { await modulAc(w, 'fatura'); const fr = await fkFrame(w); await fr.waitForSelector('#sekmeler', { timeout: 20000 }); await w.waitForTimeout(800); } },
   { ad: 'muhasebe-tek', cerceve: true, git: async ({ w }) => { await w.click('#fkNav [data-fksayfa=tek]'); const fr = await fkFrame(w); await fr.waitForSelector('#program', { timeout: 20000 }); await w.waitForTimeout(800); } },
   { ad: 'muhasebe-kdv', cerceve: true, git: async ({ w }) => { await w.click('#fkNav [data-fksayfa=kdv]'); await fkFrame(w); await w.waitForTimeout(1200); } },
-  { ad: 'luca-kaydet', kok: '#fkKayit', git: async ({ w, cfg }) => {
+  { ad: 'luca-kaydet', kok: '#fkKayit', yatay: ['#fkKayit .mmwrap'], git: async ({ w, cfg }) => {
     await w.click('#fkNav [data-fksayfa=toplu]'); const fr = await fkFrame(w); await fr.waitForSelector('#sekmeler', { timeout: 20000 });
     const hd = fs.readdirSync(path.join(cfg, 'MuhaWin', 'hesaplar')).map(d => path.join(cfg, 'MuhaWin', 'hesaplar', d, 'fatura_kontrol')).find(d => fs.existsSync(d));
     const k = path.join(hd, 'firmalar', 'EXPO İNŞ', '2026', '09'); fs.mkdirSync(k, { recursive: true });
@@ -78,9 +80,16 @@ from test_luca_otomasyon import muavin_yaz, ubl, FIRMA_VKN
 from pathlib import Path
 k = Path(${JSON.stringify(k)}); muavin_yaz(k / 'muavin.xlsx')
 with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
+    UZUN = ['ÖRNEK İNŞAAT TAAHHÜT SANAYİ VE TİCARET LİMİTED ŞİRKETİ', 'ANTALYA AKARYAKIT OTOMOTİV TURİZM GIDA PAZARLAMA ANONİM ŞİRKETİ', 'KISA LTD']
+    KALEM = ['Ofis kırtasiye malzemesi, A4 fotokopi kağıdı 80 gr (koli) ve toner', 'Motorin (Euro Diesel) — araç yakıt alımı', 'Danışmanlık hizmet bedeli']
     for i in range(1, 9):
         no = 'YYY2026%09d' % (100 + i)
-        z.writestr('gib_efatura_alis/%s.xml' % no, ubl(no, '2026-09-%02d' % i, str(1000 + i), FIRMA_VKN, '500.00', '100.00', 20))
+        mat = '1234567.89' if i % 3 == 0 else '500.00'; kdv = '246913.58' if i % 3 == 0 else '100.00'
+        x = ubl(no, '2026-09-%02d' % i, str(10000000000 + i) if i % 2 else str(1000 + i), FIRMA_VKN, mat, kdv, 20).decode()
+        sat = str(10000000000 + i) if i % 2 else str(1000 + i)
+        x = x.replace('<cbc:Name>SATICI %s</cbc:Name>' % sat, '<cbc:Name>%s</cbc:Name>' % UZUN[i % 3])
+        x = x.replace('</Invoice>', '<cac:InvoiceLine><cbc:ID>1</cbc:ID><cbc:InvoicedQuantity unitCode="C62">1</cbc:InvoicedQuantity><cbc:LineExtensionAmount currencyID="TRY">%s</cbc:LineExtensionAmount><cac:Item><cbc:Name>%s</cbc:Name></cac:Item></cac:InvoiceLine></Invoice>' % (mat, KALEM[i % 3]))
+        z.writestr('gib_efatura_alis/%s.xml' % no, x.encode())
 `]);
     await w.evaluate(async () => { const { Store } = window.__app;
       await Store.saveFirm({ id: 'kf1', name: 'EXPO İNŞ', lucaId: '11', banks: [], mizanInfo: { source: 'luca', year: '2026', at: new Date().toISOString(), parts: 1 } });

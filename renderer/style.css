@@ -702,3 +702,18 @@ tr.fiscikan td:last-child{opacity:1}
 .dmenusec{display:grid!important;gap:4px;white-space:nowrap}
 .dmenulist [role=menuitem]{all:unset;display:block;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--ink);font-size:13px;white-space:nowrap}
 .dmenulist [role=menuitem]:hover,.dmenulist [role=menuitem]:focus-visible{background:var(--hover)}
+/* Görev 46: Faturaları Luca'ya kaydet tablosu yatay kaydırmasız: uzun metin tek satırda kısalır (tamamı ipucunda),
+   not satırları daraltılır, işlem düğmeleri hücrede alt alta */
+#fkKayit td.fk-tb{white-space:nowrap}
+#fkKayit td.fk-yon .note{max-width:92px}
+#fkKayit td.fk-karsi>b,#fkKayit td.fk-karsi>.note{display:block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fkKayit td.fk-hesap>.note,#fkKayit td.fk-cari>.note,#fkKayit td.fk-hesap>div:not(.fkk-ksl){max-width:150px;overflow-wrap:anywhere}
+#fkKayit td.fk-cari>input+.note{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#fkKayit td.fk-hesap input,#fkKayit td.fk-cari input{width:116px!important}
+#fkKayit td.fk-durum{max-width:130px}#fkKayit td.fk-durum .note{max-width:130px;overflow-wrap:anywhere}
+#fkKayit td.fk-is{width:1%}
+#fkKayit .fk-isler{display:grid;gap:2px;justify-items:stretch}
+#fkKayit .fk-isler .btn{justify-content:flex-start;white-space:nowrap;padding:2px 8px;min-height:26px;height:26px}
+#fkKayit thead tr.flt .flt2{display:grid;gap:2px}
+#fkKayit thead tr.flt input{min-width:44px}
+#fkKayit td,#fkKayit thead th{padding-left:8px;padding-right:8px}
