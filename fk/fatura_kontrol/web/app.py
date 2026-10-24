@@ -310,6 +310,17 @@ def _luca_donem_klasoru(firma_id: str, bas: date | None) -> Path | None:
     return depo.donem_klasoru(ad, bas)
 
 
+def _luca_muavini(firma_id: str, bas: date | None) -> Path | None:
+    """Firmanın dönem klasöründe Luca'dan (toplu otomasyon, muavin adımı) alınmış muavin (xlsx; işletme defteri değil)."""
+    from ..luca import toplu as T
+    k = _luca_donem_klasoru(firma_id, bas)
+    if not k or not (k / "muavin.xlsx").exists():
+        return None
+    if not any(a["kod"] == "muavin" and a["durum"] == "tamam" for a in T.adim_ozeti(T.adimlari_oku(k))):
+        return None                          # dosya kullanıcının yüklediği muavin olabilir: Luca'dan alınmamış
+    return k / "muavin.xlsx"
+
+
 @app.get("/api/kontrol/luca-faturalari")
 def luca_faturalari(firma_id: str, bas: str):
     """Tek firma › "Luca'dan al": seçili ayda firmanın klasöründe Luca'dan alınmış kaç fatura var."""
@@ -318,9 +329,11 @@ def luca_faturalari(firma_id: str, bas: str):
     # Luca'dan indirilemeyen türler (adım kayıtlarından): yalnız o tür yeniden denenebilir ya da XML olarak eklenebilir
     eksik = [{"kod": a["kod"], "ad": a["ad"], "durum": a["durum"]} for a in (T.adim_ozeti(T.adimlari_oku(k)) if k and k.exists() else [])
              if a.get("kod") and a["kod"] != "muavin" and a.get("durum") in ("hata", "yarim")]
+    mv = _luca_muavini(firma_id.strip(), _tarih(bas))
+    muavin = {"zaman": datetime.fromtimestamp(mv.stat().st_mtime).isoformat(timespec="minutes")} if mv else None
     y = _luca_fatura_arsivi(firma_id.strip(), _tarih(bas))
     if not y:
-        return {"adet": 0, "eksik": eksik}
+        return {"adet": 0, "eksik": eksik, "muavin": muavin}
     turler: dict[str, int] = {}
     kokler: set[str] = set()                 # aynı fatura arşivde iki adla bulunabilir (eski sürüm): bir kez sayılır
     with zipfile.ZipFile(y) as z:
@@ -331,7 +344,8 @@ def luca_faturalari(firma_id: str, bas: str):
                 t = ad.split("/")[0]
                 turler[t] = turler.get(t, 0) + 1
     adet = len(kokler)
-    return {"adet": adet, "turler": turler, "eksik": eksik, "zaman": datetime.fromtimestamp(y.stat().st_mtime).isoformat(timespec="minutes")}
+    return {"adet": adet, "turler": turler, "eksik": eksik, "muavin": muavin,
+            "zaman": datetime.fromtimestamp(y.stat().st_mtime).isoformat(timespec="minutes")}
 
 
 # ------------------------------------------------------------------ Bilgisayardaki belgelerle yeniden kontrol / denetim
@@ -442,7 +456,7 @@ def kontrol_yerel(b: YerelIstek):
 
 @app.post("/api/denetim/yerel")
 def denetim_yerel(b: YerelIstek):
-    """Mikro Denetim: bilgisayardaki faturalar ve muavinle denetimi yeniden yapar."""
+    """Muhasebe Denetimi: bilgisayardaki faturalar ve muavinle denetimi yeniden yapar."""
     from .. import kontrol as K
     from ..denetim import denetle
     k, bas, bit, vkn, ad = _yerel_hazirla(b)
@@ -516,17 +530,18 @@ async def kontrol(
     return JSONResponse(veri)
 
 
-# ------------------------------------------------------------------ Firma denetimi (Ofisinize Özel Çözümler › Mikro Denetim)
+# ------------------------------------------------------------------ Firma denetimi (Ofisinize Özel Çözümler › Muhasebe Denetimi)
 @app.post("/api/denetim")
 async def denetim_calistir(
     faturalar: list[UploadFile] | None = File(None),
-    muavinler: list[UploadFile] = File(...),
+    muavinler: list[UploadFile] | None = File(None),
     vkn: str = Form(""), bas: str = Form(""), bit: str = Form(""),
     program: str = Form("mikro"), firma_id: str = Form(""), firma_ad: str = Form(""), fatura_kaynak: str = Form(""),
-    red_iptal: list[UploadFile] | None = File(None),
+    red_iptal: list[UploadFile] | None = File(None), muavin_kaynak: str = Form(""),
 ):
-    """E-belgeler + muavin (Mikro) → firma klasörüne yerleşir; standart kontrol raporu (beyanname / çıktı için) ve
-    KDV + matrah + cari denetimi + muhtasar taslağı hazırlanır."""
+    """E-belgeler + muavin (Mikro / Luca) → firma klasörüne yerleşir; standart kontrol raporu (beyanname / çıktı için) ve
+    KDV + matrah + cari denetimi + muhtasar taslağı hazırlanır. fatura_kaynak / muavin_kaynak = "luca": masaüstünde
+    Luca'dan (toplu otomasyonla) firmanın dönem klasörüne alınmış faturalar / muavin kullanılır."""
     from .. import muavin_programlari as MP
     from .. import kontrol as K
     from ..denetim import denetle
@@ -536,16 +551,25 @@ async def denetim_calistir(
         raise HTTPException(400, str(e))
     if not MP.denetimde_mi(program):
         raise HTTPException(400, f"{MP.PROGRAMLAR[program]['ad']} muavini Denetim ekranında desteklenmiyor.")
+    if not MP.hazir_mi(program):
+        raise HTTPException(400, MP.PROGRAMLAR[program]["ipucu"])
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         (tmp / "f").mkdir(); (tmp / "m").mkdir()
         f_yol = await _kaydet(faturalar or [], tmp / "f", FATURA_UZANTI)
-        if fatura_kaynak == "luca":          # Mikro Denetim › "Faturaları Luca'dan Al": firmanın dönem arşivi
+        if fatura_kaynak == "luca":          # Muhasebe Denetimi › "Faturaları Luca'dan Al": firmanın dönem arşivi
             a0 = _luca_fatura_arsivi(firma_id.strip(), _tarih(bas))
             if not a0:
                 raise HTTPException(400, "Bu dönem için Luca'dan alınmış fatura yok. Önce \"Faturaları Luca'dan Al\".")
             h = tmp / "f" / "luca_faturalar.zip"; shutil.copyfile(a0, h); f_yol.append(h)
         m_yol = await _kaydet(muavinler or [], tmp / "m", set(MP.PROGRAMLAR[program]["uzantilar"]))
+        if muavin_kaynak == "luca" and not m_yol:      # Luca seçili › "Muavini Luca'dan Al": dönem klasöründeki muavin
+            if program != "luca":
+                raise HTTPException(400, "Luca'dan alınan muavin yalnız muhasebe programı Luca seçiliyken kullanılır.")
+            m0 = _luca_muavini(firma_id.strip(), _tarih(bas))
+            if not m0:
+                raise HTTPException(400, "Bu dönem için Luca'dan alınmış muavin yok. Önce \"Muavini Luca'dan Al\".")
+            h = tmp / "m" / "luca_muavin.xlsx"; shutil.copyfile(m0, h); m_yol.append(h)
         if not f_yol:
             raise HTTPException(400, "Alış / satış e-fatura dosyalarını (XML ya da ZIP) yükleyin.")
         if not m_yol:

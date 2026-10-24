@@ -284,7 +284,7 @@ def test_tek_firma_faturalari_lucadan(istemci, tmp_path):
     j = c.get("/api/kontrol/luca-faturalari", params={"firma_id": "1", "bas": "2026-09-01"}).json()
     assert j["adet"] == 2 and j["turler"] == {"gib_efatura_alis": 1, "gib_efatura_satis": 1}
     assert [x["kod"] for x in j["eksik"]] == ["gib_efatura_satis"]          # indirilemeyen tür → "Luca'dan tekrar dene"
-    assert c.post("/api/toplu/baslat", json={"ay": "2026-09", "idler": ["1"], "yalniz_fatura": True, "adim": "muavin"}).status_code == 400
+    assert c.post("/api/toplu/baslat", json={"ay": "2026-09", "idler": ["1"], "yalniz_fatura": True, "adim": "yok"}).status_code == 400
     c.post("/api/toplu/baslat", json={"ay": "2026-09", "idler": ["1"], "yalniz_fatura": True, "adim": "gib_efatura_satis"})
     d = _bekle(c)
     assert d["cikis_kodu"] == 0 and "gib_efatura_satis" in api._is["proc"].args

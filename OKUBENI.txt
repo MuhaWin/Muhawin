@@ -1,4 +1,4 @@
-MuhaWin 2.9.13  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Belgeden Fiş · Ofisinize Özel Çözümler · (yakında: Denetim ve Analiz · Geçici Vergi · Personel)
+MuhaWin 2.9.14  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Belgeden Fiş · Ofisinize Özel Çözümler · (yakında: Denetim ve Analiz · Geçici Vergi · Personel)
 =========================================================================================================================================================
 
 ÖNCE SUNUCU (bir kez)
@@ -15,7 +15,7 @@ MuhaWin 2.9.13  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Belg
    temel lisans işlemleri çalışır, ekranda uyarı görünür.
 
 KURULUM
-1. MuhaWin-2.9.13-BIRLESTIR.bat → MuhaWin-Kurulum-2.9.13.exe oluşur → çalıştırın. Python gerekmez.
+1. MuhaWin-Kurulum-2.9.14.exe dosyasını çalıştırın. Python gerekmez. Kurulu 2.9.5 ve sonrası sürümler 2.9.14'ü kendiliğinden bulur.
 2. İlk açılışta önceki "Ekstre Luca" verileri MuhaWin'e kopyalanır (eski klasör silinmez).
 
 KULLANIM
@@ -33,6 +33,37 @@ KULLANIM
     penceresi açılır, girişten sonra liste kendiliğinden gelir. Seçimleriniz ve notlarınız korunur.
 - Fatura Kontrol verilerini silmek / klasörünü açmak: Ekstre modülü → Veri ve yedek.
 - Sorun olursa günlük: %APPDATA%\MuhaWin\hesaplar\<hesap>\fatura_kontrol\muhawin-modul.log
+
+2.9.14 YENİLİKLER
+- Muavinde harfli cari kodları (ör. 320.P.0006, 120.Ş.001) doğru okunur. Önceden bu carilerin hareketleri muavinde bir
+  önceki hesaba (çoğu zaman 302) yazılıyor, fiş ve cari önerisi bu yüzden yanlış çıkıyordu.
+- Kurallarda çoklu şart (VE) ve "Hiç kaydetme" eylemi.
+- Cari önerisi önce VKN/TCKN'ye, sonra ünvana bakar; fatura seri ön eki destekleyici bilgi olarak kullanılır. Yeni cari
+  önerisinde IBAN ve sayı dizileri ünvan sayılmaz; mevcut cariye ekli ünvan tanınır.
+- "Kod tanımları ▾" menüsü (Alış / Satış kod tanımları): firma başına işlem türü × KDV oranı hesap tablosu. Luca'dan
+  çekilebilir, elle girilen hücre korunur. Doldurma kaynağı seçilebilir (kural → geçmiş → varsayılan ya da kural → kod tablosu).
+- ÖİV'li faturalarda fiş satırları.
+- Fiş önizlemede ve "Luca'ya kaydet" ekranında satır ekle / çıkar.
+- Tek düğme "Muavini Luca'dan çek" (mizan → hesap planı → muavin); "Daha önce kaydedilenler" listesi; Luca'dan silinen fiş
+  muavinden kendiliğinden fark edilir; "Luca fiş N" düğmesi fişi açar.
+- Rapordaki "Luca'da aç": Fiş Listesi o fişle süzülerek açılır.
+- Muavin okuyucusu farklı Luca döküm biçimlerine dayanıklı.
+- Toplu sonuçlarda "Tümü" süzgeci; rapordaki fiş ekranda açılır.
+- KDV beyannamesi: sorumlu sıfatıyla ödenen KDV ve önceki ayların tahakkuk fişi.
+- Luca iş kilidi: aynı anda iki iş aynı Luca sayfasını kullanmaz; gerektiğinde ek Luca sayfası açılır.
+- Luca giriş kutusu ve gizli giriş düzeltmeleri.
+- Farklı ekran boyu ve Windows ölçeklemesinde (%125–%200) düzen: giriş ekranı kesilmez, satırlar üst üste binmez.
+- Sabit üst şerit, "yakında" modüller, sade tema seçimi, Esc ile geri; üst menü hizası ve sıralama.
+- Tek tip sekmeler, düğme boyları, boş liste mesajları; örnek firma seçiliyken açıklayıcı uyarı.
+- "Hızlı Fiş Girişi"nin görünen adı her yerde "Belgeden Fiş".
+- PDF okuyucu pdf.js 5.7.284'e yükseltildi; PDF, pencere ve dosya erişimi sıkılaştırıldı.
+- Belge girdisi sınırları (ZIP bombası, yükleme boyutu).
+- Arayüz betikleri ayrı dosyada, satır içi betik kapalı (CSP).
+- Yerel veri ve oturum hijyeni.
+- Lisans denetimi sıkılaştırıldı; ofis başına en çok 10 kullanıcı.
+- Mobil yönetim paneli eşitlemesi ve oturum güvenliği.
+- Çek / Senet hesap yüklemesindeki yarış düzeltildi.
+- 2.9.13 ayrıca yayınlanmadı; 2.9.12'den güncelleyenler için aşağıdaki 2.9.13 yenilikleri de geçerlidir.
 
 2.9.13 YENİLİKLER
 - Menü düzeni: üst şeridin altında kalıcı modül sekmeleri (Banka · Muhasebe · Belgeden Fiş · Denetim · Ofisinize Özel ·
@@ -543,12 +574,16 @@ KULLANIM
 - Luca penceresinde (Banka İşlemleri / fiş kesme / mizan çekme) "Zaman Aşımı – Parola Girişi" çıkarsa
   Ayarlar'daki parola yazılıp Giriş'e basılır.
 
-YENİ SÜRÜM YAYINLAMA (otomatik güncelleme için)
-1. github.com/muhawin/muhawin-surumler → Releases → "Draft a new release".
-2. Tag: v<sürüm> (örn. v2.6.0), başlık: MuhaWin <sürüm>.
-3. Şu üç dosyayı sürükleyin: MuhaWin-Kurulum-<sürüm>.exe, MuhaWin-Kurulum-<sürüm>.exe.blockmap, latest.yml
-   (üçü de aynı derlemeden olmalı). "Publish release".
-4. Kurulu programlar birkaç saat içinde (ya da açılışta) yeni sürümü kendiliğinden indirir.
+YENİ SÜRÜM YAYINLAMA (otomatik güncelleme için; GitHub Actions "MuhaWin sürüm" iş akışı, .github/workflows/surum.yml)
+1. package.json (ve package-lock.json kökü) sürümünü artırın; OKUBENI başlığına, KURULUM satırına ve "<sürüm> YENİLİKLER"
+   bölümüne yeni sürümü yazın. PR ile main'e birleştirin.
+2. Deneme: github.com/MuhaWin/Muhawin → Actions → "MuhaWin sürüm" → Run workflow (main, teslim = deneme).
+   Testler + Windows derlemesi; kurulum dosyası çalıştırmanın "Artifacts" bölümünden indirilir. Yayınlanmaz.
+3. Yayın: aynı yerden teslim = yayin (ya da main'e v<sürüm> etiketi). İş akışı testleri çalıştırır, derler ve
+   github.com/MuhaWin/muhawin-surumler deposunda v<sürüm> sürümünü açıp exe, blockmap ve latest.yml'i yükler.
+   Gerekli sır: MuhaWin/Muhawin → Settings → Secrets → Actions → SURUM_TOKEN (muhawin-surumler, Contents: Read and write).
+4. Kurulu programlar açılışta ve 4 saatte bir denetler; yeni sürümde "Yeni sürüm var" diye sorar
+   (2.9.12 ve öncesi soru sormadan indirir, kapanışta kurar). Eski McLk007/muhawin-surumler adresi yeni depoya yönlendirilir.
 5. Web sitesi: "node tools/site_uret.js" ile sürüm notlarını yenileyin; main'e birleşince site Cloudflare Pages'e kendiliğinden yayınlanır (web\KURULUM.md).
 
 2.5.0 YENİLİKLER
