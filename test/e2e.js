@@ -66,9 +66,9 @@ async function oturum(fatura, o = {}) {
     check(await w.isVisible('.app'), 'Ekstre modülü açıldı');
     // menü düzeni B: üstte kalıcı modül sekmeleri; Yeni firma ve Luca'dan firma ekle üst şeritte / araç çubuğunda değil
     { const ms = await w.$$eval('#modSekme [data-modsekme]', b => b.map(x => [x.dataset.modsekme, x.disabled, x.getAttribute('aria-selected'), x.textContent.trim()]));
-      check(ms.map(x => x[0]).join(',') === 'ekstre,fatura,okc', 'modül sekmeleri: Banka · Muhasebe · Belgeden Fiş (' + ms.map(x => x[3]).join(' · ') + ')');
+      check(ms.map(x => x[0]).join(',') === 'fatura,ekstre,okc', 'modül sekmeleri modül seçim ekranıyla aynı sırada: Muhasebe · Banka · Belgeden Fiş (' + ms.map(x => x[3]).join(' · ') + ')');
       check(!ms.some(x => x[1]) && await w.$$eval('.modcard[disabled]', b => b.length) >= 3, '"Yakında" modüller sekme satırında yok (modül seçim ekranında pasif kartlar duruyor)');
-      check(ms.find(x => x[0] === 'ekstre')[2] === 'true' && /^Banka$/.test(ms[0][3]) && /^Belgeden Fiş$/.test(ms[2][3]), 'Banka sekmesi seçili'); }
+      check(ms.find(x => x[0] === 'ekstre')[2] === 'true' && /^Banka$/.test(ms.find(x => x[0] === 'ekstre')[3]) && /^Belgeden Fiş$/.test(ms.find(x => x[0] === 'okc')[3]), 'Banka sekmesi seçili'); }
     // temalar azaltıldı: birbirine yakın olanlar (Lacivert, Bordo, Zümrüt, Gece) kaldırıldı
     { await w.click('#themeBtn'); const tm = await w.$$eval('#themeMenu [data-skin]', b => b.map(x => x.dataset.skin)); await w.keyboard.press('Escape');
       check(tm.join(',') === 'muhawin,defter,kirmizi,kum,grafit,kontrast', 'tema sayısı 6 (' + tm.join(',') + ')'); }
@@ -188,6 +188,8 @@ wb.save(${JSON.stringify(ex)})`]);
     // üst şerit ve modül sekme satırı her ekranda aynı yerde (kayma / zıplama yok): Banka · Belgeden Fiş · Mizan paneli · Muhasebe
     const yer = () => w.evaluate(() => ['#modSekme', '#lucaTopBtn', '#ayarlarBtn', '#firmSel'].map(s => { const r = document.querySelector(s).getBoundingClientRect(); return [s, Math.round(r.top), Math.round(r.left), Math.round(r.width), Math.round(r.height)].join(':'); }).join(' '));
     const yerB = await yer();
+    const kutu = sel => w.evaluate(s => { const e = document.querySelector(s); if (!e || !e.getClientRects().length) return null; const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.height)]; }, sel);
+    const altB = await kutu('#modeTabs .modetab');
     await w.click('#modSekme [data-modsekme=okc]'); await w.waitForTimeout(500); const yerO = await yer();
     await w.click('#modSekme [data-modsekme=ekstre]'); await w.waitForTimeout(400);
     await w.click('#mmBtn'); await w.waitForSelector('#mmPanel:not([hidden])'); await w.waitForTimeout(300); const yerM = await yer();
@@ -204,6 +206,21 @@ wb.save(${JSON.stringify(ex)})`]);
     check(await w.getAttribute('#modSekme [data-modsekme=fatura]', 'aria-selected') === 'true' && await w.isVisible('#modSekme'), 'Muhasebe sekmesi seçili ve görünür');
     { const r = await w.evaluate(() => [document.querySelector('#modSekme').getBoundingClientRect().bottom, document.querySelector('#fkPanel').getBoundingClientRect().top]);
       check(r[1] >= r[0], 'Muhasebe paneli modül sekmelerinin altında başlıyor (' + r.map(Math.round).join(' / ') + ')'); }
+    // Görev 33: Muhasebe alt menüsü Banka alt sekmeleriyle aynı hizada ve boyda (ilk alt düğmenin x, y ve yüksekliği)
+    { await w.mouse.move(2, 700); const altF = await kutu('#fkNav .btn');
+      check(altB && altF && altB.every((v, i) => Math.abs(v - altF[i]) <= 1), 'alt menü hizası: Banka Ekstreleri ve Toplu Kontrol aynı x / y / yükseklikte (Banka ' + JSON.stringify(altB) + ' · Muhasebe ' + JSON.stringify(altF) + ')'); }
+    // üst bölümün boyu sonradan değişince (yazı tipi, Luca düğmesi, pencere) Muhasebe paneli yeniden yerleşir; menüler üst üste binmez
+    { await w.evaluate(() => { document.querySelector('header.top').style.paddingBottom = '70px'; }); await w.waitForTimeout(250);
+      const r1 = await w.evaluate(() => [document.querySelector('#modSekme').getBoundingClientRect().bottom, document.querySelector('#fkPanel').getBoundingClientRect().top]);
+      await w.evaluate(() => { document.querySelector('header.top').style.paddingBottom = ''; }); await w.waitForTimeout(250);
+      const r2 = await w.evaluate(() => [document.querySelector('#modSekme').getBoundingClientRect().bottom, document.querySelector('#fkPanel').getBoundingClientRect().top]);
+      check(r1[1] >= r1[0] && r2[1] >= r2[0] && r2[1] - r2[0] <= 20, 'üst bölüm büyüyüp küçülünce Muhasebe paneli sekmelerin altına yeniden yerleşti (' + [...r1, ...r2].map(Math.round).join(' / ') + ')'); }
+    // Muhasebe › Toplu Kontrol'deyken Mizan / Muavin / Hesap Planı açılınca alt menü ve etkin öğesi görünür kalır
+    { await w.click('#mmBtn'); await w.waitForSelector('#mmPanel:not([hidden])'); await w.waitForTimeout(300);
+      const g = await w.evaluate(() => { const n = document.querySelector('#fkNav'), b = document.querySelector('#fkNav [aria-pressed=true]'), p = document.querySelector('#mmPanel'); const br = b.getBoundingClientRect();
+        const ust = document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2); return { nb: n.getBoundingClientRect().bottom, pt: p.getBoundingClientRect().top, etkin: b.dataset.fksayfa, gorunur: !!ust && (ust === b || b.contains(ust)) }; });
+      await w.keyboard.press('Escape'); await w.waitForTimeout(300);
+      check(g.pt >= g.nb && g.gorunur && g.etkin === 'toplu', 'Mizan / Muavin açıkken Muhasebe alt menüsü ve etkin öğe (Toplu Kontrol) görünür (' + JSON.stringify(g) + ')'); }
     let fr = await frameEl.contentFrame();
     const fkFrame = async () => { const fe = await w.waitForSelector('#fkFrame:not([hidden])', { timeout: 40000 }); return fe.contentFrame(); };
     await fr.waitForSelector('#sekmeler', { timeout: 20000 });

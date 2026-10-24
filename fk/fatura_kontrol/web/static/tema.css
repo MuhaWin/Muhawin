@@ -127,3 +127,8 @@ table:has(> thead > tr.tg-filtre) > thead th{position:static}
 .tema-sec button.secili{border-color:var(--brand-2);box-shadow:0 0 0 3px var(--accent)}
 .tema-sec .ornek{width:76px;height:40px;border-radius:6px;overflow:hidden;display:grid;grid-template-rows:12px 1fr;border:1px solid rgba(0,0,0,.08)}
 .tema-sec .ornek i{display:block}
+/* Görev 33: MuhaWin içinde sayfa, MuhaWin'in modül / alt menü sütununa yaslanır (sol ve sağ kenar alt menüyle aynı hizada);
+   "← Toplu Kontrol'e dön" satırı da aynı hizada */
+html.mw main{padding-left:0!important;padding-right:0!important;max-width:none!important}
+html.mw header{padding-left:0!important;padding-right:0!important}
+html.mw #raporPencere .rp-ust{padding-left:0;padding-right:0}
