@@ -49,7 +49,7 @@ jobs:
       - name: Pyodide, wheel'ler ve test araçları
         run: |
           (cd web/denetim && npm ci && pip download --no-deps -r wheels.txt -d wheels)
-          pip install pytest openpyxl lxml xlrd playwright==1.64.1
+          pip install pytest openpyxl lxml xlrd pypdf==6.17.0 reportlab playwright==1.64.1
           python -m playwright install --with-deps chromium
       - name: Siteyi derle
         run: node tools/site_uret.js --denetim

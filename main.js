@@ -145,6 +145,7 @@ function createWindow() {
       .then(r => { if (r.response === 0) { cikisOnay = true; if (win && !win.isDestroyed()) win.close(); } }).catch(() => {});
   });
   win.on('closed', () => app.quit());
+  if (!app.isPackaged && process.env.EKSTRE_TEST_SB) global.__mwTest = { luca };   // yalnız e2e (paketlenmiş programda yok)
   luca.init({ parent: win, getCreds: readCreds, getRequiredUye: officeUye, notify: (ev, data) => {
     if (win && !win.isDestroyed()) win.webContents.send('luca-event', ev, data);
     if (ev === 'loggedIn' || ev === 'durum') lucaOturumPaylas(ev === 'durum' && data && !data.loggedIn);

@@ -720,6 +720,149 @@ def denetim_listesi():
     return {"liste": out}
 
 
+# ------------------------------------------------------------------ Detay denetim (gider / gelir kontrolü; Görev 43 Faz 2)
+def _denetim_veri(id: str) -> tuple[Path, dict]:
+    from ..denetim import DENETIM_JSON
+    k = depo.rapor_klasoru(id)
+    if not k or not (k / DENETIM_JSON).exists():
+        raise HTTPException(404, "Bu dönemin denetimi yok")
+    v = json.loads((k / DENETIM_JSON).read_text(encoding="utf-8"))
+    if "detay" not in v:
+        raise HTTPException(409, "Bu denetim detay denetimden önce yapılmış; denetimi yeniden çalıştırın.")
+    return k, v
+
+
+@app.get("/api/denetim/detay")
+def denetim_detay(id: str):
+    """Gider ve gelir kontrolü: her faturanın kaydı, durumu (kural / geçmiş / karar / bekliyor), firmanın kuralları."""
+    from .. import detay
+    k, v = _denetim_veri(id)
+    firma = k.parent.parent
+    d = detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma))
+    return {**d, "kurallar": detay.kurallar(firma), "durum_ad": detay.DURUM_AD}
+
+
+class DetayKarar(BaseModel):
+    id: str
+    anahtar: str
+    karar: str = ""              # uygun / uygun_degil / "" (kararı kaldır)
+    notu: str = ""
+
+
+@app.post("/api/denetim/detay/karar")
+def denetim_detay_karar(b: DetayKarar):
+    from .. import detay
+    k, v = _denetim_veri(b.id)
+    x = next((x for t in ("gider", "gelir") for x in v["detay"].get(t, []) if x["anahtar"] == b.anahtar), None)
+    if not x:
+        raise HTTPException(404, "Fatura bu denetimde yok")
+    try:
+        detay.karar_yaz(k.parent.parent, b.anahtar, b.karar, b.notu,
+                        {"belge_no": x["belge_no"], "tarih": x["tarih"], "karsi_taraf": x["karsi_taraf"]})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"tamam": True}
+
+
+class DetayKural(BaseModel):
+    id: str
+    yon: str = ""
+    vkn: str = ""
+    unvan: str = ""
+    hesap: str = ""
+    aciklama: str = ""
+    sil: int = 0                 # verilirse bu kural silinir
+
+
+@app.post("/api/denetim/detay/kural")
+def denetim_detay_kural(b: DetayKural):
+    """Kontrol kuralı ekle / sil (kayıt değil: kurala uyan fatura otomatik "uygun" sayılır)."""
+    from .. import detay
+    k, _ = _denetim_veri(b.id)
+    firma = k.parent.parent
+    try:
+        L = detay.kural_sil(firma, int(b.sil)) if b.sil else \
+            detay.kural_ekle(firma, {"yon": b.yon, "vkn": b.vkn, "unvan": b.unvan, "hesap": b.hesap, "aciklama": b.aciklama})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"kurallar": L}
+
+
+@app.get("/api/denetim/detay/rapor", response_class=HTMLResponse)
+def denetim_detay_rapor(id: str):
+    """Yazdırılabilir rapor: KDV ve matrah kontrolü + detay denetim (uygun / uygun değil / bekleyen)."""
+    from .. import detay
+    from ..detay_rapor import rapor_html
+    k, v = _denetim_veri(id)
+    firma = k.parent.parent
+    try:
+        mb = denetim_muhtasar_getir(id) if (k / MUHTASAR_BEYAN_JSON).exists() else None
+    except Exception:                    # beyanname özeti bozuksa rapor yine çıkar
+        mb = None
+    return HTMLResponse(rapor_html(v, detay.uygula(v["detay"], detay.kurallar(firma), detay.kararlar(firma)), mb))
+
+
+# ------------------------------------------------------------------ Yönetici raporu (Görev 43 Faz 3)
+@app.get("/api/denetim/yonetici", response_class=HTMLResponse)
+def denetim_yonetici(id: str):
+    """Yıllık muavinden aylık satış / gider grafikleri, o ayın vergileri ve rasyolar (yazdırılabilir)."""
+    from .. import yonetici
+    from ..denetim import DENETIM_JSON
+    from ..yonetici_rapor import rapor_html
+    k = depo.rapor_klasoru(id)
+    if not k or not (k / DENETIM_JSON).exists():
+        raise HTTPException(404, "Bu dönemin denetimi yok")
+    v = json.loads((k / DENETIM_JSON).read_text(encoding="utf-8"))
+    y = yonetici.hazirla(_denetim_muavini(k), date.fromisoformat(v["bas"]), date.fromisoformat(v["bit"]))
+    return HTMLResponse(rapor_html(v, y))
+
+
+# ------------------------------------------------------------------ Muhtasar beyannamesi (1003A PDF) ↔ muavin
+MUHTASAR_BEYAN_JSON = "muhtasar_beyan.json"      # yalnız tutarlar / adetler; PDF ve kişisel alanlar saklanmaz
+
+
+def _muhtasar_karsilastir(k: Path, v: dict, b: dict) -> dict:
+    from .. import muhtasar_beyan as MB
+    bas, bit = date.fromisoformat(v["bas"]), date.fromisoformat(v["bit"])
+    return MB.kayit_bicimi({"beyan": b, **MB.karsilastir(b, v, _denetim_muavini(k), bas, bit),
+                            "zaman": datetime.now().isoformat(timespec="minutes")})
+
+
+@app.post("/api/denetim/muhtasar")
+async def denetim_muhtasar(id: str = Form(...), beyanname: UploadFile = File(...)):
+    """Muhtasar ve Prim Hizmet Beyannamesi PDF'i okunur (çalışan bölümleri hariç), muavinle karşılaştırılır.
+    PDF kaydedilmez; yalnız özet tutarlar dönem klasörüne yazılır."""
+    from .. import muhtasar_beyan as MB
+    from ..denetim import DENETIM_JSON
+    k = depo.rapor_klasoru(id)
+    if not k or not (k / DENETIM_JSON).exists():
+        raise HTTPException(404, "Bu dönemin denetimi yok")
+    veri = await beyanname.read()
+    if not veri.startswith(b"%PDF"):
+        raise HTTPException(400, "Beyannameyi PDF olarak yükleyin (GİB › Beyanname görüntüle › PDF).")
+    try:
+        b = MB.oku(veri)
+    except MB.BeyannameHatasi as e:
+        raise HTTPException(400, str(e))
+    v = json.loads((k / DENETIM_JSON).read_text(encoding="utf-8"))
+    sonuc = _muhtasar_karsilastir(k, v, b)
+    (k / MUHTASAR_BEYAN_JSON).write_text(json.dumps(sonuc, ensure_ascii=False), encoding="utf-8")
+    return sonuc
+
+
+@app.get("/api/denetim/muhtasar")
+def denetim_muhtasar_getir(id: str):
+    """Yüklenmiş beyanname özeti; karşılaştırma güncel denetim ve muavinle yeniden yapılır."""
+    from .. import muhtasar_beyan as MB
+    from ..denetim import DENETIM_JSON
+    k = depo.rapor_klasoru(id)
+    if not k or not (k / MUHTASAR_BEYAN_JSON).exists() or not (k / DENETIM_JSON).exists():
+        raise HTTPException(404, "Bu dönem için muhtasar beyannamesi yüklenmedi")
+    eski = json.loads((k / MUHTASAR_BEYAN_JSON).read_text(encoding="utf-8"))
+    v = json.loads((k / DENETIM_JSON).read_text(encoding="utf-8"))
+    return {**_muhtasar_karsilastir(k, v, MB.kayittan(eski["beyan"])), "zaman": eski.get("zaman")}
+
+
 @app.get("/api/gecmis")
 def gecmis():
     with _db() as con:

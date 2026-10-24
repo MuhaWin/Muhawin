@@ -32,13 +32,9 @@ def _isletme_oku(y):
     return isletme_oku(y)
 
 
-ELEKTRA_BEKLENIYOR = "Elektra muavin örneği bekleniyor: biçim bilinmeden okunamaz. Örnek dosya gelince okuyucu eklenecek."
-
-
 def _elektra_oku(y):
-    """İskelet: Elektra muavin dökümünün sütunları bilinmiyor (kullanıcı örnek verecek). Sütun uydurulmaz;
-    örnek gelince burada muavin_okuyucu.KOLONLAR benzeri bir eşleme ile MuavinSatiri listesi üretilecek."""
-    raise ValueError(ELEKTRA_BEKLENIYOR)
+    from .elektra_muavin import elektra_oku
+    return elektra_oku(y)
 
 
 PROGRAMLAR: dict[str, dict] = {
@@ -59,11 +55,10 @@ PROGRAMLAR: dict[str, dict] = {
     },
     "elektra": {
         "ad": "Elektra",
-        "uzantilar": [".xlsx", ".xls"],
-        "ipucu": ELEKTRA_BEKLENIYOR,
+        "uzantilar": [".xlsx"],
+        "ipucu": "Elektra → muavin dökümü (Grup, Fiş Tarihi, Fiş Numarası, Hesap Kodu, Hesap Adı, Dok Tipi, Fiş Notu, Borç, Alacak) · Excel (xlsx)",
         "okuyucu": _elektra_oku,
         "denetim": True,
-        "hazir": False,
         "yalniz_denetim": True,
     },
     "luca_isletme_excel": {

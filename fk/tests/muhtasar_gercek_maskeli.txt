@@ -1,0 +1,92 @@
+                                    MUHTASAR VE PRİM HİZMET BEYANNAMESİ
+                           (GVK’nın 94 üncü Maddesi, KVK’nın 15 inci ve 30 uncu Maddeleri ve Damga Vergisi                      1003A
+                          Kanununun 19 uncu ve 23 üncü Maddelerine Göre Yapılan Tevkifatlar ile 5510 Sayılı
+                                   Kanunun 4/1-a Maddesi Kapsamındaki Prim ve Hizmet Bildirimi İçin)
+
+ ANTALYA KURUMLAR                               DÖNEM TİPİ                                Yıl                          2026
+ VERGİ DAİRESİ MÜDÜRLÜĞÜ                        Aylık                                     Ay                           Eylül
+
+
+ Onay Zamanı :                23.10.2026 - 12:18:17
+
+
+
+
+
+
+
+VERGİ SORUMLUSUNUN
+
+ Vergi Kimlik Numarası                            99999999999
+  E-Posta Adresi                                   x@x
+  Ticaret Sicil No                                                                                 İrtibat Tel No    999 9999999
+  Soyadı (Unvanı)                                  XXXX
+  Adı (Unvanın Devamı)                             XXXX
+
+Bundan Sonraki Ay/Aylarda Beyanım Var/Yok                                                                                                  Var
+                                                  MATRAH VE VERGİ BİLDİRİMİ
+               Ödemelerin Tür Kodu                        Ödemelerin Gayrisafi Tutarı                       Vergi Kesinti Tutarı
+011                                                                             51.747,00                                                    0,00
+022                                                                              6.000,00                                               1.200,00
+041                                                                             90.625,00                                             18.125,00
+302                                                                             51.747,00                                                    0,00
+              Toplam                                                          148.372,00                                              19.325,00
+
+
+Ücret Ödemeleri Üzerinden Yapılan Tevkifatın 5225 Say. Kanun Gereği Terkin Edilen Tutarı                                                     0,00
+Ücret Ödemeleri Üzerinden Yapılan AR-GE, Yenilik Veya Tasarım KapsamındaTerkin Edilen Tutarı                                                 0,00
+
+
+Ücret Ödemeleri Üzerinden Yapılan Teknoloji Geliştirme Bölgeleri Kanunu Kapsamında Terkin                                                    0,00
+Edilen Tutarı
+Terkin Sonrası Kalan Vergi Tutarı                                                                                                     19.325,00
+
+KVK. 34/8. Maddesi Uyarınca KVK. 15/3 Maddesine Göre Yapılan                                                                                 0,00
+Vergi Kesintisinden Mahsup Edilecek Kesinti Tutarları
+Menkul Kıy. Yat. Fonları (BYF ile Konut Finansman Fonları ve Varlık Finansman Fonları Dahil) ile
+Menkul Kıy. Yat. Ortaklıklarınca GVK. Geç. Mad. 67/8'e Göre Hesaplanacak Vergiye Mahsup                                                      0,00
+Edilecek Tevkifat Tutarı
+
+
+GVK'nın 33. Maddesi Kapsamında Mahsup Edilecek Kesinti Tutarı                                                                                0,00
+Mevduat Hesabı Vade Değişikliği Nedeniyle Mahsup Edilecek Kesinti Tutarı                                                                     0,00
+Mahsup Edilecek Toplam Vergi                                                                                                                 0,00
+Tevkifata İlişkin Damga Vergisi                                                                                                              0,00
+
+
+                                                   TAHAKKUKA ESAS İCMAL CETVELİ
+Matrah                                                                                                                               148.372,00
+Tahakkuk Eden                                                                                                                          19.325,00
+Mahsup                                                                                                                                       0,00
+Tecil Edilecek Tutar                                                                                                                         0,00
+Ödenecek                                                                                                                               19.325,00
+İade Edilecek                                                                                                                                0,00
+
+
+                                           Damga Vergisi
+Ödenecek                                                                                0,00
+
+
+
+
+                                TEVKİFATA TABİ ÖDEMELERE AİT BİLDİRİM (Ücret ve Ücret Sayılan Ödemeler Hariç)
+
+   T.C. / Vergi             Ad Soyad                                             Adres       Tür           Ödemeye Ait Belgenin                        Gayrisafi ve                        Ülke
+    Kimlik No                (Unvan)                        Adres                  No.      Kodu                                                      Kesilen Vergi           K.T          Kodu
+                                                                                                         Türü          Tarihi        Seri-Sıra              Tutarı
+   99999999999                XXXX              XXXX             022         S.M.       30/09/2026      SMM9999999999999              6.000,00
+                                                    XXXX                         Makbuz                         9999999
+
+
+    99999999999                  XXXX                                                                                                                      1.200,00
+
+
+   99999999999                 XXXX              XXXX   9999999     041         Yok                                               90.625,00
+                                                      XXXX             999
+
+
+                            XXXX                                                                                                                      18.125,00
+
+
+GAYRİSAFİ TUTAR TOPLAMI                                                                                                                                                    96.625,00
+KESİLEN VERGİ TUTARI TOPLAMI                                                                                                                                               19.325,00
