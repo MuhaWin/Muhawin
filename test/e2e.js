@@ -805,17 +805,7 @@ Path(${JSON.stringify(md)}, 'faturalar.zip').write_bytes(zb.getvalue())
 _mikro(Path(${JSON.stringify(md)}, 'mikro_muavin.xlsx'), satis_matrah=1900, cari_alis=1150)`]);
       await w.click('#homeLogo'); await w.waitForSelector('#modGate:not([hidden])');
       await w.click('.modcard[data-mod=ozel]'); await w.waitForSelector('#hubPanel:not([hidden])');
-      // Görev 32: "Sitede aç" bağlantısı (kartların altında ve denetim ekranında); varsayılan tarayıcıda açılır, programdaki denetim aynen sürer
-      { const site = 'https://muhawin.com.tr/giris.html?geri=/denetim/';
-        await app.evaluate(({ shell }) => { global.__disAcilan = []; global.__eskiAc = global.__eskiAc || shell.openExternal; shell.openExternal = u => { global.__disAcilan.push(u); return Promise.resolve(); }; });
-        const hb = await w.$eval('#hubSite', e => ({ g: !e.hidden, t: e.textContent, h: (e.querySelector('a') || {}).href, hd: (e.querySelector('a') || {}).target }));
-        await w.click('#hubSite a[data-sitede]'); await w.waitForTimeout(600);
-        const acilan = await app.evaluate(() => global.__disAcilan.slice());
-        check(hb.g && /sitemizden de kullanılabilir; belgeleriniz bilgisayarınızdan çıkmaz/.test(hb.t) && hb.h === site && hb.hd === '_blank' && acilan.includes(site) && await w.isVisible('#hubPanel'),
-          'Muhasebe Denetimi: "Sitede aç" bağlantısı varsayılan tarayıcıda açıldı, program ekranı yerinde (' + acilan.join(',') + ')'); }
-      await w.click('#hubPanel [data-hub=mikro]'); await w.waitForSelector('#mdPanel:not([hidden]) #mdFrame', { timeout: 20000 });
-      check(await w.isVisible('#mdSite a[data-sitede]') && await w.getAttribute('#mdSite a[data-sitede]', 'href') === 'https://muhawin.com.tr/giris.html?geri=/denetim/', 'Muhasebe Denetimi ekranında "Sitede aç" bağlantısı; programdaki denetim açıldı');
-      await app.evaluate(({ shell }) => { if (global.__eskiAc) shell.openExternal = global.__eskiAc; });
+      await w.click('#hubPanel >> text=Muhasebe Denetimi'); await w.waitForSelector('#mdPanel:not([hidden]) #mdFrame', { timeout: 20000 });
       const mf = await (await w.$('#mdFrame')).contentFrame(); await mf.waitForSelector('#basla', { timeout: 30000 }); await w.waitForTimeout(800);
       const fsec = await mf.$$eval('#firma option', o => o.length);
       await mf.setInputFiles('#xml', path.join(md, 'faturalar.zip')); await mf.setInputFiles('#muavin', path.join(md, 'mikro_muavin.xlsx'));

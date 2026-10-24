@@ -4769,7 +4769,6 @@ const HUB=(()=>{
   function show(id){aktif=id;const x=ISLER[id];$('#hubT').textContent=x.t;$('#hubP').textContent=x.p;
     const kartlar=id==='ozel'?x.k.filter(k=>(window.__ozelListe||[]).includes(k.id)):x.k;
     $('#hubGrid').innerHTML=(kartlar.length?'':'<p class="note">Ofisinize henüz özel çözüm tanımlanmamış.</p>')+kartlar.map(k=>`<button class="modcard" data-hub="${k.id}" ${k.dev?'disabled aria-disabled="true"':''}><span class="mi">${k.i}</span><h2>${esc(k.ad)}</h2><p>${esc(k.d)}</p><span class="ms ${k.dev?'dev':'ok'}">${k.dev?'Geliştiriliyor':'Aç'}</span></button>`).join('');
-    {const s=$('#hubSite');if(s){const mikroVar=kartlar.some(k=>k.id==='mikro');s.hidden=!mikroVar;s.innerHTML=mikroVar?siteBag():'';}}
     $('#hubPanel').hidden=false;}
   function hide(){aktif=null;$('#hubPanel').hidden=true;}
   $('#hubGrid').addEventListener('click',e=>{const b=e.target.closest('[data-hub]');if(!b||b.disabled||!aktif)return;const k=ISLER[aktif].k.find(x=>x.id===b.dataset.hub);if(aktif==='ozel'&&!(window.__ozelListe||[]).includes(k&&k.id))return;if(k&&k.ac)k.ac();});
@@ -5432,11 +5431,6 @@ const FKAYIT=(()=>{
 window.__fkayit=FKAYIT;
 
 /* ---------- Ofisinize Özel Çözümler › Mikro Denetim: Fatura Kontrol yan sürecinde çalışan sayfa (denetim.html) ---------- */
-/* Görev 32: Muhasebe Denetimi sitede de var (program ve site birlikte; eski kayıtlar taşınmaz). Bağlantı varsayılan tarayıcıda açılır
-   (target=_blank → ana süreçteki setWindowOpenHandler → shell.openExternal). Programdaki denetim aynen çalışır. */
-const SITE_DENETIM='https://muhawin.com.tr/giris.html?geri=/denetim/';
-const siteBag=()=>`<span>Muhasebe Denetimi artık sitemizden de kullanılabilir; belgeleriniz bilgisayarınızdan çıkmaz.</span> <a class="btn small" href="${SITE_DENETIM}" target="_blank" rel="noopener noreferrer" data-sitede="1">Sitede Aç ↗</a>`;
-{const m=document.getElementById('mdSite');if(m)m.innerHTML=siteBag();}
 const MDENET=(()=>{
   let url=null;
   const fr=()=>$('#mdFrame');
