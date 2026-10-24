@@ -256,6 +256,19 @@ let ayriOturum = null;                           // null: henüz sınanmadı · 
 let ekBekle = 0, ekAciliyor = null;
 const bekleyenler = [];
 const firmaAnahtari = (lucaId, year) => String(lucaId) + '|' + String(year);
+// TopFrameAction (üst çubuk) yanıtındaki firma açılır listesi: seçili firmanın SIRKET_ID'si ve adı; liste yoksa secili null
+function sirketSecimi(html) {
+  const m = /<select[^>]*\bid\s*=\s*["']?SirketCombo\b[^>]*>([\s\S]*?)<\/select>/i.exec(String(html || ''));
+  if (!m) return { secili: null, ad: '' };
+  for (const o of m[1].matchAll(/<option\b([^>]*)>([^<]*)/gi)) {
+    if (!/\bselected\b/i.test(o[1])) continue;
+    const v = /\bvalue\s*=\s*["']?([^"'\s>]*)/i.exec(o[1]);
+    return { secili: v ? v[1] : null, ad: o[2].trim() };
+  }
+  return { secili: null, ad: '' };
+}
+// __SESSION'dan (oturumOku) seçili firma no: SIRKET_ID / SIRKETID alanı; yoksa null
+function oturumSirket(j) { try { const o = JSON.parse(j || 'null') || {}; const k = Object.keys(o).find(x => /^SIRKET_?ID$/i.test(x)); return k ? String(o[k]) : null; } catch (e) { return null; } }
 const firmaSecAdresi = s => 'TopFrameAction.do?time=' + Date.now() + '&SIRKET_ID=' + encodeURIComponent(s.lucaId) + '&DONEM_ID=' + encodeURIComponent(s.donemId)
   + '&DONEM_TXT=' + encodeURIComponent('01/01/' + s.year + ' - 31/12/' + s.year);
 function durumAl(w) { let d = sayfaDurum.get(w); if (!d) { d = { aktif: 0, firma: '', secim: null, kira: 0, bosZaman: Date.now(), yuklendi: false }; sayfaDurum.set(w, d); } return d; }
@@ -686,21 +699,37 @@ async function logout() {
 // (kullanıcının üst çubuktan firma seçmesiyle aynı istek). Dönen donemId fiş kesmede kullanılır.
 async function prepareFis({ lucaId, year }) {
   if (!lucaId) fail('ARG', 'Firmanın Luca karşılığı yok. Firmayı "Luca\'dan firma ekle" ile ekleyin.');
+  // Firma, Luca'nın firma / dönem listesinde aranır. Listede yoksa (liste her firmayı döndürmeyebilir; Görev 45) mizan çekmede
+  // olduğu gibi firmanın dönemleri doğrudan istenir: dönemi varsa firma bu Luca hesabındadır, iş sürer.
   const firms = await request('genel/sirket_donem_listesi.jq?_=' + Date.now());
   const firm = Array.isArray(firms) && firms.find(x => String(x.value) === String(lucaId));
-  if (!firm) fail('NO_FIRM', 'Bu firma bağlı olduğunuz Luca hesabında bulunamadı.');
   const donemler = await request('genel/donem.jq?sirket_id=' + encodeURIComponent(lucaId) + '&_=' + Date.now());
+  if (!firm && !(Array.isArray(donemler) && donemler.length))
+    fail('NO_FIRM', 'Bu firma bağlı olduğunuz Luca hesabında bulunamadı (Luca firma no ' + lucaId + '; Luca\'nın listesinde '
+      + (Array.isArray(firms) ? firms.length + ' firma var' : 'firma listesi okunamadı') + ', firmanın dönemi de yok). Firmanın Luca karşılığını '
+      + 'Ayarlar › Firmalar\'dan denetleyin ya da firmayı "Luca\'dan firma ekle" ile yeniden eşleyin.');
   const d = Array.isArray(donemler) && donemler.find(x => String(x.label) === String(year));
-  if (!d) fail('NO_PERIOD', year + ' dönemi Luca\'da yok (var olanlar: ' + (donemler || []).map(x => x.label).join(', ') + ').');
+  if (!d) fail('NO_PERIOD', year + ' dönemi Luca\'da yok (var olanlar: ' + (Array.isArray(donemler) ? donemler : []).map(x => x.label).join(', ') + ').');
   const secim = { lucaId: String(lucaId), year: String(year), donemId: String(d.value) };
   const w = isSayfasi(), ortak = appWindow();
   const sina = w && ortak && w !== ortak && ekSayfalar.has(w) && ayriOturum === null;
   const s0 = sina ? await oturumOku(ortak) : null;
-  await request(firmaSecAdresi(secim), { raw: true });
+  const ust = await request(firmaSecAdresi(secim), { raw: true });
+  // Seçim doğrulaması (Görev 45): Luca'nın üst çubuğu (TopFrameAction yanıtı) firma açılır listesini (#SirketCombo) seçili firmayla
+  // döndürür. Seçili firma istenen değilse fiş kesilmez. Liste yanıtta yoksa __SESSION'daki firma alanına bakılır; firma Luca'nın
+  // firma / dönem listesinde yoksa ve seçim hiçbir yoldan doğrulanamıyorsa da iş durur (yanlış firmaya fiş kesme riski).
+  const sc = sirketSecimi(ust);
+  let dogru = sc.secili != null ? sc.secili === String(lucaId) : null;
+  if (dogru == null) { const o = oturumSirket(await oturumOku(w || appWindow())); if (o != null) dogru = o === String(lucaId); }
+  if (dogru === false)
+    fail('FIRMA_SECIM', 'Luca\'da firma seçilemedi: istenen firma no ' + lucaId + ', Luca\'da seçili ' + (sc.secili || 'başka bir firma')
+      + '. Fiş kesilmedi. Luca\'yı yeniden açıp tekrar deneyin.');
+  if (dogru == null && !firm)
+    fail('FIRMA_SECIM', 'Firma (Luca no ' + lucaId + ') Luca\'nın firma listesinde yok ve seçimi doğrulanamadı; yanlış firmaya kayıt olmasın diye iş durduruldu.');
   if (w) { const dd = durumAl(w); dd.secim = secim; dd.firma = firmaAnahtari(lucaId, year); }
   donemFirma.set(secim.donemId, secim);
   if (sina) await ayrilikSina(w, ortak, s0);
-  return { donemId: String(d.value), year: String(d.label), firmLabel: String(firm.label) };
+  return { donemId: String(d.value), year: String(d.label), firmLabel: firm ? String(firm.label) : (sc.ad || '') };
 }
 // Firmanın defter türü: Luca üst/menü çerçevesindeki __SESSION.SINIF (1 = bilanço) ve menüdeki "İşletme Defteri" / "Ser.Mes.Defteri"
 async function defterTuru({ lucaId, year }) {
@@ -1188,4 +1217,4 @@ const IS = {
 };
 module.exports = { calis, fisGoster, _fisNoBicim: fisNoBicim, captchaGir, captchaYenile, girisGoster, oturumCerezleri, hesapPlaniExcelOku, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status,
   logout, recheck, LOGIN_URL, ...IS, sayfaBilgisi, _normUye: normUye, _zamanAsimiGec: zamanAsimiGec,
-  _kdvTablosuCoz: kdvTablosuCoz, _sayfaAyar: o => { if (o.kiraMs != null) KIRA_MS = o.kiraMs; if (o.ekBosMs != null) EK_BOS_MS = o.ekBosMs; if (o.bekleMs != null) BEKLE_EN_COK_MS = o.bekleMs; } };
+  _kdvTablosuCoz: kdvTablosuCoz, _sirketSecimi: sirketSecimi, _sayfaAyar: o => { if (o.kiraMs != null) KIRA_MS = o.kiraMs; if (o.ekBosMs != null) EK_BOS_MS = o.ekBosMs; if (o.bekleMs != null) BEKLE_EN_COK_MS = o.bekleMs; } };
