@@ -72,6 +72,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 | – | Ortak veri deposu (Supabase) | Tasarım: `belgeler/bulut-veri-tasarimi.md` | Taslak; kullanıcı kararı bekleniyor (silme yetkisi, Supabase planı) |
 
 ## Sürüm planı
+- **Kural (kullanıcı kararı, 24.10.2026):** Program ve site düzeltmeleri toplu toplu `main`'e birleştirilir. Kullanıcı "artık programı güncelleyebiliriz" diyene kadar **hiçbir derleme yapılmaz**: exe, deneme sürümü, güncelleme ya da yayın yok (Actions'ta `surum.yml` elle çalıştırılmaz, `v*` etiketi konmaz). Kullanıcı karar verince yeni sürüm birlikte konuşulup oluşturulur.
 - **2.9.13 (G-01, deneme):** Kullanıcı programın son halini denemek istedi (23.10.2026). `main`'in bugünkü hali derlenir ve yalnız kullanıcıya gönderilir; GitHub'a yayınlanmaz.
 - **İlk yayın (2.9.14 ya da sonrası):** Görev 01 ve Görev 03 birleştirildikten **ve** sürüm deposu taşındıktan (açık konu 4) sonra derlenir ve `muhawin/muhawin-surumler` deposuna yayınlanır. Kurulu programlar bu sürümü kendiliğinden bulur. Görev 03'ün "Şimdi kur / Sonra" sorusu, bu sürüm kurulduktan **sonraki** yayında görülür (soru, kurulu sürümün kodunda olmalı).
 
