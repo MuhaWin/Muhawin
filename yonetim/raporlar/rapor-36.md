@@ -1,6 +1,6 @@
 # Rapor 36 – "Faturaları Luca'ya kaydet": kod tanımlamaları
 
-**Oturum:** Yazılımcı (`session_01HKMyx49yrftMV598oVTfLH`) · **Taban:** `main` `971aba7` · **Dal:** `claude/awesome-ritchie-ftviuk` (oturum ortamı bu dalı zorunlu kılıyor)
+**Oturum:** Yazılımcı (`session_01HKMyx49yrftMV598oVTfLH`) · **Taban:** `main` `8e39c68` · **Dal:** `claude/awesome-ritchie-ftviuk` (oturum ortamı bu dalı zorunlu kılıyor)
 Derleme yapılmadı. Gerçek Luca'ya istek yapılmadı; Luca isteği taklit pencereyle, ekran sahte veriyle sınandı. Müşteri verisi yok.
 
 ## Yapılanlar
@@ -45,8 +45,8 @@ Derleme yapılmadı. Gerçek Luca'ya istek yapılmadı; Luca isteği taklit penc
 | Test | Sonuç |
 |---|---|
 | `node test/luca/kdv-tablosu.js` (yeni) | **5/5** |
-| `test/luca/*.js` (12 dosya) | hepsi geçti |
-| `xvfb-run -a node test/e2e.js` | **327 geçti, 0 başarısız** |
+| `test/luca/*.js` (13 dosya) | hepsi geçti |
+| `xvfb-run -a node test/e2e.js` (main 8e39c68 ile birleşik) | **330 geçti, 0 başarısız** |
 | `node test/mobil.js` | 45/45 |
 
 `kdv-tablosu.js`:
