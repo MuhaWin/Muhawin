@@ -4808,7 +4808,7 @@ const HUB=(()=>{
       {id:'kdviade',ad:'KDV iade listeleri',d:'İndirilecek KDV ve yüklenilen KDV listelerini GİB\'in güncel Excel biçiminde hazırlar.',i:I.kdv,dev:true}]},
     ozel:{t:'Ofisinize Özel Çözümler',p:'Sadece sizin muhasebe ofisinize özel, sizin tarafınızdan talep edilmiş yazılımlar. Bir işlem seçin.',k:[
       {id:'mikro',ad:'Muhasebe Denetimi',d:'Muhasebe programından (Mikro, Luca) alınan alış / satış XML\'leri ve firmanın muaviniyle firma denetimi: KDV, matrah ve cari kontrolü; KDV 1 / KDV 2 beyannamesi, çıktı raporu ve muhtasar taslağı.',i:I.tablo,ac:()=>{HUB.hide();CEK.hide();MDENET.show();}},
-      {id:'cek',ad:'Çek / Senet Kayıtları',d:'Logo ve Mikro\'dan alınan çek / senet Excel dosyalarını okur, Luca muavini ile eşleştirip raporlar; eksik kayıtları fiş olarak hazırlar ve Luca\'ya işler.',i:I.kur,ac:()=>{HUB.hide();MDENET.hide();CEK.show();}}]}};
+      {id:'cek',ad:'Çek / Senet Kayıtları',d:'Logo ve Mikro\'dan alınan çek / senet Excel dosyalarını okur, Luca muavini ile eşleştirip raporlar; eksik kayıtları fiş olarak hazırlar ve Luca\'ya işler.',i:I.kur,ac:()=>{HUB.hide();MDENET.kapat();CEK.show();}}]}};
   let aktif=null;
   function show(id){aktif=id;const x=ISLER[id];$('#hubT').textContent=x.t;$('#hubP').textContent=x.p;
     const kartlar=id==='ozel'?x.k.filter(k=>(window.__ozelListe||[]).includes(k.id)):x.k;
@@ -5808,11 +5808,15 @@ const MDENET=(()=>{
   const boyla=()=>{const P=$('#mdPanel');if(!P||P.hidden)return;const ust=P.getBoundingClientRect().top+window.scrollY;
     P.style.height=Math.max(360,Math.floor(window.innerHeight-ust-12))+'px';};
   window.addEventListener('mw-hiza',boyla);window.addEventListener('resize',boyla);
-  async function show(){const P=$('#mdPanel');P.hidden=false;window.scrollTo(0,0);boyla();
+  // Görev 49 · 9: başka modüle geçip "Ofisinize Özel"e dönünce denetim ekranı kaldığı yerde açılır (çerçeve kapanmaz,
+  // içindeki durum sürer). Esc / geri ile kartlara dönülünce unutulur.
+  let acikti=false;
+  async function show(){const P=$('#mdPanel');P.hidden=false;acikti=true;window.scrollTo(0,0);boyla();
     if(!url){try{const r=await window.desktop.fk.start();url=r.url;}catch(e){$('#mdBekle').textContent='Muhasebe Denetimi açılamadı: '+String(e&&e.message||e);return;}
       fr().src=url+'/denetim';}
     $('#mdBekle').hidden=true;fr().hidden=false;firmaGonder();}
   function hide(){const P=$('#mdPanel');if(P)P.hidden=true;}
+  function kapat(){acikti=false;hide();}
   const yzYanit=m=>{const w=fr()&&fr().contentWindow;if(w)w.postMessage({muhawin:true,...m},'*');};
   const yzHata=e=>String(e&&e.message||e).replace(/^Error invoking remote method '[^']+': (Error: )?/,'');
   window.addEventListener('message',e=>{if(!e.data||!e.data.fk||e.source!==(fr()&&fr().contentWindow))return;
@@ -5826,7 +5830,7 @@ const MDENET=(()=>{
       yz.degerlendir({baglam:e.data.baglam,istek:e.data.istek}).then(r=>yzYanit({tip:'yzSonuc',no:e.data.no,...r})).catch(x=>yzYanit({tip:'yzSonuc',no:e.data.no,hata:yzHata(x)}));return;}
     /* firmaSec ve esc mesajlarını Fatura Kontrol'ün dinleyicisi (aynı kaynaktan) işler */});
   firmaDinle(()=>{if(!$('#mdPanel').hidden)firmaGonder();});
-  return {show,hide};
+  return {show,hide,kapat,acikti:()=>acikti};
 })();
 
 /* ---------- modüller ---------- */
@@ -5882,7 +5886,8 @@ function enterModule(id){
   if(id==='yonetim'){HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Yönetim';ADM.show();modSekmeCiz();window.scrollTo(0,0);return;}
   if(id==='okc'){HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Belgeden Fiş';OKC.show();}
   else if(id==='fatura'){HUB.hide();S.view='fatura';if(h)h.textContent='Muhasebe İşlemleri';FKUI.show();}
-  else if(id==='denetim'||id==='ozel'){if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent=id==='ozel'?'Ofisinize Özel Çözümler':'Denetim ve Analiz';HUB.show(id);}
+  else if(id==='denetim'||id==='ozel'){if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent=id==='ozel'?'Ofisinize Özel Çözümler':'Denetim ve Analiz';HUB.show(id);
+    if(id==='ozel'&&MDENET.acikti()){HUB.hide();MDENET.show();}}   // Görev 49 · 9: yarım denetim kaldığı yerde
   else{HUB.hide();if(S.view==='fatura'){S.view=null;FKUI.hide();}if(h)h.textContent='Banka İşlemleri';renderModeTabs();renderToolbar();}
   modSekmeCiz();window.scrollTo(0,0);
 }
@@ -6022,7 +6027,7 @@ function escKutu(e,kap){const t=e.target;if(!(yaziKutusu(t)||(t&&t.tagName==='SE
 function geri(){
   if(document.querySelector(ESC_ACIK))return false;
   if(!$('#cekPanel').hidden){CEK.hide();HUB.show('ozel');return true;}
-  if(!$('#mdPanel').hidden){MDENET.hide();HUB.show('ozel');return true;}
+  if(!$('#mdPanel').hidden){MDENET.kapat();HUB.show('ozel');return true;}
   if(!$('#admPanel').hidden&&ADM.geri())return true;
   {const fg=$('#fgPanel');if(fg&&!fg.hidden&&FISG.kirli()){toast('Fiş Girişi\'nde kaydedilmemiş satırlar var; Esc bu ekrandan çıkarmaz. Başka ekrana menüden geçebilirsiniz, satırlar korunur.');return true;}}   // Görev 47 (panel Muhasebe açılınca oluşur)
   if(S.module==='fatura'&&typeof FKUI!=='undefined'&&FKUI._sayfa&&FKUI._sayfa()&&FKUI._sayfa()!=='toplu'){FKUI.sayfaAc('toplu');return true;}
