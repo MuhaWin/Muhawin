@@ -66,7 +66,15 @@ def _vergi_dairesi(satirlar: list[str]) -> str:
             if "vergi dairesi" in _k(c) and c == c.upper():
                 ek = next((d for j in (i + 1, i - 1) if 0 <= j < len(satirlar) for d in _sutunlar(satirlar[j])
                            if _k(d).startswith("mudurlugu")), "")
-                return f"{c} {ek}".strip() if ek and "mudurlugu" not in _k(c) else c
+                if ek and "mudurlugu" not in _k(c):
+                    c = f"{c} {ek}"
+                # "ANTALYA KURUMLAR" / "VERGİ DAİRESİ MÜDÜRLÜĞÜ": ad bir üst satırın ilk sütununda başlıyor
+                if _k(c).startswith("vergi dairesi") and i:
+                    ust = _sutunlar(satirlar[i - 1])
+                    if ust and ust[0] == ust[0].upper() and not re.search(r"\d", ust[0]) and \
+                            not _k(ust[0]).startswith(("donem", "vergi", "muhtasar")):
+                        c = f"{ust[0]} {c}"
+                return c
     return ""
 
 

@@ -59,6 +59,25 @@ def test_gercek_duzen(tmp_path):
     assert not [x for x in KISISEL + ["YILMAZ", "KAYA", "SMM2026000000022"] if x in metin], metin
 
 
+def test_gercek_pdf_metni_maskeli():
+    """Gerçek GİB PDF'inin pypdf (layout) metni; kişisel alanlar maskeli (99999999999 / XXXX), çalışan bölümleri çıkarılmış."""
+    b = MB.ayristir((Path(__file__).parent / "muhtasar_gercek_maskeli.txt").read_text(encoding="utf-8"))
+    assert b["vergi_dairesi"] == "ANTALYA KURUMLAR VERGİ DAİRESİ MÜDÜRLÜĞÜ"
+    assert (b["form"], b["yil"], b["ay"], b["onay"], b["vkn"]) == ("1003A", 2026, 9, "23.10.2026 12:18:17", "99999999999")
+    assert {k: (float(x["gayrisafi"]), float(x["vergi"])) for k, x in b["kodlar"].items()} == \
+        {"011": (51747, 0), "022": (6000, 1200), "041": (90625, 18125), "302": (51747, 0)}
+    assert all(not any(ch.isdigit() for ch in x["ad"]) for x in b["kodlar"].values())
+    assert float(b["toplam"]["gayrisafi"]) == 148372 and float(b["toplam"]["vergi"]) == 19325
+    assert float(b["kalan_vergi"]) == 19325 and float(b["damga"]) == 0 and float(b["damga_odenecek"]) == 0
+    assert [(x["ad"], float(x["odenecek"])) for x in b["icmal"]] == [("Gelir Vergisi Stopajı", 19325), ("Damga Vergisi", 0)]
+    assert float(b["icmal"][0]["matrah"]) == 148372 and float(b["icmal"][0]["tahakkuk"]) == 19325
+    t = b["tevkifat"]
+    assert {k: (x["adet"], float(x["gayrisafi"]), float(x["vergi"])) for k, x in t["kodlar"].items()} == \
+        {"022": (1, 6000, 1200), "041": (1, 90625, 18125)}
+    assert (float(t["gayrisafi"]), float(t["vergi"])) == (96625, 19325)
+    assert "SMM9999999999999" not in json.dumps(MB.kayit_bicimi(b), ensure_ascii=False)
+
+
 def test_baska_pdf_reddedilir(tmp_path):
     y = tmp_path / "x.pdf"; muhtasar_yaz(y, [("KATMA DEĞER VERGİSİ BEYANNAMESİ", "KDV1")])
     with pytest.raises(MB.BeyannameHatasi, match="1003A"):

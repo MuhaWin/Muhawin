@@ -235,7 +235,8 @@ Yazdırılabilir HTML; masaüstünde ve sitede ayrı pencerede açılır. Toplu 
     4. İcmal alt alta "etiket tutar" düzenindeydi; ayrıca "Damga Vergisi" başlığının altında "Ödenecek" vardı.
     5. Belge türü "S.M." / alt satırda "Makbuz" olunca 022 satırı atlanıyordu.
   - Sahte PDF'e bu düzende ikinci bir örnek eklendi (`muhtasar_ornek.GERCEK`) ve testi var.
-  - Düzeltme gerçek metinle henüz sınanmadı; yöneticiden maskeli pypdf metni istendi.
+  - Yönetici düzeltmeyi gerçek PDF'te çalıştırdı: hepsi doğru, yalnız vergi dairesinin ilk satırı ("ANTALYA KURUMLAR") kayboluyordu. O da düzeltildi.
+  - Gerçek PDF'in maskeli pypdf metni (kişi alanları 99999999999 / XXXX; çalışan bölümleri çıkarılmış) teste sabitlendi: `fk/tests/muhtasar_gercek_maskeli.txt`.
 
 ### Değişen / yeni dosyalar (Faz 2)
 | Dosya | Değişiklik |
