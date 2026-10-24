@@ -3215,7 +3215,7 @@ const MMUI=(()=>{
     const f=(Store.local().firms||{})[st.firm];if(!f)return;
     try{const wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array'});const rows=[];const gor=new Set();
       for(const ad of wb.SheetNames)for(const r of XLSX.utils.sheet_to_json(wb.Sheets[ad],{header:1,raw:false})){
-        const i=(r||[]).findIndex(c=>/^\d{3}(\.[0-9A-Za-z]+)*$/.test(String(c||'').trim()));if(i<0)continue;
+        const i=(r||[]).findIndex(c=>/^\d{3}(\.[0-9A-Za-zÇĞİÖŞÜçğıöşü]+)*$/.test(String(c||'').trim()));if(i<0)continue;
         const kod=String(r[i]).trim();const adi=String((r.slice(i+1).find(c=>c!=null&&String(c).trim()&&!/^[\d.,\s-]+$/.test(String(c))))||'').trim();
         if(!adi||gor.has(kod))continue;gor.add(kod);rows.push([kod,adi]);}
       if(!rows.length){toast('Dosyada hesap kodu / hesap adı bulunamadı.');return;}
@@ -3259,7 +3259,7 @@ const MMUI=(()=>{
     let n=say.length?Math.max(...say.map(Number))+1:1;let k;do{k=ust+'.'+String(n).padStart(gen,'0');n++;}while(hp.kodlar.has(k));return k;}
   function hpDurum(x,gor){
     if(!x.kod&&!x.ad)return {m:'',c:''};
-    if(!/^\d{3}([.][0-9A-Za-z]+)*$/.test(x.kod))return {m:'Kod biçimi geçersiz (örn. 320.01.046)',c:'hata'};
+    if(!/^\d{3}([.][0-9A-Za-zÇĞİÖŞÜçğıöşü]+)*$/.test(x.kod))return {m:'Kod biçimi geçersiz (örn. 320.01.046)',c:'hata'};
     if(hp.kodlar.has(x.kod))return {m:'Bu kod planda var: '+hp.kodlar.get(x.kod),c:'hata'};
     if(gor.has(x.kod))return {m:'Listede iki kez yazılmış',c:'hata'};
     if(!x.ad)return {m:'Hesap adını yazın',c:'uyari'};

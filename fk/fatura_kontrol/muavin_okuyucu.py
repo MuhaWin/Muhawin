@@ -19,7 +19,10 @@ from pathlib import Path
 
 import openpyxl
 
-HESAP_RE = re.compile(r"^(\d{3}(?:\.\d+)*)\s+(.*)$")
+# Hesap kodu: 3 haneli ana hesap + alt gruplar; alt gruplar rakam ya da harf olabilir (harfli cari düzeni: 320.P.0006, 120.Ş.001).
+# Yalnız rakam kabul edilince harfli carilerin başlığı tanınmıyor, satırları önceki hesaba (ör. 302) yazılıyordu (Görev 40).
+_ALT = r"[0-9A-Za-zÇĞİÖŞÜçğıöşü]+"
+HESAP_RE = re.compile(rf"^(\d{{3}}(?:\.{_ALT})*)\s+(.*)$")
 ACIKLAMA_RE = re.compile(r"^\s*(\d{2}/\d{2}/\d{4})\s*-\s*([^-]+?)\s*-\s*(.*)$")
 # GİB e-belge numarası: 3 karakter seri + 4 hane yıl + 9 hane sıra = 16 karakter
 EBELGE_RE = re.compile(r"^[A-Z0-9]{3}20\d{2}\d{9}$")
@@ -85,8 +88,11 @@ KOLONLAR = {
 # Hareket olmayan satırlar (devir, nakli yekün, ara / genel toplam): fiş numarası boşsa ve metin bunlardan biriyle başlıyorsa
 _OZET_RE = re.compile(r"^(devreden|devir|onceki donem|nakli yekun|nakl[iı] yekun|ara toplam|toplam|genel toplam|donem toplami|hesap toplami)")
 # Hesap başlığı: "191.10.20 %20 İndirilecek KDV", "Hesap Kodu: 191.10.20 - ...", ya da kod ve ad ayrı hücrelerde
-_KOD_RE = re.compile(r"^\d{3}(?:[.\-][0-9A-Za-z]+)*$")
+_KOD_RE = re.compile(rf"^\d{{3}}(?:[.\-]{_ALT})*$")
 _HESAP_ONEK_RE = re.compile(r"^hesap(\s*kodu)?\s*:?\s*", re.I)
+# Yalnız 3 haneli kodla başlayan metin satırı ("320 nolu fatura", "100 adet …") hesap başlığı sayılmaz: ad küçük harfle
+# başlıyorsa ya da numara / miktar sözcüğüyle başlıyorsa
+_METIN_RE = re.compile(r"^(?:[a-zçğıöşü]|(?i:no|nr|nolu|no'lu|no’lu|numaral[ıi]|numarali|adet|tl|tane)\b)")
 
 
 def _dec(v) -> Decimal:
@@ -168,6 +174,8 @@ def _hesap(r) -> tuple[str, str] | None:
         return None
     ilk = _HESAP_ONEK_RE.sub("", dolu[0][1]) if _kat(dolu[0][1]).startswith("hesap") else dolu[0][1]
     if m := HESAP_RE.match(ilk):
+        if "." not in m.group(1) and _METIN_RE.match(m.group(2)):    # "320 nolu fatura …": açıklama satırı, hesap başlığı değil
+            return None
         return m.group(1), m.group(2).strip(" -:")
     if _KOD_RE.match(ilk) and len(dolu) > 1 and not _sayi_mi(dolu[1][1]):
         return ilk.replace("-", "."), dolu[1][1].strip(" -:")

@@ -945,7 +945,7 @@ async function hesapEkle({ lucaId, year, hesaplar }) {
       if (r && r.success) {
         // Luca bazı yanıtlarda hesabın kesinleşen kodunu result alanında döndürür (ör. alt hesap numarası Luca verdiyse)
         const rk = r.result && typeof r.result !== 'object' ? String(r.result).trim() : (r.result && (r.result.HESAP_KODU || r.result.hesapKodu)) || '';
-        const lucaKod = /^\d{3}([.][0-9A-Za-z]+)*$/.test(rk) ? rk : kod;
+        const lucaKod = /^\d{3}([.][0-9A-Za-zÇĞİÖŞÜçğıöşü]+)*$/.test(rk) ? rk : kod;
         sonuc.push({ kod, lucaKod, ad, ok: true, mesaj: String(r.success).replace(/<[^>]+>/g, '') });
       }
       else sonuc.push({ kod, ad, ok: false, hata: String((r && (r.warning || r.error)) || 'Luca beklenmeyen bir yanıt verdi.').replace(/<[^>]+>/g, '') });
@@ -968,7 +968,7 @@ function kdvTablosuCoz(j) {
   for (const [k, v] of Object.entries(j)) {
     const m = /^KDV_(\d+(?:\.\d+)?)_(\d+)$/.exec(k);
     if (!m || !v || !v.hesap_kodu) continue;
-    const kod = String(v.hesap_kodu).trim(); if (!/^\d{3}([.\-][0-9A-Za-z]+)*$/.test(kod)) continue;
+    const kod = String(v.hesap_kodu).trim(); if (!/^\d{3}([.\-][0-9A-Za-zÇĞİÖŞÜçğıöşü]+)*$/.test(kod)) continue;
     ((out[m[2]] = out[m[2]] || {}))[String(+m[1])] = { kod, ad: String(v.hesap_adi || '').trim() };
   }
   return out;                                   // {islem: {oran: {kod, ad}}}
