@@ -5245,7 +5245,7 @@ const FKAYIT=(()=>{
         <span class="note" style="min-width:52px">${n===1?'Şart 1':'VE · Şart '+n}</span>${alanSec(a,n)}<input data-kdeger value="${esc(v)}" placeholder="örn. KİRA + OCAK" aria-label="Şart değeri">
         ${n===1?'<span></span>':'<button class="btn small ghost" type="button" data-ksil aria-label="Şartı kaldır" title="Şartı kaldır">×</button>'}</div>`;
     $('#fkkModalT').textContent='Fatura kuralı';
-    $('#fkkModalB').innerHTML=`<p class="note" style="margin:0">Bu firmada bütün şartları tutan faturalara uygulanır. Şartın içinde <b>|</b> = ya da, <b>+</b> = hepsi geçmeli.</p>
+    $('#fkkModalB').innerHTML=`<div id="kForm" style="display:grid;gap:12px"><p class="note" style="margin:0">Bu firmada bütün şartları tutan faturalara uygulanır. Şartın içinde <b>|</b> = ya da, <b>+</b> = hepsi geçmeli.</p>
       <div id="kSartlar" style="display:grid;gap:8px">${sartSatiri(1,'unvan',f.karsi_unvan)}</div>
       <div><button class="btn small" type="button" id="kSartEkle" title="Bir şart daha ekle: kural yalnız bütün şartlar birlikte tutunca uygulanır">+ Şart ekle</button></div>
       <div class="outgrid" style="gap:12px">
@@ -5256,8 +5256,8 @@ const FKAYIT=(()=>{
         <div><label class="lbl" for="kHesap">${f.yon==='ALIS'?'Gider / stok hesabı':'Gelir hesabı'} (matrah)</label><input id="kHesap" list="fkkAccList" class="mono" value="${esc(r.hesap)}"></div>
         <div><label class="lbl" for="kCari">Cari hesap (boş: ünvandan bulunur)</label><input id="kCari" list="fkkAccList" class="mono" value="${esc(r.cari)}"></div>
       </div>
-      <div class="actions" style="justify-content:flex-end"><span class="note" id="kSay" style="margin-right:auto"></span><button class="btn" data-kx="1">Vazgeç</button><button class="btn primary" id="kKaydet">Kuralı kaydet ve uygula</button></div>`;
-    const B=$('#fkkModalB');
+      <div class="actions" style="justify-content:flex-end"><span class="note" id="kSay" style="margin-right:auto"></span><button class="btn" data-kx="1">Vazgeç</button><button class="btn primary" id="kKaydet">Kuralı kaydet ve uygula</button></div></div>`;
+    const B=$('#kForm');   // her açılışta yeniden oluşur: dinleyiciler birikmez
     const oku=()=>[...B.querySelectorAll('.ksart')].map(x=>({alan:x.querySelector('[data-kalan]').value,deger:x.querySelector('[data-kdeger]').value.trim()}));
     const say=()=>{const L=oku().filter(x=>N(x.deger));const yon=$('#kYon').value;
       const n=L.length?st.rows.filter(x=>(yon==='*'||x.f.yon===yon)&&L.every(y=>sartTutar(y,x.f))).length:0;$('#kSay').textContent=`${n} fatura bu şartlara uyuyor`;};
