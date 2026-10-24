@@ -68,7 +68,7 @@ def kdv1_json(b, bas: date, bit: date) -> dict:
                    "ilave_kdv": _f(b.ilave_toplam), "toplam_kdv": _f(b.toplam_hesaplanan)},
         "indirimler": {"toplam": _f(b.indirimler_toplami), "onceki_donemden_devreden": _f(b.devreden),
                        "bu_donem": _f(b.bu_donem_indirim), "satirlar": [_satir(x) for x in b.indirimler],
-                       "kdv2_odenen": _f(b.kdv2)},
+                       "kdv2_odenen": 0.0 if b.sorumlu_cevap == "odenmedi" else _f(b.kdv2)},
         "istisnalar": {"teslim_toplami": _f(b.istisna_bedeli), "iade_edilebilir": _f(b.iade_edilebilir or 0),
                        "satirlar": [_satir(x) for x in b.istisnalar], "efatura": b.efatura_istisna},
         "sonuc": {"tecil": 0.0, "odenecek": _f(b.odenecek), "iade_edilecek": _f(b.iade_edilmesi_gereken),
@@ -81,6 +81,8 @@ def kdv1_json(b, bas: date, bit: date) -> dict:
         "satis_hesaplari": [_satir(x) for x in b.satis_hesaplari],
         "tahakkuk": {k: (_f(val) if isinstance(val, Decimal) else val) for k, val in (b.tahakkuk or {}).items()} if b.tahakkuk else None,
         "iade_cevap": b.iade_cevap, "iade_onerisi": None if b.iade_onerisi is None else _f(b.iade_onerisi),
+        "sorumlu": {"tutar": _f(b.sorumlu_tutar), "cevap": b.sorumlu_cevap, "indirilmeyen": _f(b.sorumlu_indirilmeyen)},
+        "tahakkuk_kontrol": b.tahakkuk_kontrol,
         "notlar": b.notlar,
     }
 
@@ -98,7 +100,18 @@ def kdv2_json(k, bas: date, bit: date) -> dict:
     }
 
 
-def hazirla(rapor_id: str, iade: dict | None = None) -> dict:
+def _cevap(yol: Path, yeni: dict | None, gecerli: tuple) -> dict | None:
+    """Kullanıcının cevabı dönem klasöründe saklanır: yeni cevap yazılır, yoksa kayıtlı cevap okunur."""
+    if yeni and yeni.get("cevap") in gecerli:
+        yol.write_text(json.dumps(yeni, ensure_ascii=False), encoding="utf-8")
+        return yeni
+    try:
+        return json.loads(yol.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def hazirla(rapor_id: str, iade: dict | None = None, sorumlu: dict | None = None) -> dict:
     """Dönem raporu + muavin → {mukellef, uygunluk, kdv1, kdv2}."""
     from .kontrol import muavin_dosyalari, muavinleri_oku
     from .rapor_kayit import rapor_oku
@@ -108,16 +121,10 @@ def hazirla(rapor_id: str, iade: dict | None = None) -> dict:
         raise FileNotFoundError("Rapor bulunamadı")
     if not muavin_dosyalari(k):
         raise FileNotFoundError("Bu dönemin muavini yok; önce muavini indirin ya da yükleyin")
-    muavin, _ = muavinleri_oku(muavin_dosyalari(k))
+    muavin, bilgi = muavinleri_oku(muavin_dosyalari(k))
     bas, bit = _donem(v)
-    iade_yolu = k / "iade_talebi.json"
-    if iade and iade.get("cevap") in ("evet", "hayir"):
-        iade_yolu.write_text(json.dumps(iade, ensure_ascii=False), encoding="utf-8")
-    else:
-        try:
-            iade = json.loads(iade_yolu.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            iade = None
+    iade = _cevap(k / "iade_talebi.json", iade, ("evet", "hayir"))
+    sorumlu = _cevap(k / "sorumlu_odeme.json", sorumlu, ("odendi", "odenmedi"))   # sorumlu sıfatıyla KDV ödendi mi
     # KDV2: önceki aylarda kesilip bu ay kaydedilen tevkifatlı faturalar
     tevk = list(v.get("tevkifatlar", []))
     firma_ad, yil, ay = rapor_id.split("/")
@@ -131,7 +138,7 @@ def hazirla(rapor_id: str, iade: dict | None = None) -> dict:
                 tevk += json.loads((onceki / depo.RAPOR_JSON).read_text(encoding="utf-8")).get("tevkifatlar", [])
             except ValueError:
                 pass
-    b = kdv_beyani(muavin, bas, bit, v.get("faturalar"), iade)
+    b = kdv_beyani(muavin, bas, bit, v.get("faturalar"), iade, sorumlu, (bilgi.get("aralik") or (None,))[0])
     k2 = kdv2_beyani(muavin, bas, bit, tevk)
     out = {"id": rapor_id, "mukellef": mukellef(k.parent.parent, v), "uygunluk": uygunluk(v),
            "kdv1": kdv1_json(b, bas, bit), "kdv2": kdv2_json(k2, bas, bit),
@@ -147,7 +154,7 @@ def dosyadan(muavin_yollari: list[Path], program: str | None, bas: date, bit: da
     """Muhasebe programı olmayan firmalar: yüklenen muavinden (tüm hesaplar) beyanname."""
     from .kontrol import muavinleri_oku
     muavin, bilgi = muavinleri_oku(muavin_yollari, program)
-    b = kdv_beyani(muavin, bas, bit, None, None)
+    b = kdv_beyani(muavin, bas, bit, None, None, None, (bilgi.get("aralik") or (None,))[0])
     k2 = kdv2_beyani(muavin, bas, bit, None)
     buro = ayarlar.oku()
     return {"id": None, "mukellef": {"vkn": vkn, "unvan": firma or bilgi.get("firma") or "", "eposta": "", "telefon": "", "vergi_dairesi": "",
