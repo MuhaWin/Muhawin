@@ -8,14 +8,17 @@ const JS = eval(src.match(/const FIS_GOSTER_JS = (`[\s\S]*?`);/)[1]);
 const fisNoBicim = eval(src.match(/const fisNoBicim = ([^\n]*);\n/)[1]);
 let ok = true; const t = (ad, kosul) => { console.log((kosul ? '  ✓ ' : '  ✗ ') + ad); if (!kosul) ok = false; };
 
-let kayit, ymFormlu = true;
+let kayit, ymFormlu = true, secimYoksay = false, sonucFormlu = false;
 const sunucu = http.createServer((q, r) => {
   const u = new URL(q.url, 'http://x'); const html = s => { r.setHeader('Content-Type', 'text/html; charset=utf-8'); r.end(s); };
   if (u.pathname === '/Luca/luca.do') return html('<frameset rows="40,*"><frame name="frm4" src="TopFrameAction.do"><frame name="frm3" src="bos.do"></frameset>');
-  if (u.pathname === '/Luca/TopFrameAction.do') { if (u.searchParams.get('SIRKET_ID')) kayit.firma = Object.fromEntries(u.searchParams); return html('<b>firma çubuğu</b>'); }
+  if (u.pathname === '/Luca/TopFrameAction.do') {   // firma / dönem çubuğu: açılır listede seçili firma (secimYoksay: Luca seçimi uygulamaz)
+    const id = u.searchParams.get('SIRKET_ID'); if (id) { kayit.firma = Object.fromEntries(u.searchParams); kayit.firmaSay = (kayit.firmaSay || 0) + 1; }
+    const sec = secimYoksay ? '1' : (id || '');
+    return html(`<b>firma çubuğu</b><select id="SirketCombo">${['1', '55', '66'].map(v => `<option value="${v}"${v === sec ? ' selected' : ''}>F${v}</option>`).join('')}</select>`); }
   if (u.pathname === '/Luca/bos.do') return html('<p>ana ekran</p>');
   if (u.pathname === '/Luca/YMFrameAction.do') {
-    kayit.modul = u.searchParams.get('modul');
+    kayit.modul = u.searchParams.get('modul'); kayit.modulSay = (kayit.modulSay || 0) + 1;
     return html(ymFormlu ? '<frameset cols="*"><frame name="ic" src="getFisParametreJSPAction.do?c_musteri_id=99"></frameset>' : '<p>modül yükleniyor</p>');
   }
   if (u.pathname === '/Luca/getFisParametreJSPAction.do') {
@@ -27,7 +30,9 @@ const sunucu = http.createServer((q, r) => {
       <button type="button" id="sil" onclick="location='fisSilAction.do'">Sil</button></form>`);
   }
   if (u.pathname === '/Luca/listFisParametreAction.do' && q.method === 'POST') {
-    let b = ''; q.on('data', d => b += d); q.on('end', () => { kayit.gonderim = Object.fromEntries(new URLSearchParams(b)); html('<table><tr><td>Fiş 0143</td></tr></table>'); }); return;
+    let b = ''; q.on('data', d => b += d); q.on('end', () => { kayit.gonderim = Object.fromEntries(new URLSearchParams(b));
+      html(sonucFormlu ? '<form name="listFisParametreForm" method="post" action="listFisParametreAction.do"><input name="ilkFisNo"><input name="sonFisNo"><input name="ilkFisTarihi"><input name="sonFisTarihi"></form><table><tr><td>Fiş ' + kayit.gonderim.ilkFisNo + '</td></tr></table>'
+        : '<table><tr><td>Fiş 0143</td></tr></table>'); }); return;
   }
   if (/fisSil/.test(u.pathname)) kayit.sil = true;
   r.statusCode = 404; r.end();
@@ -41,7 +46,7 @@ const sunucu = http.createServer((q, r) => {
     console.log(ad); kayit = {}; ymFormlu = formlu;
     const p = await b.newPage(); await p.goto(adres + '/Luca/luca.do'); await p.waitForTimeout(300);
     const firma = 'TopFrameAction.do?time=1&SIRKET_ID=55&DONEM_ID=D9&DONEM_TXT=' + encodeURIComponent('01/01/2026 - 31/12/2026');
-    const r = await p.evaluate(JS + '(' + JSON.stringify({ firma, uye: '99', fisNo: '0143' }) + ')');
+    const r = await p.evaluate(JS + '(' + JSON.stringify({ firma, sirket: '55', donem: 'D9', uye: '99', fisNo: '0143' }) + ')');
     for (let i = 0; i < 40 && !kayit.gonderim; i++) await p.waitForTimeout(100);
     const g = kayit.gonderim || {};
     t('işlev başarılı döner', r && r.ok === true);
@@ -56,6 +61,22 @@ const sunucu = http.createServer((q, r) => {
     t('fişe / başka düğmeye dokunulmaz', !kayit.sil);
     await p.close();
   }
+  // Görev 48: sonraki açılışlar — firma aynıysa çubuk yeniden seçilmez, Fiş Listesi formu açıksa modül yeniden açılmaz
+  console.log('Sonraki açılışlar (hız)');
+  { ymFormlu = true; sonucFormlu = true; const p = await b.newPage(); await p.goto(adres + '/Luca/luca.do'); await p.waitForTimeout(300);
+    const ac = async (sirket, donem, fisNo) => { kayit = {}; const firma = 'TopFrameAction.do?time=1&SIRKET_ID=' + sirket + '&DONEM_ID=' + donem;
+      const r = await p.evaluate(JS + '(' + JSON.stringify({ firma, sirket, donem, uye: '99', fisNo }) + ')'); for (let i = 0; i < 40 && !kayit.gonderim; i++) await p.waitForTimeout(50); await p.waitForTimeout(150); return r; };
+    const r1 = await ac('55', 'D9', '0143');
+    t('ilk açılış: firma seçildi, modül açıldı, form gönderildi (' + JSON.stringify(r1.sure) + ')', r1.ok && kayit.firmaSay === 1 && kayit.modulSay === 1 && kayit.gonderim.ilkFisNo === '0143' && r1.sure.firmaSecildi === true && r1.sure.toplam >= 0);
+    const r2 = await ac('55', 'D9', '0150');
+    t('ikinci açılış (aynı firma, form açık): firma çubuğu ve modül yeniden yüklenmedi, yalnız form gönderildi (' + JSON.stringify(r2.sure) + ')', r2.ok && !kayit.firmaSay && !kayit.modulSay && kayit.gonderim.ilkFisNo === '0150' && r2.sure.firmaSecildi === false && r2.sure.modul === 0);
+    const r3 = await ac('55', 'D10', '0151');
+    t('aynı firmanın başka dönemi: çubuk yeniden seçildi, modül yeniden açıldı', r3.ok && kayit.firmaSay === 1 && kayit.modulSay === 1 && kayit.gonderim.ilkFisNo === '0151');
+    const r4 = await ac('66', 'D9', '0152');
+    t('başka firma: çubuk ve modül yeniden', r4.ok && kayit.firmaSay === 1 && kayit.modulSay === 1 && kayit.firma.SIRKET_ID === '66');
+    secimYoksay = true; const r5 = await ac('55', 'D9', '0153');
+    t('Luca firma seçimini uygulamazsa form gönderilmez (FIRMA)', r5.ok === false && r5.hata === 'FIRMA' && !kayit.gonderim);
+    secimYoksay = false; sonucFormlu = false; await p.close(); }
   console.log('Çerçeve yoksa');
   { const p = await b.newPage(); await p.setContent('<p>giriş</p>'); const r = await p.evaluate(JS + '({"fisNo":"1"})'); t('açık hata döner (CERCEVE)', r && r.ok === false && r.hata === 'CERCEVE'); await p.close(); }
   await b.close(); sunucu.close();
