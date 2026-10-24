@@ -2,7 +2,8 @@
 
 - **Veri:** Bütün görseller sahte veriyle çekildi (uydurma firmalar, VKN'ler ve faturalar).
 - **Önce:** Güncel `main` (8e87e6e).
-- **Sonra:** Önerilen yerleşim. `taslak.js` ile sayfaya geçici uygulandı; programa henüz girmedi, onaydan sonra uygulanacak.
+- **Sonra:** Programa uygulanan düzen (yöneticinin isteğiyle onay beklemeden uygulandı; kullanıcı denemede beğenmezse geri alınır).
+- **`taslak.js`:** İlk prototip; artık yalnız iz olarak duruyor.
 - **Üretim:** `GORSEL_FATURA=16 GORSEL_PNG=1 GORSEL_BOY=1366x768 GORSEL_OLCEK=1 [GORSEL_EK=yonetim/gorsel/g54/taslak.js] node tools/site-gorsel.js yonetim/gorsel/g54`
 
 ## Görseller
@@ -18,20 +19,20 @@
 
 | Ekran | Önce | Sonra |
 |---|---|---|
-| Luca'ya kaydet (16 fatura) | yaklaşık 2 | 13 |
+| Luca'ya kaydet (16 fatura) | yaklaşık 2 | 11 tam satır |
 | Toplu kontrol | 3 (yatay kaydırma var) | bütün liste, yatay kaydırma yok |
 | Muavin (12 satır) | 4 | 12 (tamamı) |
 | Banka | 8 (sağda işlem sütunu kesik) | 9, kesik yok |
 
-## Önerilen değişiklikler (onay gerekiyor)
+## Uygulanan değişiklikler
 
 1. **Üst bant tek satır:**
    - Satırda: logo · firma · Luca · Mizan/Muavin · Luca'da Çalış · Modüller · Ara · Ayarlar.
    - "Firma" etiketi ve alt açıklama kalkar.
-   - Tema seçimi Ayarlar'a taşınır (komut paletinde de var).
+   - Tema düğmesi yalnız simge olarak kalır.
    - Etkisi: yaklaşık 70 px kazanılır.
 2. **Modül sekmeleri ile alt sekmeler aynı satırda:** Muhasebe / Banka / Belgeden Fiş ‖ Toplu Kontrol / Tek Firma / Fiş Girişi / Fiş Listesi / KDV. Etkisi: yaklaşık 50 px.
-3. **Luca'ya kaydet:**
+3. **Luca'ya kaydet** (uygulamada Fiş düğmesi satırda görünür kaldı; Kod/Geçmiş/Kural seçimi kod kutusunun yanında, kurallı/kuralsız seçimi Süzgeç şeridinde):
    - **Başlık:** Başlık ve işlem düğmeleri tek satırda.
    - **Araç çubuğu tek satır:** durum süzgeçleri, arama, Kuralları uygula, Hepsi/Eksik/Dolu, Seçili, **Süzgeç ▾**, **Diğer ▾**.
    - **Diğer ▾ menüsü:** Boşları doldur, Tümünü seç / Seçimi kaldır, Seçilenleri kaydetme, Toplu hesap, Belge türü, Kurallar, Kod tanımları.
