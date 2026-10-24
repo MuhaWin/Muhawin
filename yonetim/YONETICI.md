@@ -86,7 +86,7 @@ Her işçi oturumu başladığında bu bölümü okur ve tüm kurallara uyar.
 6. **Güvenlik düzeltme sırası** (rapor-02): 05 (G-A) → 06 (G-C) → test örnek verileri → Görev 01 birleştikten sonra G-B (pdf.js `isEvalSupported:false`, `renderer/index.html`) ve G-J (CSP) → G-D, G-F, G-E, G-I, G-G. **Kullanıcı kararı (23.10.2026):** O7 → ofis başına en fazla **10 kullanıcı** (G-E lisans sıkılaştırma görevine eklenecek). **Bekleyen:** G-H (kod imzalama sertifikası; OV yaklaşık 215–300 USD/yıl, Azure Artifact Signing Türkiye'den kullanılamıyor). `supabase-kurulum.sql` depoda yok; temel tabloların RLS'i denetlenemedi, kullanıcıdan alınmalı.
 7. ~~**Test örnek dosyaları**~~ → **Kapandı** (Görev 11, #31).
 
-8. **Muhasebe Denetimi programdan kaldırılacak** (kullanıcı kararı, 23.10.2026): Modül web'de (Görev 09) yayına alınıp kullanıcı denedikten sonra masaüstündeki "Muhasebe Denetimi" (eski Mikro Denetim) kaldırılır, yerine siteye yönlendiren bir kart/bağlantı konur. Ayrı görev olarak açılacak (Menü Düzenleme: `renderer/index.html`; Yazılımcı: kullanılmayan `fk` denetim uçları — site derlemesi `fk/fatura_kontrol` paketini kullandığı için Python kodu silinmez).
+8. **Muhasebe Denetimi siteye geçiş** (plan: `belgeler/denetim-gecis-plani.md`). **Kullanıcı kararları (24.10.2026):** eski denetim kayıtları siteye **taşınmaz** (seçenek A); geçiş sürecinde **program ve site birlikte durur** (en az bir sürüm). Site yayına girince masaüstündeki karta "Sitede aç" bağlantısı eklenecek (Menü Düzenleme); programdan kaldırma ayrı kararla sonra.
 
 ## Önerilen eklentiler
 - **claude-security** (Anthropic): Görev 02 için.

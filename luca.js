@@ -123,7 +123,7 @@ function makeWindow(url, o = {}) {
   // Luca girişten sonra ana ekranı açılır pencerede açıyor; programın içinde yeni bir Luca penceresi olarak aç.
   w.webContents.setWindowOpenHandler(({ url: u }) => ({
     action: 'allow',
-    overrideBrowserWindowOptions: { width: 1280, height: 860, autoHideMenuBar: true, show: !gizliGiris, webPreferences: { partition: PARTITION, contextIsolation: true, sandbox: true } }
+    overrideBrowserWindowOptions: { width: 1280, height: 860, autoHideMenuBar: true, show: !gizliGiris && !ekBekleniyor(), webPreferences: { partition: PARTITION, contextIsolation: true, sandbox: true } }
   }));
   cocukBagla(w); hizliBagla(w);
   w.webContents.on('did-finish-load', () => sayfaYuklendi(w));
@@ -138,8 +138,9 @@ function cocukBagla(w) {
   w.webContents.on('did-create-window', child => {
     windows.add(child); try { child.removeMenu(); } catch (e) {} kayitBagla(child);
     const calisma = calismaSahiplen(child);
+    if (!calisma && ekBekleniyor()) ekSahiplen(child);
     child.on('closed', () => { windows.delete(child); if (calismaW === child) calismaW = null; notify('windows', { open: windows.size }); durumKontrol(); });
-    child.webContents.setWindowOpenHandler(() => ({ action: 'allow', overrideBrowserWindowOptions: { width: 1280, height: 860, autoHideMenuBar: true, webPreferences: { partition: PARTITION, contextIsolation: true, sandbox: true } } }));
+    child.webContents.setWindowOpenHandler(() => ({ action: 'allow', overrideBrowserWindowOptions: { width: 1280, height: 860, autoHideMenuBar: true, show: !ekBekleniyor(), webPreferences: { partition: PARTITION, contextIsolation: true, sandbox: true } } }));
     cocukBagla(child);
     if (!calisma) hizliBagla(child);
     child.webContents.on('did-finish-load', () => { if (calisma) { autofillLogin(child.webContents); durumKontrol(); } else sayfaYuklendi(child); });
@@ -231,9 +232,131 @@ const LUCA_RE = /^https:\/\/[a-z0-9.-]+\.luca\.com\.tr\/Luca\/(?!giris)/i;
 function appWindow() {
   const L = [...windows].filter(w => !w.isDestroyed());
   const url = w => { try { return w.webContents.getURL() || ''; } catch (e) { return ''; } };
-  return L.find(w => w !== calismaW && APP_RE.test(url(w))) || L.find(w => w !== calismaW && LUCA_RE.test(url(w)))
+  const ana = w => w !== calismaW && !ekSayfalar.has(w);
+  return L.find(w => ana(w) && APP_RE.test(url(w))) || L.find(w => ana(w) && LUCA_RE.test(url(w)))
+    || L.find(w => ekSayfalar.has(w) && APP_RE.test(url(w)))           // ortak sayfa kapandıysa ek sayfa
     || L.find(w => w === calismaW && LUCA_RE.test(url(w))) || null;    // yalnız çalışma penceresi açık kaldıysa onunla
 }
+// ---------- Luca sayfaları (Görev 29) ----------
+// - "Luca'da Çalış" penceresi (calismaW): kullanıcının; program bu pencerede hiçbir istek yapmaz.
+// - Ortak sayfa (appWindow): programın Luca işleri (mizan / muavin / hesap planı / fiş aktarma) burada sırayla yürür.
+// - Ek sayfa: ortak sayfa başka firmanın işiyle meşgulken yeni bir iş gelirse Luca'nın kendi "yeni pencere" düğmesiyle
+//   (firma / dönem çubuğunun altındaki beyaz düğme; luca.do doğrudan açılırsa boş sayfa gelir) gizli bir sayfa açılır.
+//   İlk ek sayfada iki sayfanın Luca'da gerçekten ayrı çalıştığı sınanır (ayrilikSina); ayrı değilse ek sayfa kullanılmaz,
+//   işler ortak sayfada sıraya girer. Boşta kalan ek sayfa kapanır.
+// Aynı firmanın işleri aynı sayfayı paylaşabilir; farklı firmanın işi, sayfa boşalıp kısa kira süresi (fiş aktarımı
+// sürerken aradaki boşluklar) dolmadan o sayfada firma değiştiremez.
+const { AsyncLocalStorage } = require('async_hooks');
+const isBaglami = new AsyncLocalStorage();
+const sayfaDurum = new WeakMap();
+const ekSayfalar = new Set();
+const donemFirma = new Map();                    // dönem kimliği → {lucaId, year, donemId} (fiş kesmede yeniden seçim için)
+let EK_EN_COK = 2, KIRA_MS = 60 * 1000, EK_BOS_MS = 2 * 60 * 1000, BEKLE_EN_COK_MS = 15 * 60 * 1000;   // testte kısaltılır (_sayfaAyar)
+let ayriOturum = null;                           // null: henüz sınanmadı · true: ek sayfa ayrı çalışıyor · false: kullanılmaz
+let ekBekle = 0, ekAciliyor = null;
+const bekleyenler = [];
+const firmaAnahtari = (lucaId, year) => String(lucaId) + '|' + String(year);
+const firmaSecAdresi = s => 'TopFrameAction.do?time=' + Date.now() + '&SIRKET_ID=' + encodeURIComponent(s.lucaId) + '&DONEM_ID=' + encodeURIComponent(s.donemId)
+  + '&DONEM_TXT=' + encodeURIComponent('01/01/' + s.year + ' - 31/12/' + s.year);
+function durumAl(w) { let d = sayfaDurum.get(w); if (!d) { d = { aktif: 0, firma: '', secim: null, kira: 0, bosZaman: Date.now(), yuklendi: false }; sayfaDurum.set(w, d); } return d; }
+function isSayfasi() { const b = isBaglami.getStore(); return b && b.w && !b.w.isDestroyed() ? b.w : appWindow(); }
+const ekBekleniyor = () => ekBekle > Date.now();
+function ekSahiplen(child) {
+  ekBekle = 0; ekSayfalar.add(child); geriDonuldu.add(child); paketBasildi.add(child);   // programa dönme / paket seçme yok
+  try { child.setTitle('Luca – program sayfası'); } catch (e) {}
+  child.webContents.once('did-finish-load', () => { durumAl(child).yuklendi = true; });
+  child.on('closed', () => { ekSayfalar.delete(child); bekleyenleriUyandir(); });
+}
+function bekleyenleriUyandir() { for (const r of bekleyenler.splice(0)) r(); }
+function sayfaUygun(w, firma) {
+  if (!w || w.isDestroyed()) return false;
+  const d = durumAl(w);
+  if (!firma || d.firma === firma) return true;            // firma seçmeyen iş ya da aynı firma
+  return d.aktif === 0 && d.kira < Date.now();
+}
+async function ekSayfaAc(kaynak) {
+  if (ekAciliyor) return ekAciliyor;
+  ekAciliyor = (async () => {
+    if (calismaBekle && Date.now() < calismaBekle) return null;            // "Luca'da Çalış" açılıyor
+    const once = new Set(ekSayfalar);
+    ekBekle = Date.now() + 20 * 1000;
+    try {
+      if (!(await yeniPencereDugmesi(kaynak))) return null;
+      for (let i = 0; i < 100; i++) {
+        const y = [...ekSayfalar].find(w => !once.has(w) && !w.isDestroyed());
+        if (y && durumAl(y).yuklendi && APP_RE.test(y.webContents.getURL() || '')) { notify('sayfalar', { ek: ekSayfalar.size }); return y; }
+        await new Promise(r => setTimeout(r, 200));
+      }
+      return null;
+    } finally { ekBekle = 0; }
+  })();
+  try { return await ekAciliyor; } finally { ekAciliyor = null; }
+}
+// iş için sayfa: ortaksa yalnız ortak sayfa (gizli yardımcı pencere açan işler: muavin, işletme listeleri)
+async function sayfaAl(firma, yalnizOrtak) {
+  const t0 = Date.now();
+  for (;;) {
+    const ortak = appWindow();
+    if (!ortak) fail('NO_SESSION', 'Luca oturumu açık değil. Önce üst şeritteki "Luca\'ya giriş" ile bağlanın.');
+    const adaylar = [ortak, ...(yalnizOrtak ? [] : [...ekSayfalar].filter(w => w !== ortak && !w.isDestroyed()))];
+    const w = adaylar.find(x => sayfaUygun(x, firma));
+    if (w) { const d = durumAl(w); d.aktif++; if (firma) { d.firma = firma; d.kira = Date.now() + KIRA_MS; } return w; }
+    if (!yalnizOrtak && firma && ayriOturum !== false && ekSayfalar.size < EK_EN_COK && ekSayfalar.has(ortak) === false) {
+      if (await ekSayfaAc(ortak).catch(() => null)) continue;
+    }
+    if (Date.now() - t0 > BEKLE_EN_COK_MS) fail('MESGUL', 'Luca başka bir işle meşgul; biraz sonra yeniden deneyin.');
+    await new Promise(r => { bekleyenler.push(r); setTimeout(r, 1000); });
+  }
+}
+function sayfaBirak(w, firma) {
+  const d = sayfaDurum.get(w);
+  if (d) { d.aktif = Math.max(0, d.aktif - 1); if (firma) d.kira = Date.now() + KIRA_MS; if (!d.aktif) d.bosZaman = Date.now(); }
+  bekleyenleriUyandir();
+}
+// Luca işi: bir sayfa alınır, iş o sayfada yürür (iç içe çağrılar aynı sayfayı kullanır), bitince sayfa bırakılır
+async function isle(firma, fn, yalnizOrtak = false) {
+  const b = isBaglami.getStore();
+  if (b && b.w && !b.w.isDestroyed()) return fn();
+  for (let deneme = 0; ; deneme++) {
+    const w = await sayfaAl(firma, yalnizOrtak);
+    try { return await isBaglami.run({ w }, fn); }
+    catch (e) { if (e.code !== 'PAYLASIMLI' || deneme) throw e; }   // sayfalar ayrı değilmiş: iş ortak sayfada sıraya girer
+    finally { sayfaBirak(w, firma); }
+  }
+}
+// Sayfanın Luca'da seçili firma / dönem bilgisi (__SESSION'daki firma ve dönem alanları); okunamazsa null
+const OTURUM_JS = `/*MW_OTURUM*/(async () => { try {
+  const r = await fetch(location.origin + '/Luca/YMFrameAction.do?modul=10&time=' + Date.now(), { credentials: 'include' });
+  const m = (await r.text()).match(/__SESSION\\s*=\\s*(\\{[^<]*?\\})\\s*<\\/script>/); if (!m) return null;
+  const s = JSON.parse(m[1]), o = {}; for (const k of Object.keys(s).sort()) if (/SIRKET|FIRMA|DONEM|UNVAN/i.test(k)) o[k] = s[k];
+  return Object.keys(o).length ? JSON.stringify(o) : null; } catch (e) { return null; } })()`;
+async function oturumOku(w) { try { return await w.webContents.executeJavaScript(OTURUM_JS, true); } catch (e) { return null; } }
+// İlk ek sayfada firma seçildikten sonra: ortak sayfanın seçimi değişmediyse ve ek sayfanınki farklıysa sayfalar ayrıdır.
+// Değiştiyse (aynı Luca oturumu) ortak sayfanın firması geri seçilir, ek sayfalar kapanır ve iş ortak sayfada yeniden yürür.
+async function ayrilikSina(ek, ortak, s0) {
+  const s1 = await oturumOku(ortak), e1 = await oturumOku(ek);
+  if (s0 != null && s1 === s0 && e1 != null && e1 !== s1) { ayriOturum = true; notify('sayfalar', { ayriOturum: true }); return; }
+  ayriOturum = false;
+  const neden = s0 == null || s1 == null || e1 == null ? 'Luca seçili firma bilgisi okunamadı' : s1 !== s0 ? 'ek sayfadaki firma seçimi ortak sayfayı da değiştirdi' : 'ek sayfada firma seçimi görünmedi';
+  notify('sayfalar', { ayriOturum: false, neden });
+  const od = durumAl(ortak);
+  if (od.secim && s1 !== s0) { try { await isBaglami.run({ w: ortak }, () => request(firmaSecAdresi(od.secim), { raw: true })); } catch (e) {} }
+  for (const w of [...ekSayfalar]) { try { if (!durumAl(w).aktif || w === ek) setTimeout(() => { try { if (!w.isDestroyed()) w.destroy(); } catch (x) {} }, 0); } catch (e) {} }
+  fail('PAYLASIMLI', 'Luca sayfaları ayrı çalışmıyor; iş sıraya alındı (' + neden + ').');
+}
+// boşta kalan ek sayfalar kapanır
+const _et = setInterval(() => {
+  for (const w of [...ekSayfalar]) {
+    try { const d = durumAl(w); if (w.isDestroyed()) { ekSayfalar.delete(w); continue; }
+      if (!d.aktif && d.kira < Date.now() && (Date.now() - d.bosZaman > EK_BOS_MS || ayriOturum === false)) w.destroy(); } catch (e) {}
+  }
+}, 30 * 1000); if (_et.unref) _et.unref();
+function sayfaBilgisi() {
+  const ortak = appWindow();
+  const ozet = w => { const d = durumAl(w); return { aktif: d.aktif, firma: d.firma, kira: d.kira > Date.now() }; };
+  return { ortak: ortak ? ozet(ortak) : null, ek: [...ekSayfalar].filter(w => !w.isDestroyed()).map(ozet), ayriOturum, calisma: !!(calismaW && !calismaW.isDestroyed()) };
+}
+
 // Bağlantı durumu değiştikçe (giriş, çıkış, pencere kapanması, oturum düşmesi) programın tüm ekranlarına bildirilir
 let sonDurum = '', durumSuruyor = false;
 async function durumKontrol() {
@@ -434,7 +557,7 @@ function fail(code, msg) { const e = new Error(msg); e.code = code; throw e; }
 
 // Luca penceresinin içinde (aynı oturumla) çalışan istek. Okuma; fiş kesme yalnızca kullanıcı onayıyla (fisKes).
 async function request(path, { method = 'GET', form = null, json = null, raw = false } = {}) {
-  const w = appWindow();
+  const w = isSayfasi();
   if (!w) fail('NO_SESSION', 'Luca oturumu açık değil. Önce "Luca\'ya bağlan" ile giriş yapıp Mali Müşavir Paketi\'ni açın.');
   if (await zamanAsimiGec(w)) await new Promise(r => setTimeout(r, 2500));
   const cu = await checkUye(w);
@@ -512,14 +635,20 @@ async function prepareFis({ lucaId, year }) {
   const donemler = await request('genel/donem.jq?sirket_id=' + encodeURIComponent(lucaId) + '&_=' + Date.now());
   const d = Array.isArray(donemler) && donemler.find(x => String(x.label) === String(year));
   if (!d) fail('NO_PERIOD', year + ' dönemi Luca\'da yok (var olanlar: ' + (donemler || []).map(x => x.label).join(', ') + ').');
-  const txt = '01/01/' + year + ' - 31/12/' + year;
-  await request('TopFrameAction.do?time=' + Date.now() + '&SIRKET_ID=' + encodeURIComponent(lucaId) + '&DONEM_ID=' + encodeURIComponent(d.value) + '&DONEM_TXT=' + encodeURIComponent(txt), { raw: true });
+  const secim = { lucaId: String(lucaId), year: String(year), donemId: String(d.value) };
+  const w = isSayfasi(), ortak = appWindow();
+  const sina = w && ortak && w !== ortak && ekSayfalar.has(w) && ayriOturum === null;
+  const s0 = sina ? await oturumOku(ortak) : null;
+  await request(firmaSecAdresi(secim), { raw: true });
+  if (w) { const dd = durumAl(w); dd.secim = secim; dd.firma = firmaAnahtari(lucaId, year); }
+  donemFirma.set(secim.donemId, secim);
+  if (sina) await ayrilikSina(w, ortak, s0);
   return { donemId: String(d.value), year: String(d.label), firmLabel: String(firm.label) };
 }
 // Firmanın defter türü: Luca üst/menü çerçevesindeki __SESSION.SINIF (1 = bilanço) ve menüdeki "İşletme Defteri" / "Ser.Mes.Defteri"
 async function defterTuru({ lucaId, year }) {
   const p = await prepareFis({ lucaId, year });
-  const w = appWindow();
+  const w = isSayfasi();
   const js = `(async () => {
     const base = location.origin + '/Luca/'; const coz = (buf, r) => { const ct = (r && r.headers.get('content-type') || '').toLowerCase(); if (/utf-?8/.test(ct)) return new TextDecoder('utf-8').decode(buf); try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (e) { return new TextDecoder('windows-1254').decode(buf); } }; const oku = async (u) => { const r = await fetch(base + u + '?time=' + Date.now(), { credentials: 'include' }); return coz(await r.arrayBuffer(), r); };
     const h = await oku('headerFrame.do'); const m = await oku('menu.do');
@@ -535,8 +664,11 @@ async function defterTuru({ lucaId, year }) {
 // Tek fiş kes (Luca'nın "Excel'den fiş aktarımı → Fiş Kes" ile gönderdiği istek)
 async function fisKes({ donemId, fis }) {
   if (!donemId || !fis || !Array.isArray(fis.detaylar) || !fis.detaylar.length) fail('ARG', 'Fiş bilgisi eksik.');
-  const w = appWindow();
+  const w = isSayfasi();
   if (!w) fail('NO_SESSION', 'Luca oturumu açık değil.');
+  // bu sayfada başka firma / dönem seçildiyse (ör. kira süresi dolup başka iş geldiyse) fişin dönemi yeniden seçilir
+  const sec = donemFirma.get(String(donemId)), dd = durumAl(w);
+  if (sec && (!dd.secim || dd.secim.donemId !== String(donemId))) await prepareFis({ lucaId: sec.lucaId, year: sec.year });
   let res;
   try { res = await request('muhasebe/fis_kes.jq', { method: 'POST', json: { donem_id: String(donemId), params: fis } }); }
   catch (e) { if (e.code === 'LUCA') return { ok: false, error: e.message.replace(/^Luca: /, '') }; throw e; }
@@ -553,7 +685,7 @@ async function fisKes({ donemId, fis }) {
 //  3) POST genel/rapor_indir.jq (form) donem_id, raporTur, filename → XLSX
 async function hesapPlaniRapor({ lucaId, year }) {
   const p = await prepareFis({ lucaId, year });
-  const w = appWindow();
+  const w = isSayfasi();
   if (!w) fail('NO_SESSION', 'Luca oturumu açık değil.');
   const js = `(async () => {
     const base = location.origin + '/Luca/';
@@ -603,7 +735,7 @@ async function hesapPlaniRapor({ lucaId, year }) {
 // Fatura Kontrol'ün Luca otomasyonuyla aynı ekran: raporMizanDetayHazirla.do, hesap 100–999, rapor türü "Excel Liste", "Rapor".
 async function muavinIndir({ lucaId, year, sureSn = 300 }) {
   const p = await prepareFis({ lucaId, year });
-  const w0 = appWindow();
+  const w0 = isSayfasi();
   if (!w0) fail('NO_SESSION', 'Luca oturumu açık değil.');
   const uye = await sessionUye(w0);
   if (!uye) fail('UYE', 'Luca üye numarası okunamadı.');
@@ -698,7 +830,7 @@ async function hesapPlani({ lucaId, year }) {
 }
 async function hesapPlaniListe({ lucaId, year }) {
   const p = await prepareFis({ lucaId, year });
-  const w = appWindow();
+  const w = isSayfasi();
   const js = `(async () => {
     const base = location.origin + '/Luca/'; const out = []; const gor = new Set(); const coz = (buf, r) => { const ct = (r && r.headers.get('content-type') || '').toLowerCase(); if (/utf-?8/.test(ct)) return new TextDecoder('utf-8').decode(buf); try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (e) { return new TextDecoder('windows-1254').decode(buf); } };
     for (let sayfa = 1; sayfa <= 200; sayfa++) {
@@ -732,7 +864,7 @@ async function hesapPlaniListe({ lucaId, year }) {
 async function hesapAraVkn({ lucaId, year, vkn }) {
   const v = String(vkn || '').replace(/\D/g, ''); if (v.length < 10) return [];
   await prepareFis({ lucaId, year });
-  const w = appWindow();
+  const w = isSayfasi();
   const js = `(async () => {
     const body = new URLSearchParams({ sayfaNo: '1', sayfaBasinaKayitSayisi: '150', kebirDeger: '1', hesapKodu: '', hesapAdi: '', tcNo: ${JSON.stringify(v.length === 11 ? v : '')},
       vergiNo: ${JSON.stringify(v.length === 10 ? v : '')}, vergiDairesi: '', vergiDairesiAd: '', hesapKodu1: '', hesapKodu2: '', ay: '', tarih1: '', tarih2: '', calismayanHesap: '0' });
@@ -790,7 +922,7 @@ async function isletmeListeleri(o) {
     try { ekle(await w.webContents.executeJavaScript(js)); } catch (e) {}
   }
   if (!windows.size) fail('NO_SESSION', 'Luca penceresi açık değil. Luca\'yı açıp işletme defteri fiş giriş ekranına gidin.');
-  if (o && o.lucaId && appWindow()) {
+  if (o && o.lucaId && isSayfasi()) {
     // Luca'da ekranı açmak gerekmesin: gelir / gider listesi ve oradan açılan fiş giriş ekranları gizli pencerede okunur.
     // Yalnız GET ile açılır; kaydet / sil / güncelle / onay / aktar adreslerine gidilmez, hiçbir düğmeye basılmaz.
     const { base } = await isletmeKok(o.lucaId, o.year || new Date().getFullYear());
@@ -830,7 +962,7 @@ function yuklenince(hw, ms = 60000) {
 }
 async function isletmeKok(lucaId, year) {
   const p = await prepareFis({ lucaId, year });                 // firma / dönem Luca'da etkin olur
-  const w0 = appWindow(); if (!w0) fail('NO_SESSION', 'Luca oturumu açık değil.');
+  const w0 = isSayfasi(); if (!w0) fail('NO_SESSION', 'Luca oturumu açık değil.');
   return { p, base: new URL(w0.webContents.getURL()).origin + '/Luca/' };
 }
 const ISLETME_LISTE_JS = `(() => {
@@ -864,7 +996,7 @@ async function isletmeListesiIndir({ lucaId, year }) {
 }
 
 async function dovizKodlari() {
-  const w = appWindow();
+  const w = isSayfasi();
   if (!w) fail('NO_SESSION', 'Luca oturumu açık değil.');
   const js = `(async () => {
     const out = {};
@@ -956,4 +1088,24 @@ function kayitDurdur() {
 }
 function kayitDurumu() { return { acik: kayit.acik, adet: kayit.olaylar.length, sureDoldu: kayit.sureDoldu }; }
 
-module.exports = { calis, captchaGir, captchaYenile, girisGoster, oturumCerezleri, isletmeListeleri, isletmeListesiIndir, muavinIndir, hesapPlaniExcelOku, hesapPlaniRapor, dovizKodlari, defterTuru, hesapPlani, hesapEkle, hesapAraVkn, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status, listFirms, fetchMizan, prepareFis, fisKes, logout, recheck, LOGIN_URL, _normUye: normUye, _zamanAsimiGec: zamanAsimiGec };
+// Dışa açılan Luca işleri sayfa havuzundan geçer (Görev 29): firma seçen işler firma anahtarıyla, gizli yardımcı pencere
+// açanlar (muavin, işletme listeleri) yalnız ortak sayfada
+const fk = o => (o && o.lucaId ? firmaAnahtari(o.lucaId, o.year) : null);
+const IS = {
+  listFirms: () => isle(null, listFirms),
+  fetchMizan: o => isle(null, () => fetchMizan(o)),
+  prepareFis: o => isle(fk(o), () => prepareFis(o)),
+  defterTuru: o => isle(fk(o), () => defterTuru(o)),
+  fisKes: o => { const sec = o && donemFirma.get(String(o.donemId)); return isle(sec ? firmaAnahtari(sec.lucaId, sec.year) : null, () => fisKes(o)); },
+  hesapPlani: o => isle(fk(o), () => hesapPlani(o)),
+  hesapPlaniRapor: o => isle(fk(o), () => hesapPlaniRapor(o)),
+  hesapAraVkn: o => isle(fk(o), () => hesapAraVkn(o)),
+  hesapEkle: o => isle(fk(o), () => hesapEkle(o)),
+  muavinIndir: o => isle(fk(o), () => muavinIndir(o), true),
+  isletmeListesiIndir: o => isle(fk(o), () => isletmeListesiIndir(o), true),
+  isletmeListeleri: o => isle(fk(o), () => isletmeListeleri(o), true),
+  dovizKodlari: () => isle(null, dovizKodlari),
+};
+module.exports = { calis, captchaGir, captchaYenile, girisGoster, oturumCerezleri, hesapPlaniExcelOku, kayitBaslat, kayitDurdur, kayitDurumu, init, openLogin, status,
+  logout, recheck, LOGIN_URL, ...IS, sayfaBilgisi, _normUye: normUye, _zamanAsimiGec: zamanAsimiGec,
+  _sayfaAyar: o => { if (o.kiraMs != null) KIRA_MS = o.kiraMs; if (o.ekBosMs != null) EK_BOS_MS = o.ekBosMs; if (o.bekleMs != null) BEKLE_EN_COK_MS = o.bekleMs; } };
