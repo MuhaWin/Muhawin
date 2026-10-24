@@ -153,7 +153,8 @@ def main():
         kontrol(pg.is_hidden("#lucaKutu") and pg.is_hidden("#lucaMuavinKutu") and pg.is_enabled("#muavin"),
                 "sitede Luca seçilince yalnız dosya yükleme (Luca'dan getirme yok)")
         pg.select_option("#program", "elektra")
-        kontrol(pg.is_visible("#programUyari") and pg.is_disabled("#basla"), "Elektra: örnek bekleniyor uyarısı, denetim kapalı")
+        kontrol(pg.is_hidden("#programUyari") and pg.is_enabled("#basla") and "Fiş Numarası" in pg.inner_text("#muavinIpucu"),
+                "Elektra seçilebilir (muavin yükleme açık)")
         pg.select_option("#program", "mikro")
         pg.set_input_files("#xml", str(ORNEK / "faturalar.zip")); pg.set_input_files("#muavin", str(ORNEK / "muavin.xlsx"))
         pg.fill("#bas", "2026-09-01"); pg.fill("#bit", "2026-09-30"); pg.click("#basla")
@@ -163,6 +164,36 @@ def main():
         kontrol("ÖRNEK TİCARET A.Ş." in icerik and "Matrah kontrolü" in icerik, "özet görünür")
         kontrol("Tutar farkı" in icerik, "sorunlu kayıtlar listelenir")
         pg.screenshot(path=os.environ.get("EKRAN", "/tmp") + "/site-denetim.png")
+
+        with pg.expect_popup() as pp:                           # fiş düğmesinin yanındaki "Fatura"
+            pg.click("#icerik td a.fisbtn[data-pdfbelge] >> nth=0")
+        fat = pp.value
+        fat.wait_for_selector("iframe")
+        fat.frame_locator("iframe").locator("body").wait_for()
+        kontrol(fat.get_attribute("iframe", "sandbox") == "allow-scripts allow-modals" and
+                "2026" in fat.frame_locator("iframe").locator("body").inner_text(), "fatura görünümü tarayıcıda, kum havuzlu çerçevede")
+        fat.close()
+
+        print("Detay denetim")
+        bekle(pg, "document.querySelector('#nGider .rozet')", 60000)
+        pg.click("#nav [data-g=gider]")
+        pg.click("#kBasla")
+        bekle(pg, "document.querySelector('#kontrolPen.acik #kFis table')", 60000)
+        bekle(pg, "document.querySelector('#kFatura').srcdoc.includes('2026')", 60000)
+        kontrol(pg.get_attribute("#kFatura", "sandbox") == "" and "2026" in pg.frame_locator("#kFatura").locator("body").inner_text(),
+                "kontrol ekranı: solda fiş, sağda fatura (betiksiz çerçeve, sitenin CSP'siyle)")
+        pg.click("#kSira"); pg.keyboard.press("d")
+        bekle(pg, "!document.querySelector('#kontrolPen.acik')", 30000)
+        pg.click("#icerik [data-dfiltre=uygun_degil]")
+        kontrol("Uygun değil" in pg.inner_text("#icerik"), "karar (D) kaydedildi, fatura listeden düştü")
+        print("Muhtasar beyannamesi")
+        pg.click("#nav [data-g=muhtasar]")
+        pg.set_input_files("#mbDosya", str(ORNEK / "muhtasar.pdf")); pg.click("#mbYukle")
+        bekle(pg, "document.querySelector('#icerik').textContent.includes('Muhtasar beyannamesi 1003A')", 60000)
+        icerik = pg.inner_text("#icerik")
+        kontrol("022 Serbest meslek" in icerik and "Uyumlu" in icerik and "AHMET" not in icerik and "12345678901" not in icerik,
+                "muhtasar PDF'i tarayıcıda okunur, muavinle karşılaştırılır (kişisel veri yok)")
+        pg.click("#nav [data-g=ozet]")
 
         print("Çıktılar")
         pg.click("#nav [data-g=beyan]")

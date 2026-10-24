@@ -94,6 +94,58 @@ test('Denetim program seçimi: yalnız denetime uygun programlar (?denetim=1)', 
   assert.deepStrictEqual(sifir, hepsi);
 });
 
+test('Elektra muavini tarayıcıda okunur (hızlı xlsx okuyucu): Mikro ile aynı sonuç', async () => {
+  const form = muavin => ({
+    faturalar: [{ ad: 'faturalar.zip', veri: oku(path.join(ORNEK, 'faturalar.zip')) }],
+    muavinler: [{ ad: 'muavin.xlsx', veri: oku(path.join(ORNEK, muavin)) }],
+    bas: ['2026-09-01'], bit: ['2026-09-30'], program: [muavin === 'elektra.xlsx' ? 'elektra' : 'mikro'], firma_ad: ['ELEKTRA DENEME A.Ş.'],
+  });
+  const ozet = y => { assert.strictEqual(y.durum, 200, y.govde); return Object.fromEntries(Object.entries(json(y).denetim.ozet).map(([k, v]) => [k, v.sorunlu])); };
+  const e = ozet(await istek('POST', '/api/denetim', { form: form('elektra.xlsx') }));
+  assert.deepStrictEqual(e, ozet(await istek('POST', '/api/denetim', { form: form('muavin.xlsx') })));
+  assert.deepStrictEqual({ KDV: e.KDV, Matrah: e.Matrah, Cari: e.Cari }, { KDV: 0, Matrah: 1, Cari: 1 });
+});
+
+test('Detay denetim: gider / gelir kontrolü, karar, kural, rapor (tarayıcıda, firma klasöründe saklanır)', async () => {
+  const liste = json(await istek('GET', '/api/denetim/liste')).liste;
+  const id = liste.find(x => x.firma === 'ÖRNEK TİCARET A.Ş.' || /ÖRNEK/.test(x.id)).id;
+  const d = json(await istek('GET', '/api/denetim/detay', { sorgu: { id } }));
+  assert.ok(d.gider.length && d.gelir.length, JSON.stringify(d.ozet));
+  const g = d.gider[0];
+  assert.strictEqual((await istek('POST', '/api/denetim/detay/karar', { govde: { id, anahtar: g.anahtar, karar: 'uygun_degil', notu: 'deneme' } })).durum, 200);
+  const k = await istek('POST', '/api/denetim/detay/kural', { govde: { id, yon: 'SATIS', vkn: d.gelir[0].vkn, hesap: d.gelir[0].hesaplar[0].kod.slice(0, 3) } });
+  assert.strictEqual(k.durum, 200, k.govde);
+  const d2 = json(await istek('GET', '/api/denetim/detay', { sorgu: { id } }));
+  assert.strictEqual(d2.gider[0].durum, 'uygun_degil');
+  assert.strictEqual(d2.gelir[0].durum, 'kural');
+  const r = await istek('GET', '/api/denetim/detay/rapor', { sorgu: { id } });
+  assert.strictEqual(r.durum, 200);
+  assert.match(r.govde, /Gider kontrolü/);
+  assert.match(r.govde, /deneme/);
+});
+
+test('Muhtasar beyannamesi (1003A PDF) tarayıcıda okunur ve muavinle karşılaştırılır; kişisel veri saklanmaz', async () => {
+  const id = json(await istek('GET', '/api/denetim/liste')).liste.find(x => /ÖRNEK/.test(x.id)).id;
+  const y = await istek('POST', '/api/denetim/muhtasar', { form: { id: [id], beyanname: [{ ad: 'muhtasar.pdf', veri: oku(path.join(ORNEK, 'muhtasar.pdf')) }] } });
+  assert.strictEqual(y.durum, 200, y.govde);
+  const j = json(y);
+  assert.strictEqual(j.beyan.form, '1003A');
+  assert.strictEqual(j.beyan.kodlar['022'].vergi, 500);
+  const serbest = j.satirlar.find(x => x.ad.startsWith('022 Serbest meslek · vergi'));
+  assert.strictEqual(serbest.durum, 'uyumlu');
+  assert.ok(!/12345678901|AHMET|MEHMET|KONYAALTI/.test(y.govde));
+  assert.ok(!/12345678901|AHMET/.test(py.runPython("import pathlib; ''.join(p.read_text('utf-8') for p in pathlib.Path('/veri').rglob('*.json'))")));
+});
+
+test('Yönetici raporu tarayıcıda: grafikler (SVG), vergiler, rasyolar', async () => {
+  const id = json(await istek('GET', '/api/denetim/liste')).liste.find(x => /ÖRNEK/.test(x.id)).id;
+  const y = await istek('GET', '/api/denetim/yonetici', { sorgu: { id } });
+  assert.strictEqual(y.durum, 200, y.govde);
+  assert.match(y.govde, /<svg/);
+  assert.match(y.govde, /Rasyolar/);
+  assert.match(y.govde, /Cari oran/);
+});
+
 test('Luca ve sqlite olmadan çalışır (taklit yalnız fastapi / pydantic)', async () => {
   const y = py.runPython("import sys; json_ = __import__('json'); json_.dumps([m in sys.modules for m in ('playwright', 'sqlite3', 'fastapi')])");
   assert.deepStrictEqual(JSON.parse(y), [false, false, true]);
@@ -117,9 +169,7 @@ test('hatalar ve kapalı bölümler', async () => {
   const eksik = await istek('POST', '/api/denetim', { form: { bas: ['2026-09-01'] } });
   assert.strictEqual(eksik.durum, 400);                              // muavin artık isteğe bağlı alan (Luca'dan da gelir)
   assert.match(json(eksik).detail, /e-fatura dosyalarını/);
-  const elektra = await istek('POST', '/api/denetim', { form: { bas: ['2026-09-01'], program: ['elektra'] } });
-  assert.strictEqual(elektra.durum, 400);
-  assert.match(json(elektra).detail, /Elektra muavin örneği bekleniyor/);
+
   for (const yol of ['/api/toplu/durum', '/api/kontrol/luca-faturalari', '/api/ayarlar']) {
     assert.strictEqual((await istek('GET', yol)).durum, 404, yol);
   }
