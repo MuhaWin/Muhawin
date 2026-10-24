@@ -1216,7 +1216,8 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     await w.evaluate(async () => { const { Store } = window.__app; await Store.deleteFirm('kf2', {}); await Store.saveFirm({ id: 'kf3', name: 'EXPO İNŞ', lucaId: '11', banks: [] }); });
     const temiz = await w.evaluate(() => { const d = window.__app.Store.local(); return Object.keys((d.fkurallar || {}).kf3 || {}).length + (d.firms.kf3.mizanInfo ? 1 : 0); });
     check(temiz === 0, 'tam silmede kurallar ve mizan silindi');
-    await w.click('#fkkYenile'); await w.waitForTimeout(2500);
+    // kayıttan 4 sn sonra muavin yenilemesi kendiliğinden başlar ve pencereyi kapatır; düğme hâlâ açıksa kullanıcı gibi basılır
+    if (await w.isVisible('#fkkYenile')) await w.click('#fkkYenile'); await w.waitForTimeout(2500);
     check(!(await w.isHidden('#fkKayit')) && await w.isHidden('#fkkModal'), 'muavin yenileme arka planda başladı; kayıt ekranı açık kaldı (sayfa değişmedi)');
     // muavin indirilirken ekranın ortasında bekleme penceresi açıktır (yavaş makinede / CI'da hâlâ sürer): kullanıcı gibi "Arka planda devam etsin"
     if (await w.isVisible('#mwBusy')) { await w.click('#mwBusyIptal'); await w.waitForSelector('#mwBusy', { state: 'hidden', timeout: 10000 }); }
