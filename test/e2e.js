@@ -1138,6 +1138,47 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
       await w.evaluate(async () => { const st = window.__fkayit._st; const { Store } = window.__app; st.rows.pop(); st.rows.forEach((r, i) => { r.sec = st._g38[i]; }); delete st._g38;
         st.acc.delete('689.06'); st.leaf.delete('689.06'); const f = { ...st.firm }; delete f.fkOivHesap; st.firm = f; await Store.saveFirm(f); });
       await w.click('[data-fkf=kayitsiz]'); await w.waitForTimeout(200); }
+    // ---- Görev 35: cari eşleştirme — VKN / TCKN kesin, ünvan, fatura no ön eki; geçersiz VKN kullanılmaz; çakışmada VKN esas + uyarı
+    { const g = await w.evaluate(async () => { const F = window.__fkayit, st = F._st; const eskiF = st.firm;
+        for (const [k, v] of [['320.01.101', 'SATICI ALFA TİCARET'], ['320.01.102', 'BETA YAPI MALZEME']]) { st.acc.set(k, v); st.leaf.add(k); }
+        const f = o => ({ yon: 'ALIS', tip: 'SATIS', karsi_unvan: 'GAMA DELTA', karsi_vkn: '', gecmis: null, onek: null, ...o });
+        const k = x => ({ cari: x.cari, kaynak: x.kaynak, uyari: x.uyari });
+        const out = {};
+        try {
+          st.firm = { ...eskiF, cariVkn: {} };
+          out.vkn = k(F._cariSec(f({ karsi_vkn: '1234567890', karsi_unvan: 'BETA YAPI MALZEME', gecmis: { cari: '320.01.101', eslesme: 'vkn' } })));
+          out.gecersiz = k(F._cariSec(f({ karsi_vkn: '1234567891', gecmis: { cari: '320.01.101', eslesme: 'vkn' } })));
+          out.dokuz = F._vknOk('381046361') === false && F._vknOk('10000000146') && !F._vknOk('10000000147');
+          st.firm = { ...eskiF, cariVkn: { '1234567890': '320.01.102' } };
+          out.yerel = k(F._cariSec(f({ karsi_vkn: '1234567890', karsi_unvan: 'SATICI ALFA TİCARET' })));
+          out.unvan = k(F._cariSec(f({ karsi_vkn: '1234567891', karsi_unvan: 'SATICI ALFA TİCARET' })));
+          out.onek = k(F._cariSec(f({ onek: { ek: 'ABC', firma: 1, genel: false, cari: '320.01.101' } })));
+          out.onekDestek = k(F._cariSec(f({ karsi_unvan: 'SATICI ALFA TİCARET', onek: { ek: 'ABC', firma: 1, genel: false, cari: '320.01.101' } })));
+          out.onekCelisir = k(F._cariSec(f({ karsi_unvan: 'SATICI ALFA TİCARET', onek: { ek: 'ABC', firma: 1, genel: false, cari: '320.01.102' } })));
+          out.genel = k(F._cariSec(f({ onek: { ek: 'GIB', firma: 1, genel: true, cari: '320.01.101' } })));
+          st.firm = { ...eskiF, cariVkn: {} };
+          F._cariVknHatirla([{ f: { karsi_vkn: '10000000146' }, cari: '320.01.102' }, { f: { karsi_vkn: '1234567891' }, cari: '320.01.101' }, { f: { karsi_vkn: '1234567890' }, cari: '770.01' }]);
+          out.hatirla = st.firm.cariVkn;
+        } finally { st.firm = eskiF; await window.__app.Store.saveFirm(eskiF); }
+        // ekranda: VKN çipi ve çakışma uyarısı
+        st.rows.push({ f: { yon: 'ALIS', tip: 'SATIS', anahtar: 'g35', belge_no: 'ABC2026000000099', tarih: '2026-09-20', karsi_unvan: 'BETA YAPI MALZEME', karsi_vkn: '1234567890', matrah: 100, kdv: 20, odenecek: 120, tevkifat: 0, oranlar: [{ oran: '20', matrah: 100, kdv: 20 }], diger_vergiler: {}, kalemler: [], gecmis: { cari: '320.01.101', eslesme: 'vkn' } },
+          hesap: '770.01', kaynak: 'elle', elle: true, sec: false, acik: false, logged: null, diger: '', fark: '', ...(() => { const c = F._cariSec({ yon: 'ALIS', tip: 'SATIS', karsi_unvan: 'BETA YAPI MALZEME', karsi_vkn: '1234567890', gecmis: { cari: '320.01.101', eslesme: 'vkn' } }); return { cari: c.cari, cariKaynak: c.kaynak, cariUyari: c.uyari }; })() });
+        return out; });
+      console.log('G35', JSON.stringify(g));
+      check(g.vkn.cari === '320.01.101' && g.vkn.kaynak === 'VKN' && /VKN esas alındı/.test(g.vkn.uyari) && /320\.01\.102/.test(g.vkn.uyari), 'VKN ile bulunan cari ünvanla bulunandan farklı: VKN esas alındı, uyarı verildi');
+      check(!g.gecersiz.cari && /geçersiz/.test(g.gecersiz.uyari) && g.dokuz, 'sağlaması tutmayan VKN eşleştirmede kullanılmadı, uyarı verildi; TCKN sağlaması doğru');
+      check(g.yerel.cari === '320.01.102' && g.yerel.kaynak === 'VKN', 'firmada hatırlanan VKN → cari kesin eşleşme (ünvan başka cariyi gösterse de)');
+      check(g.unvan.cari === '320.01.101' && g.unvan.kaynak === 'ünvan', 'VKN geçersizse ünvanla eşleşti');
+      check(g.onek.cari === '320.01.101' && g.onek.kaynak === 'ön ek' && /kontrol edin/.test(g.onek.uyari), 'yalnız tek firmanın kullandığı ön ekle bulundu, uyarıyla');
+      check(g.onekDestek.kaynak === 'ünvan + ön ek' && !g.onekDestek.uyari && /kontrol edin/.test(g.onekCelisir.uyari) && g.onekCelisir.cari === '320.01.101', 'ön ek destekleyici: ünvanla aynıysa güçlendirir, farklıysa uyarır (ünvan geçerli)');
+      check(!g.genel.cari, 'genel ön ek (GIB) tek başına cari göstermez');
+      check(JSON.stringify(g.hatirla) === JSON.stringify({ '10000000146': '320.01.102' }), 'Luca\'ya kaydedilen cari firmada geçerli VKN / TCKN ile hatırlanır (geçersiz VKN ve cari olmayan hesap hatırlanmaz)');
+      await w.click('[data-fkf=tumu]'); await w.waitForTimeout(200);
+      const ui = await w.evaluate(() => { const st = window.__fkayit._st; const i = st.rows.length - 1; const tr = document.querySelector(`#fkkTable tr[data-i="${i}"]`);
+        const t = tr ? tr.textContent : ''; return { cip: /VKN/.test(t), uyari: !!(tr && tr.querySelector('.fkk-cariuyari')), cari: tr && tr.querySelector('[data-c]').value }; });
+      await w.screenshot({ path: OUT + '/10e-cari-vkn.png' });
+      check(ui.cip && ui.uyari && ui.cari === '320.01.101', 'ekranda carinin VKN ile bulunduğu ve çakışma uyarısı görünüyor');
+      await w.evaluate(() => { window.__fkayit._st.rows.pop(); }); await w.click('[data-fkf=kayitsiz]'); await w.waitForTimeout(200); }
     // 2.9.4: binek araç ve 689 farkında 950 / 951 nazım kaydı; ödenecek farkı yönüne göre 679 / 689; tutar düzeltme, satır ekleme
     const v4 = await w.evaluate(() => {
       const F = window.__fkayit; const st = F._st;
