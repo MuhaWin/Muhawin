@@ -1392,7 +1392,8 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
     await w.click('#fkkBar [data-fkf=kaydedilen]');
     { const e = await w.evaluate(() => { const r = document.querySelector('#fkkTable tbody tr[data-i]'); const c = [...r.querySelectorAll('.chip')].find(x => /Luca fiş/.test(x.textContent)); return { etiket: !!c && c.tagName === 'SPAN', dugme: !!r.querySelector('[data-lucafis]') }; });
       check(e.etiket && !e.dugme, 'kaydedilen satırda "Luca fiş N" düz etiket; satırda fiş açma düğmesi yok (' + JSON.stringify(e) + ')'); }
-    await w.click('#fkkTable tbody tr[data-i] [data-fis]'); await w.click('#fkkTable tr.fisdetay [data-lucafis]'); await w.waitForSelector('#fkkModal:not([hidden])');
+    if (!(await w.$('#fkkTable tr.fisdetay [data-lucafis]'))) await w.click('#fkkTable tbody tr[data-i] [data-fis]');   // fiş görünümü kapalıysa aç (satır önceki adımlardan açık kalmış olabilir)
+    await w.click('#fkkTable tr.fisdetay [data-lucafis]'); await w.waitForSelector('#fkkModal:not([hidden])');
     await w.waitForFunction(() => !/hazırlanıyor/.test(document.getElementById('fkkModalB').textContent), null, { timeout: 15000 });
     { const t = await w.textContent('#fkkModalT'), b = await w.textContent('#fkkModalB');
       check(/Luca fiş 101/i.test(t) && /muavinde bulunamadı/.test(b), 'Fiş görünümünde "Fişi aç" ile fiş penceresi açıldı (fiş henüz muavinde yok): ' + t + ' / ' + b.slice(0, 120)); }
