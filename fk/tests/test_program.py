@@ -315,6 +315,7 @@ def test_kayit_adaylari(istemci, tmp_path):
     with zipfile.ZipFile(zb, "w") as z:
         z.writestr("a.xml", ubl("AAA2026000000001", "2026-09-05", "1", FIRMA_VKN, "1000.00", "200.00", 20))
         z.writestr("y.xml", ubl("YYY2026000000009", "2026-09-20", "1", FIRMA_VKN, "500.00", "100.00", 20))
+        z.writestr("z.xml", ubl("ZZZ2026000000001", "2026-09-21", "2", FIRMA_VKN, "50.00", "10.00", 20))   # firmanın VKN'si çoğunlukta kalsın
     r = c.post("/api/kontrol", data={"bas": "2026-09-01", "bit": "2026-09-30"},
                files=[("faturalar", ("p.zip", zb.getvalue(), "application/zip")),
                       ("muavinler", ("muavin.xlsx", m.read_bytes(), "application/octet-stream"))])

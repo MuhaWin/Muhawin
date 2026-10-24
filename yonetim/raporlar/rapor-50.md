@@ -1,6 +1,6 @@
 # Rapor 50 – "Luca'ya kaydet" düğmesi pasif: nedeni
 
-**Oturum:** Yazılımcı (`session_01HKMyx49yrftMV598oVTfLH`) · **Taban:** `main` `b8b1d92` · **Dal:** `claude/awesome-ritchie-ftviuk`
+**Oturum:** Yazılımcı (`session_01HKMyx49yrftMV598oVTfLH`) · **Taban:** `main` `6881ebf` · **Dal:** `claude/awesome-ritchie-ftviuk`
 Derleme yapılmadı. Testlerde sahte veri kullanıldı.
 
 ## Belirti (2.9.15 denemesi)
@@ -61,7 +61,7 @@ Kullanıcı yeni sürümde nedeni artık ekranda görecek.
 | Test | Sonuç |
 |---|---|
 | `xvfb-run -a node test/e2e.js` | **377 geçti, 0 başarısız** |
-| `cd fk && pytest` | 214 geçti, 2 atlandı |
+| `cd fk && pytest` | tümü geçti (kayıt adayları testi kararsızdı: firma VKN eşitliği; üçüncü satıcı eklendi) |
 | `node test/mobil.js` | 45/45 |
 
 e2e Görev 50 bölümü (sahte faturalar):
