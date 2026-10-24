@@ -1225,20 +1225,22 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
       await w.evaluate(() => { const st = window.__fkayit._st;
         for (const [k, v] of [['153.01.01', '%1 TİCARİ MAL'], ['153.01.10', '%10 TİCARİ MAL'], ['153.01.20', '%20 TİCARİ MAL'], ['153.01.99', 'DİĞER TİCARİ MAL'], ['191.01.20', '%20 İNDİRİLECEK KDV']]) { st.acc.set(k, v); st.leaf.add(k); } });
       const i0 = await w.$eval('#fkkTable tbody tr[data-i]', t => +t.dataset.i);
-      // Görev 41: Alış / Satış kod tanımları tek "Kod tanımları ▾" menüsünde; araç çubuğu 1440 px'de tek satır
+      // Görev 41: Alış / Satış kod tanımları ve Doldurma tek "Kod tanımları ▾" menüsünde; araç çubuğu 1440 px'de alta taşmaz
       { const ilk = await w.evaluate(() => ({ dugme: document.querySelectorAll('#fkkBar #fkkKod').length, gizli: document.querySelector('#fkkKodMenu').hidden, ayri: !!document.querySelector('#fkkBar > #fkkKodA, #fkkBar > #fkkKodS') }));
-        await w.click('#fkkKod'); const acik = await w.evaluate(() => ({ menu: !document.querySelector('#fkkKodMenu').hidden, ogeler: [...document.querySelectorAll('#fkkKodMenu [role=menuitem]')].map(x => x.textContent), exp: document.querySelector('#fkkKod').getAttribute('aria-expanded'), odak: document.activeElement.id }));
+        await w.click('#fkkKod'); const acik = await w.evaluate(() => ({ menu: !document.querySelector('#fkkKodMenu').hidden, ogeler: [...document.querySelectorAll('#fkkKodMenu [role=menuitem]')].map(x => x.textContent), exp: document.querySelector('#fkkKod').getAttribute('aria-expanded'), doldurma: !!document.querySelector('#fkkKodMenu #fkkKaynak') && !document.querySelector('#fkkBar > label #fkkKaynak') && (() => { const r = document.querySelector('#fkkKodMenu').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })(), odak: document.activeElement.id }));
         await w.keyboard.press('ArrowDown'); const odak2 = await w.evaluate(() => document.activeElement.id);
         await w.keyboard.press('Escape'); await w.waitForTimeout(150); const esc = await w.evaluate(() => ({ menu: document.querySelector('#fkkKodMenu').hidden, panel: !document.querySelector('#fkKayit').hidden, odak: document.activeElement.id }));
         await w.click('#fkkKod'); await w.click('#fkkBar .note'); const disari = await w.evaluate(() => document.querySelector('#fkkKodMenu').hidden);
-        check(ilk.dugme === 1 && ilk.gizli && !ilk.ayri && acik.menu && acik.ogeler.join('|') === 'Alış kod tanımları|Satış kod tanımları' && acik.exp === 'true' && acik.odak === 'fkkKodA' && odak2 === 'fkkKodS' && esc.menu && esc.panel && esc.odak === 'fkkKod' && disari,
-          'Kod tanımları ▾ menüsü: Alış / Satış; oklarla gezilir, Esc ve dışarı tıklama menüyü kapatır, ekran açık kalır (' + JSON.stringify({ ilk, acik, odak2, esc, disari }) + ')');
+        check(ilk.dugme === 1 && ilk.gizli && !ilk.ayri && acik.menu && acik.ogeler.join('|') === 'Alış kod tanımları|Satış kod tanımları' && acik.doldurma && acik.exp === 'true' && acik.odak === 'fkkKodA' && odak2 === 'fkkKodS' && esc.menu && esc.panel && esc.odak === 'fkkKod' && disari,
+          'Kod tanımları ▾ menüsü: Alış / Satış ve Doldurma seçimi (menü pencereye sığıyor); oklarla gezilir, Esc ve dışarı tıklama menüyü kapatır, ekran açık kalır (' + JSON.stringify({ ilk, acik, odak2, esc, disari }) + ')');
         const once = await w.evaluate(() => [innerWidth, innerHeight]);
         await app.evaluate(({ BrowserWindow }) => { const b = BrowserWindow.getAllWindows()[0]; if (b.isMaximized()) b.unmaximize(); b.setContentSize(1440, 900); }); await w.waitForFunction(() => innerWidth === 1440, null, { timeout: 5000 }).catch(() => {}); await w.waitForTimeout(400);
         const satir = await w.evaluate(() => new Set([...document.querySelector('#fkkBar').children].filter(x => x.getClientRects().length && x.offsetWidth).map(x => Math.round(x.getBoundingClientRect().top / 10))).size);
+        const ayniSatir = await w.evaluate(() => Math.abs(document.querySelector('#fkkKod').getBoundingClientRect().top - document.querySelector('#fkkKurallar').getBoundingClientRect().top) < 4 && Math.abs(document.querySelector('#fkkKurallar').getBoundingClientRect().top - document.querySelector('#fkkBosDoldur').getBoundingClientRect().top) < 4);
+        await w.click('#fkkKod'); await w.waitForTimeout(150); await w.screenshot({ path: OUT + '/41-kod-menu-1440.png' }); await w.keyboard.press('Escape');
         const st = await w.evaluate(() => ({ w: innerWidth, bar: Math.round(document.querySelector('#fkkBar').getBoundingClientRect().height) }));
         await app.evaluate(({ BrowserWindow }, [cw, ch]) => { BrowserWindow.getAllWindows()[0].setContentSize(cw, ch); }, once); await w.waitForTimeout(300);
-        check(satir === 1, 'Faturaları Luca\'ya kaydet araç çubuğu 1440 px\'de tek satır (' + JSON.stringify({ ...st, satir }) + ')'); }
+        check(satir === 2 && ayniSatir, 'Faturaları Luca\'ya kaydet araç çubuğu 1440 px\'de iki satır: süzgeçler + işlemler; Kod tanımları işlem satırında, Doldurma alta düşmüyor (' + JSON.stringify({ ...st, satir, ayniSatir }) + ')'); }
       await w.click('#fkkKod'); await w.click('#fkkKodA'); await w.waitForSelector('#fkkModal:not([hidden]) #fkkKodTablo');
       const baslik = await w.textContent('#fkkModalT');
       await w.fill('[data-kodh="11|10"]', '153.01.10'); await w.press('[data-kodh="11|10"]', 'Tab');

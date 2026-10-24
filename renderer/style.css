@@ -695,7 +695,10 @@ tr.fiscikan td{opacity:.55}
 tr.fiscikan td:last-child{opacity:1}
 /* Görev 41: açılır düğme menüsü (ör. "Kod tanımları ▾" → Alış / Satış) */
 .dmenu{position:relative;display:inline-flex}
-.dmenulist{position:absolute;left:0;top:calc(100% + 4px);z-index:60;min-width:190px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);padding:4px;display:grid;gap:2px}
+.dmenulist{position:absolute;right:0;top:calc(100% + 4px);z-index:60;min-width:190px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-lg);padding:4px;display:grid;gap:2px}
 .dmenulist[hidden]{display:none}
-.dmenulist button{all:unset;display:block;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--ink);font-size:13px;white-space:nowrap}
-.dmenulist button:hover,.dmenulist button:focus-visible{background:var(--hover)}
+.dmenulist [role=menu]{display:grid;gap:2px}
+.dmenuek{border-top:1px solid var(--line);margin-top:4px;padding:8px 6px 4px}
+.dmenusec{display:grid!important;gap:4px;white-space:nowrap}
+.dmenulist [role=menuitem]{all:unset;display:block;padding:7px 10px;border-radius:7px;cursor:pointer;color:var(--ink);font-size:13px;white-space:nowrap}
+.dmenulist [role=menuitem]:hover,.dmenulist [role=menuitem]:focus-visible{background:var(--hover)}
