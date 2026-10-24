@@ -77,7 +77,9 @@ def test_kural_ve_karar(tmp_path):
     assert d["durum"] == "uygun_degil" and d["neden"] == "yanlış hesap"                # karar kuraldan önce
     assert detay.kararlar(firma)[x["anahtar"]]["karar"] == "uygun_degil"
     assert detay.karar_yaz(firma, x["anahtar"], "") == {}
-    assert [k["id"] for k in detay.kural_sil(firma, 1)] == [2]
+    ids = [k["id"] for k in L2]
+    assert len(set(ids)) == 2 and ids[1] > ids[0]          # kimlik zamana dayalı, tekil (Görev 51: iki bilgisayar çakışmasın)
+    assert [k["id"] for k in detay.kural_sil(firma, ids[0])] == [ids[1]]
 
 
 def test_toplu_fis_baska_faturalar_karismaz():
@@ -125,7 +127,7 @@ def test_api_detay_karar_kural_rapor(c, tmp_path):
     assert c.post("/api/denetim/yerel", json={"firma_ad": "DETAY A.Ş.", "ay": "2026-09", "bas": "2026-09-01", "bit": "2026-09-30"}).status_code == 200
     d = c.get("/api/denetim/detay", params={"id": rid}).json()
     assert d["gider"][0]["durum"] == "uygun" and d["gelir"][0]["durum"] == "kural"
-    assert c.post("/api/denetim/detay/kural", json={"id": rid, "sil": 1}).json()["kurallar"] == []
+    assert c.post("/api/denetim/detay/kural", json={"id": rid, "sil": d["kurallar"][0]["id"]}).json()["kurallar"] == []
 
 
 def test_tarayicida_kontrol_ekrani(tmp_path):

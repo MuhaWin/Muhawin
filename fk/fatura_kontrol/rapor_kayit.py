@@ -161,6 +161,8 @@ def rapor_kaydet(rapor, ft, uyarilar, firma, vkn, klasor: Path | None = None) ->
     veri["zaman"] = datetime.now().isoformat(timespec="seconds")
     veri["defter"] = defter_turu(klasor)
     veri["kural"] = KURAL_SURUMU
+    from .ortak import sorgulayan
+    veri["sorgulayan"] = sorgulayan()             # ortak veri klasöründe "kim sorguladı" (Görev 51)
     (klasor / depo.RAPOR_JSON).write_text(json.dumps(veri, ensure_ascii=False), encoding="utf-8")
     sorunlu = sum(d["adet"] for d in veri["durumlar"] if d["sorunlu"])
     con = _db()

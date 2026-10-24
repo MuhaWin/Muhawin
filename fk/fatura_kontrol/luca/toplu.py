@@ -9,6 +9,7 @@ Liste yenilendiğinde önceki Dahil/Not seçimleri SIRKET_ID üzerinden korunur;
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import json
 import os
 import re
@@ -25,7 +26,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from . import otomasyon as O
-from .. import arsiv, depo
+from .. import arsiv, depo, ortak
 
 def veri_klasoru() -> Path:
     return depo.veri()
@@ -233,7 +234,7 @@ def toplu_calistir(bas: date, bit: date, turler: list[str], cikti: Path, firmala
                              asama="calisiyor", adimlar=[], mesaj="Firma seçiliyor…")
                 satir = {"ad": f["ad"], "id": f["id"], "vkn": "", "durum": "", "fatura": 0, "sorunlar": {},
                          "indirme_hatasi": [], "rapor": None, "rapor_id": None, "sure": 0,
-                         "zaman": datetime.now().isoformat(timespec="seconds")}
+                         "zaman": datetime.now().isoformat(timespec="seconds"), "sorgulayan": ortak.sorgulayan()}
                 t0 = time.time()
                 klasor = firma_klasoru(bas, f)
                 eski_adimlar = adimlari_oku(klasor)
@@ -242,7 +243,10 @@ def toplu_calistir(bas: date, bit: date, turler: list[str], cikti: Path, firmala
                     satir["indirme_hatasi"].append("Tarayıcı kapandığı için çalıştırılmadı – yeniden çalıştırın")
                     sonuclar.append(satir)
                     continue
+                yen = None
+                kilit_cm = ortak.kilit(klasor, "toplu kontrol")
                 try:
+                    kilit_cm.__enter__()            # aynı firma-dönemi başka biri sorguluyorsa KilitHatasi (Görev 51)
                     L = O.oturum_canli(ctx, L)
                     if adim == "muavin":
                         (klasor / "muavin.xlsx").unlink(missing_ok=True)
@@ -258,10 +262,13 @@ def toplu_calistir(bas: date, bit: date, turler: list[str], cikti: Path, firmala
                             z.unlink(missing_ok=True)
                         t, mv = turler, False
                     else:
-                        depo.donem_temizle(klasor)      # önceki indirmeler silinir, yenileri yazılır
+                        # güvenli yenileme (Görev 51): yeni belgeler geçici klasöre iner; tam ve hatasız biterse eskisinin
+                        # yerine geçer, yarıda kalırsa eski veri olduğu gibi kalır
+                        yen = ortak.Yenileme(klasor)
                         t, mv = turler, True
+                    hedef = yen.gecici if yen else klasor
                     try:
-                        s = O.firma_isle(L, f"id:{f['id']}", bas, bit, t, klasor, muavin=mv,
+                        s = O.firma_isle(L, f"id:{f['id']}", bas, bit, t, hedef, muavin=mv,
                                          defter=defter_oku().get(str(f["id"])))
                         L = getattr(s, "L", L)               # oturum yenilendiyse güncel Luca sayfası
                     finally:
@@ -272,9 +279,16 @@ def toplu_calistir(bas: date, bit: date, turler: list[str], cikti: Path, firmala
                                        [a for a in yeni if adim_kodu(a) in kodlar]
                             (klasor / "adimlar.json").write_text(json.dumps(birlesik, ensure_ascii=False, indent=1),
                                                                  encoding="utf-8")
-                    s.adimlar = adimlari_oku(klasor)
-                    # her fatura bir kez, kendi ayının arşivine; Luca'nın ham ZIP'leri silinir
-                    arsiv.arsive_al(f["ad"] or f["id"], sorted(klasor.glob("gib_*.zip")))
+                    s.adimlar = adimlari_oku(hedef)
+                    # her fatura bir kez, kendi ayının arşivine; Luca'nın ham ZIP'leri silinir (yenilemede bu ay geçici klasöre)
+                    arsiv.arsive_al(f["ad"] or f["id"], sorted(hedef.glob("gib_*.zip")), yonlendir={klasor: hedef} if yen else None)
+                    if yen:
+                        if any(o["durum"] in ("hata", "yarim") for o in adim_ozeti(s.adimlar)):
+                            yen.iptal()             # eksik indirme: eski belgeler ve rapor yerinde kalır
+                            satir["eski_veri_korundu"] = True
+                        else:
+                            yen.bitir()
+                    s.muavin = None
                     depo.firma_bilgisi_yaz(f["ad"] or f["id"], getattr(s, "vkn", None) or None, f["id"])   # Luca SIRKET_ID ↔ klasör
                     s.zipler = arsiv.donem_faturalari(klasor)
                     from ..kontrol import muavin_dosyalari
@@ -306,6 +320,10 @@ def toplu_calistir(bas: date, bit: date, turler: list[str], cikti: Path, firmala
                         satir["durum"] = "Belge/muavin yok"
                     if satir["indirme_hatasi"] and satir["durum"] in ("Temiz", "Belge/muavin yok"):
                         satir["durum"] = "Eksik indirme"
+                except ortak.KilitHatasi as e:     # başka kullanıcı bu firma-dönemi sorguluyor: dokunulmaz
+                    satir["durum"] = "Hata"
+                    satir["indirme_hatasi"].append(str(e)[:300])
+                    satir["kilitli"] = True
                 except O.OtomasyonHatasi as e:
                     satir["durum"] = "Hata"
                     satir["indirme_hatasi"].append(str(e)[:200])
@@ -322,8 +340,17 @@ def toplu_calistir(bas: date, bit: date, turler: list[str], cikti: Path, firmala
                     except Exception:
                         kapandi = True
                 satir["sure"] = round(time.time() - t0)
+                ortak.gunluk("sorgu", f["ad"] or f["id"], f"Toplu kontrol {bas:%Y-%m}" + (f" ({adim_adi(adim)} tekrar)" if adim else "")
+                             + f": {satir['durum']}" + (f", {satir['fatura']} fatura" if satir.get("fatura") else ""),
+                             donem=f"{bas:%Y-%m}", durum=satir["durum"])
                 if "adimlar" not in satir:
                     satir["adimlar"] = adim_ozeti(adimlari_oku(klasor))
+                if yen:
+                    yen.iptal()                     # hata / yarıda kalma: geçici klasör silinir (bitirildiyse bir şey yapmaz)
+                try:
+                    kilit_cm.__exit__(None, None, None)
+                except Exception:
+                    pass
                 if adim and satir["durum"] == "Hata" and f["id"] in onceki:
                     # adım tekrarı başarısız: önceki sonucu koru, yalnız hatayı ve adım durumunu güncelle
                     eski = dict(onceki[f["id"]])
@@ -420,7 +447,56 @@ def ozet_satiri_guncelle(veri: dict) -> bool:
     return False
 
 
-def ozet_yaz(sonuclar: list[dict], bas: date, bit: date, cikti: Path) -> Path:
+def ozet_birlestir(sonuclar: list[dict], cikti: Path) -> list[dict]:
+    """Ortak veri klasöründe aynı ayın özetini başka kullanıcılar da yazabilir (Görev 51): diskteki son hâlle firma bazında
+    birleştirilir, her firmanın en son sorgulaması kalır. Sıra korunur (yeni firmalar sona)."""
+    disk = onceki_sonuclar(cikti)
+    if not disk:
+        return sonuclar
+    benim = {r.get("id"): r for r in sonuclar}
+    out, gorulen = [], set()
+    for r in disk:
+        b = benim.get(r.get("id"))
+        out.append(b if b is not None and str(b.get("zaman") or "") >= str(r.get("zaman") or "") else r)
+        gorulen.add(r.get("id"))
+    out += [r for r in sonuclar if r.get("id") not in gorulen]
+    return out
+
+
+@contextmanager
+def _ozet_kilidi(cikti: Path):
+    """Özet dosyasını yazarken kısa kilit (aynı anda iki kullanıcının yazması birbirini ezmesin)."""
+    y = cikti / "ozet.kilit"; t0 = time.time(); fd = None
+    while fd is None:
+        try:
+            fd = os.open(y, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                if time.time() - y.stat().st_mtime > 60:
+                    y.unlink(); continue
+            except OSError:
+                continue
+            if time.time() - t0 > 15:
+                break                       # kilit alınamadı: yine de yaz (özet bir sonraki firmada yeniden yazılır)
+            time.sleep(0.2)
+    try:
+        yield
+    finally:
+        if fd is not None:
+            os.close(fd)
+            try:
+                y.unlink()
+            except OSError:
+                pass
+
+
+def ozet_yaz(sonuclar: list[dict], bas: date, bit: date, cikti: Path, birlestir: bool = True) -> Path:
+    """birlestir=False: liste olduğu gibi yazılır (ör. sonuçtan firma silme)."""
+    with _ozet_kilidi(cikti):
+        return _ozet_yaz(ozet_birlestir(sonuclar, cikti) if birlestir else sonuclar, bas, bit, cikti)
+
+
+def _ozet_yaz(sonuclar: list[dict], bas: date, bit: date, cikti: Path) -> Path:
     wb = Workbook(); ws = wb.active; ws.title = "Toplu Özet"
     ws["A1"] = f"Toplu Fatura–Muavin Kontrolü  {bas:%d.%m.%Y} – {bit:%d.%m.%Y}"
     ws["A1"].font = Font(bold=True, size=14)

@@ -177,7 +177,9 @@ def kural_ekle(firma: Path, k: dict) -> list:
     if not hesap[:3].isdigit():
         raise ValueError("Hesap kodu 3 haneli ana hesapla başlamalı (ör. 770 ya da 770.01.01.001)")
     L = kurallar(firma)
-    L.append({"id": max([x.get("id", 0) for x in L] + [0]) + 1, "yon": yon, "vkn": vkn, "unvan": unvan, "hesap": hesap,
+    # kimlik zamana dayalı: ofisin iki bilgisayarı aynı anda kural eklerse çakışmasın (Görev 51, Supabase eşitlemesi)
+    import time
+    L.append({"id": max([int(time.time() * 1000)] + [int(x.get("id", 0)) + 1 for x in L]), "yon": yon, "vkn": vkn, "unvan": unvan, "hesap": hesap,
               "aciklama": str(k.get("aciklama") or "").strip()[:200], "zaman": datetime.now().isoformat(timespec="minutes")})
     _yaz(firma / KURAL_JSON, L)
     return L

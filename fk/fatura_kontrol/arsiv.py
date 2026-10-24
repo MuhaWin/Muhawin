@@ -44,8 +44,10 @@ def mevcut_adlar(arsiv: Path) -> set[str]:
         return set()
 
 
-def arsive_al(firma_ad: str, zipler: list[Path], sil: bool = True) -> dict[str, int]:
-    """Ham ZIP'lerdeki faturaları tarihlerine göre aylık arşivlere dağıtır. Dönüş: {'2026-09': eklenen, ...}"""
+def arsive_al(firma_ad: str, zipler: list[Path], sil: bool = True, yonlendir: dict[Path, Path] | None = None) -> dict[str, int]:
+    """Ham ZIP'lerdeki faturaları tarihlerine göre aylık arşivlere dağıtır. Dönüş: {'2026-09': eklenen, ...}
+    yonlendir: {dönem klasörü: geçici klasör} – güvenli yenilemede (Görev 51) o ayın faturaları geçici klasörün arşivine yazılır."""
+    yon = {Path(k).resolve(): Path(v) for k, v in (yonlendir or {}).items()}
     gruplar: dict[Path, dict[str, bytes]] = defaultdict(dict)
     FO.ZIP_UYARILARI.clear()
     uyarilar: dict[Path, list[str]] = defaultdict(list)
@@ -67,7 +69,8 @@ def arsive_al(firma_ad: str, zipler: list[Path], sil: bool = True) -> dict[str, 
             # arşivin kendisi yeniden yüklendiyse (Luca'dan alınan faturalar → kontrol) içindeki tür klasörü korunur
             ic = re.search(r"/(gib_[a-z]+_(?:alis|satis))/[^/]+$", kaynak)
             t = ic.group(1) if ic and not re.match(r"gib_(e[a-z]+)_(alis|satis)$", tur) else tur
-            hedef = depo.donem_klasoru(firma_ad, date(f.tarih.year, f.tarih.month, 1)) / ARSIV
+            dk = depo.donem_klasoru(firma_ad, date(f.tarih.year, f.tarih.month, 1))
+            hedef = yon.get(dk.resolve(), dk) / ARSIV
             gruplar[hedef].setdefault(_ad(t, f.belge_no, f.ettn), veri)
     eklenen: dict[str, int] = {}
     for hedef, belgeler in gruplar.items():
@@ -84,7 +87,8 @@ def arsive_al(firma_ad: str, zipler: list[Path], sil: bool = True) -> dict[str, 
             with zipfile.ZipFile(hedef, "a", zipfile.ZIP_DEFLATED) as z:
                 for ad, v in yeni.items():
                     z.writestr(ad, v)
-        eklenen[f"{hedef.parent.parent.name}-{hedef.parent.name}"] = len(yeni)
+        ad_ = next((k for k, v in yon.items() if v == hedef.parent), hedef.parent)
+        eklenen[f"{ad_.parent.name}-{ad_.name}"] = len(yeni)
     for klasor, liste in uyarilar.items():         # rapora eklenecek indirme uyarıları
         if liste:
             y = klasor / "paket_uyarilari.json"

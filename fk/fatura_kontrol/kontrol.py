@@ -98,25 +98,36 @@ def yuklenenleri_yerlestir(fatura_yollari: list[Path], muavin_yollari: list[Path
     # seçilen firma (Luca SIRKET_ID): toplu kontrolle aynı klasör → rapor Luca firmasıyla ilişkili olur (fiş aktarımı)
     ad = (depo.luca_ile_firma(firma_id) if firma_id else None) or (firma_ad or "").strip() or depo.vkn_ile_firma(vkn) \
         or bilgi.get("firma") or vkn
-    klasor = depo.donem_temizle(depo.donem_klasoru(ad, bas))
-    depo.firma_bilgisi_yaz(ad, vkn, firma_id or None)
-    # faturalar: toplu kontroldeki Luca paketleri gibi ZIP olarak, sonra aylık arşive
-    for i, y in enumerate(fatura_yollari, 1):
-        hedef = klasor / f"gib_yukleme_dosya_{i}.zip"
-        if y.suffix.lower() == ".zip":
-            shutil.copyfile(y, hedef)
-        else:
-            with zipfile.ZipFile(hedef, "w", zipfile.ZIP_DEFLATED) as z:
-                z.write(y, y.name)
-    arsiv.arsive_al(ad, sorted(klasor.glob("gib_*.zip")))
-    for i, y in enumerate(muavin_yollari):
-        if y.suffix.lower() == ".json":                    # işletme defteri listesi (Luca'dan çekilmiş)
-            shutil.copyfile(y, klasor / ("muavin_isletme.json" if i == 0 else f"muavin_isletme_{i + 1}.json"))
-        else:
-            shutil.copyfile(y, klasor / ("muavin.xlsx" if i == 0 else f"muavin_{i + 1}.xlsx"))
-    from . import muavin_programlari as MP
-    MP.klasore_yaz(klasor, program)
-    from .red_iptal import DOSYA_ON_EKI
-    for i, y in enumerate(red_yollari or [], 1):       # red / iptal listeleri (Mikro Excel): kontrol ve rapor yenilemede okunur
-        shutil.copyfile(y, klasor / f"{DOSYA_ON_EKI}{i}_{y.name}")
+    # güvenli yenileme ve kilit (Görev 51): dosyalar geçici klasörde hazırlanır, tamamsa eski dönem verisinin yerine geçer;
+    # aynı firma-dönemi başka biri o anda sorguluyorsa KilitHatasi
+    from . import ortak
+    klasor = depo.donem_klasoru(ad, bas)
+    with ortak.kilit(klasor, "dosyadan kontrol"):
+        yen = ortak.Yenileme(klasor)
+        hedef = yen.gecici
+        try:
+            depo.firma_bilgisi_yaz(ad, vkn, firma_id or None)
+            # faturalar: toplu kontroldeki Luca paketleri gibi ZIP olarak, sonra aylık arşive
+            for i, y in enumerate(fatura_yollari, 1):
+                zy = hedef / f"gib_yukleme_dosya_{i}.zip"
+                if y.suffix.lower() == ".zip":
+                    shutil.copyfile(y, zy)
+                else:
+                    with zipfile.ZipFile(zy, "w", zipfile.ZIP_DEFLATED) as z:
+                        z.write(y, y.name)
+            arsiv.arsive_al(ad, sorted(hedef.glob("gib_*.zip")), yonlendir={klasor: hedef})
+            for i, y in enumerate(muavin_yollari):
+                if y.suffix.lower() == ".json":                    # işletme defteri listesi (Luca'dan çekilmiş)
+                    shutil.copyfile(y, hedef / ("muavin_isletme.json" if i == 0 else f"muavin_isletme_{i + 1}.json"))
+                else:
+                    shutil.copyfile(y, hedef / ("muavin.xlsx" if i == 0 else f"muavin_{i + 1}.xlsx"))
+            from . import muavin_programlari as MP
+            MP.klasore_yaz(hedef, program)
+            from .red_iptal import DOSYA_ON_EKI
+            for i, y in enumerate(red_yollari or [], 1):       # red / iptal listeleri (Mikro Excel): kontrol ve rapor yenilemede okunur
+                shutil.copyfile(y, hedef / f"{DOSYA_ON_EKI}{i}_{y.name}")
+            yen.bitir()
+        except BaseException:
+            yen.iptal()
+            raise
     return klasor, bas, bit, vkn, ad

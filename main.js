@@ -288,7 +288,38 @@ ipcMain.handle = (ch, fn) => _handle(ch, /^(auth-|app-info$)/.test(ch) ? fn : (.
 // --- veri ---
 const errText = e => String(e && e.message || e);
 ipcMain.on('store-load', e => { if (!auth || !auth.isAuthed()) { e.returnValue = { ok: false, error: 'Önce programa giriş yapın.', data: null }; return; } try { e.returnValue = { ok: true, data: ds.load() }; } catch (err) { e.returnValue = { ok: false, error: errText(err), data: null }; } });
-ipcMain.handle('store-op', (e, op, args) => { const d = ds.apply(op, args); if (ov) ov.yerelDegisti(d); return d; });
+// Görev 51: kullanıcının yaptığı işlem ofisin işlem günlüğüne (Supabase ofis_gunluk, silinemez) girer
+function gunlukKaydi(op, a, once, d) {
+  const F = id => ((d.firms || {})[id] || (once.firms || {})[id] || {}).name || '';
+  const kuralOz = r => r ? [r.k || (r.sart || []).map(x => x.deger).join(' VE ') || r.isyeri || '', r.acc || r.hesap || ''].filter(Boolean).join(' → ') : '';
+  const kural = (alan, ad, fid, id, yeni) => { const eski = ((once[alan] || {})[fid] || {})[id];
+    return yeni ? { tur: eski ? 'kural_degistir' : 'kural_ekle', firma: F(fid), ozet: ad + ': ' + kuralOz(yeni), ayrinti: { kural: yeni } }
+      : eski ? { tur: 'kural_sil', firma: F(fid), ozet: ad + ': ' + kuralOz(eski), ayrinti: { kural: eski } } : null; };
+  switch (op) {
+    case 'addRule': return kural('rules', 'Banka kuralı', a.fid, a.rule && a.rule.id, a.rule);
+    case 'delRule': return kural('rules', 'Banka kuralı', a.fid, a.rid);
+    case 'addFKural': return kural('fkurallar', "Luca'ya kaydet kuralı", a.fid, a.kural && a.kural.id, a.kural);
+    case 'delFKural': return kural('fkurallar', "Luca'ya kaydet kuralı", a.fid, a.id);
+    case 'okcKural': return kural('okckural', 'ÖKC kuralı', a.fid, a.kural && a.kural.id, a.kural);
+    case 'okcKuralSil': return kural('okckural', 'ÖKC kuralı', a.fid, a.id);
+    case 'saveFirm': return (once.firms || {})[a.firm.id] ? null : { tur: 'firma_ekle', firma: a.firm.name || '', ozet: 'Firma eklendi' + (a.firm.lucaId ? ' (Luca ' + a.firm.lucaId + ')' : '') };
+    case 'deleteFirm': return { tur: 'firma_sil', firma: F(a.id), ozet: 'Firma silindi' };
+    case 'unlogFKayit': case 'unlogAktarim': return (a.keys || []).length ? { tur: 'fis_sil', firma: F(a.fid), ozet: (a.keys || []).length + " kayıt Luca'dan silindi olarak işaretlendi / işaret kaldırıldı" } : null;
+    case 'logGunluk': { const k = a.kayit || {}; const tur = { banka: 'banka', muavin: 'sorgu', fatura: 'luca_kayit', fis: 'luca_kayit', okc: 'luca_kayit', cek: 'luca_kayit' }[k.tur] || 'islem';
+      return { tur, firma: k.firma || F(k.fid), ozet: [k.ad, k.adet ? k.adet + ' adet' : '', k.tutar ? Number(k.tutar).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL' : ''].filter(Boolean).join(' · '), ayrinti: k }; }
+    default: return null;
+  }
+}
+ipcMain.handle('store-op', (e, op, args) => {
+  const once = ov ? ds.load() : null;
+  const d = ds.apply(op, args);
+  if (ov) { ov.yerelDegisti(d); try { const g = gunlukKaydi(op, args || {}, once, d); if (g) ov.gunlukEkle(g); } catch (x) {} }
+  return d; });
+// işlem günlüğü (Ayarlar › İşlem günlüğü); dışarıdan (ör. Fatura Kontrol sorgulama, Luca fiş silme) gelen kayıtlar da buradan
+ipcMain.handle('ofis-gunluk-ekle', (e, k) => { if (ov && k && /^[a-z_]{2,30}$/.test(String(k.tur || ''))) ov.gunlukEkle({ tur: k.tur, firma: String(k.firma || '').slice(0, 200), ozet: String(k.ozet || '').slice(0, 500), ayrinti: k.ayrinti || null }); return true; });
+ipcMain.handle('ofis-gunluk-liste', async (e, suzgec, once) => {
+  const r = await auth.ofis('ofis_gunluk_liste', { p_suzgec: suzgec || {}, p_limit: 200, p_once: once || null });
+  return { ...r, bekleyen: ov ? ov.durum().gunlukBekleyen : 0 }; });
 // Görev 51: ofis deposu eşitleme durumu (bekleyen değişiklik, son hata) ve hemen eşitle
 ipcMain.handle('ofis-veri-durum', () => ov ? ov.durum() : { etkin: false });
 ipcMain.handle('ofis-veri-esitle', async () => { if (ov) await ov.tur(); return ov ? ov.durum() : { etkin: false }; });

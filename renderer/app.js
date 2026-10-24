@@ -2042,6 +2042,50 @@ const Desk=(()=>{
         <div class="actions"><button class="btn ghost" data-dact="fkopen">Klasörü aç</button><button class="btn ghost danger ic-trash" data-dact="fkwipe">Tüm sorgu sonuçlarını ve indirilen belgeleri sil</button></div></section>`;
     if(window.desktop.fk)window.desktop.fk.storage().then(d=>{const el=$('#fkStore');if(el)el.innerHTML=`İndirilen e-belgeler, muavinler, kontrol raporları ve toplu özetler: <span class="mono" style="font-size:12px;overflow-wrap:anywhere">${esc(d.klasor)}</span><br><span class="note">Firma belgeleri ${d.firmalar_mb} MB · toplu özetler ${d.toplu_mb} MB</span>`;}).catch(()=>{});
   }
+  /* ---------- Görev 51: ofis verisi eşitleme durumu ve işlem günlüğü (Ayarlar) ---------- */
+  const GUNLUK=(()=>{
+    const TUR={kural_ekle:'Kural eklendi',kural_degistir:'Kural değiştirildi',kural_sil:'Kural silindi',firma_ekle:'Firma eklendi',firma_sil:'Firma silindi',
+      luca_kayit:"Luca'ya kaydetme / aktarma",banka:'Banka işleme',sorgu:'Sorgulama',rapor:'Rapor',fis_sil:'Fiş silme',islem:'Diğer işlem'};
+    const ov=()=>window.desktop&&window.desktop.ofisVeri;
+    let suz={},kayitlar=[],devam=false,yukleniyor=false,epostalar=new Set();
+    async function durumCiz(){const el=$('#ovDurum');if(!el||!ov())return;let d;try{d=await ov().durum();}catch(e){d=null;}
+      el.textContent=!d||!d.etkin?'Ofis deposu kullanılamıyor; veriler bu bilgisayarda.':d.hata?`Bağlantı yok: değişiklikler bu bilgisayarda (${d.bekleyen+d.gunlukBekleyen} bekleyen) · ${d.hata}`
+        :d.bekleyen||d.gunlukBekleyen?`Gönderiliyor: ${d.bekleyen} değişiklik, ${d.gunlukBekleyen} günlük kaydı bekliyor`:`✓ Ofis deposuyla eşit${d.sonBasari?' · son eşitleme '+new Date(d.sonBasari).toLocaleTimeString('tr-TR'):''}`;}
+    function modal(){let m=$('#gunlukModal');if(m)return m;m=document.createElement('div');m.className='modal';m.id='gunlukModal';m.hidden=true;
+      m.innerHTML=`<div class="mbox" role="dialog" aria-modal="true" aria-labelledby="gunlukT" style="width:min(1100px,100%)"><div class="mhead"><h2 id="gunlukT">İşlem günlüğü</h2><button class="btn small ghost" data-gunlukx="1" aria-label="Kapat">✕ Kapat</button></div><div class="mbody" id="gunlukB"></div></div>`;
+      document.body.appendChild(m);m.addEventListener('pointerdown',e=>{if(e.target===m)kapat();});return m;}
+    function kapat(){const m=$('#gunlukModal');if(m)m.hidden=true;}
+    function ciz(hata){const B=$('#gunlukB');if(!B)return;const zf=t=>{try{return new Date(t).toLocaleString('tr-TR',{dateStyle:'short',timeStyle:'short'});}catch(e){return t||'';}};
+      const sec=(id,ops,v)=>`<select id="${id}" style="width:auto">${ops.map(([k,l])=>`<option value="${esc(k)}"${k===(v||'')?' selected':''}>${esc(l)}</option>`).join('')}</select>`;
+      B.innerHTML=`<div class="actions gunluk-suz" style="margin:0 0 10px;flex-wrap:wrap">
+          <label class="note">Kullanıcı ${sec('gsE',[['','Tümü'],...[...epostalar].sort().map(x=>[x,x])],suz.eposta)}</label>
+          <label class="note">İşlem ${sec('gsT',[['','Tümü'],...Object.entries(TUR)],suz.tur)}</label>
+          <label class="note">Firma <input id="gsF" value="${esc(suz.firma||'')}" style="width:160px"></label>
+          <label class="note">Tarih <input type="date" id="gsB" value="${esc(suz.bas||'')}" style="width:auto"> – <input type="date" id="gsS" value="${esc(suz.bit||'')}" style="width:auto"></label>
+          <label class="note">Ara <input id="gsA" value="${esc(suz.ara||'')}" style="width:160px" placeholder="özette ara"></label>
+          <button class="btn small primary" id="gsUygula" type="button">Süz</button><button class="btn small ghost" id="gsTemizle" type="button">Temizle</button></div>
+        ${hata?`<p class="note" style="color:var(--out)">${esc(hata)}</p>`:''}
+        <div class="mmwrap" style="max-height:60vh"><table class="gunluk-tablo" style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="text-align:left">Zaman</th><th style="text-align:left">Kullanıcı</th><th style="text-align:left">İşlem</th><th style="text-align:left">Firma</th><th style="text-align:left">Ayrıntı</th><th style="text-align:left">Bilgisayar</th></tr></thead>
+          <tbody>${kayitlar.map(k=>`<tr data-gid="${k.id}"><td class="mono" style="white-space:nowrap">${esc(zf(k.zaman))}</td><td>${esc(k.eposta||'')}</td><td>${esc(TUR[k.tur]||k.tur)}</td><td>${esc(k.firma||'')}</td><td>${esc(k.ozet||'')}</td><td class="note">${esc(k.cihaz||'')}</td></tr>`).join('')||`<tr><td colspan="6" class="note" style="padding:18px">${yukleniyor?'Yükleniyor…':'Bu süzgeçte kayıt yok.'}</td></tr>`}</tbody></table></div>
+        <div class="actions" style="margin:8px 0 0">${devam?'<button class="btn small" id="gsDaha" type="button">Daha eski kayıtlar</button>':''}<span class="note" id="gsBekleyen"></span>
+          <span class="note" style="margin-left:auto">Kayıtlar ofis deposunda tutulur ve silinemez; ofisteki herkes görebilir.</span></div>`;}
+    async function yukle(ek){yukleniyor=true;if(!ek){kayitlar=[];}ciz();let r;
+      try{r=await ov().gunluk(suz,ek&&kayitlar.length?kayitlar[kayitlar.length-1].id:null);}catch(e){yukleniyor=false;ciz(cleanErr(e));return;}
+      yukleniyor=false;kayitlar=ek?[...kayitlar,...(r.kayitlar||[])]:(r.kayitlar||[]);devam=!!r.devam;for(const k of kayitlar)if(k.eposta)epostalar.add(k.eposta);ciz();
+      const b=$('#gsBekleyen');if(b&&r.bekleyen)b.textContent=`Bu bilgisayardan ${r.bekleyen} kayıt gönderilmeyi bekliyor.`;}
+    async function ac(){$('#regModal').hidden=true;const m=modal();m.hidden=false;document.documentElement.style.overflow='hidden';suz={};await yukle();}
+    document.addEventListener('click',e=>{
+      if(e.target.closest('#gunlukAc')){ac();return;}
+      if(e.target.closest('#ovEsitle')){(async()=>{try{await ov().esitle();}catch(x){}durumCiz();})();return;}
+      if(!e.target.closest('#gunlukModal'))return;
+      if(e.target.closest('[data-gunlukx]')){kapat();document.documentElement.style.overflow='';return;}
+      if(e.target.closest('#gsUygula')){suz={eposta:$('#gsE').value,tur:$('#gsT').value,firma:$('#gsF').value.trim(),bas:$('#gsB').value,bit:$('#gsS').value,ara:$('#gsA').value.trim()};for(const k of Object.keys(suz))if(!suz[k])delete suz[k];yukle();return;}
+      if(e.target.closest('#gsTemizle')){suz={};yukle();return;}
+      if(e.target.closest('#gsDaha')){yukle(true);return;}});
+    document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.closest&&e.target.closest('#gunlukModal .gunluk-suz input')){e.preventDefault();$('#gsUygula').click();}});
+    return {ac,durumCiz,kapat};
+  })();
+  window.__gunluk=GUNLUK;
   function openData(){$('#dataModal').hidden=false;document.documentElement.style.overflow='hidden';renderData();}
   function closeData(){$('#dataModal').hidden=true;document.documentElement.style.overflow='';}
   document.addEventListener('click',async e=>{
@@ -2170,6 +2214,11 @@ const Desk=(()=>{
         <p class="note" style="margin:0">Programın verilerinin (firmalar, kurallar, mizanlar, fişler) bulunduğu klasör, ortak veri klasörü, yedek alma ve geri yükleme.</p>
         <div class="actions" style="margin:0"><button class="btn" type="button" data-dataopen="1" data-regkapat="1">Veri ve yedek ayarlarını aç</button></div>
       </section>
+      <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px" id="ofisVeriSec">
+        <h3 style="margin:0;font-family:var(--f-display);font-size:16px">Ofis verisi ve işlem günlüğü</h3>
+        <p class="note" style="margin:0">Firmalar, kurallar ve büro bilgileri ofisin ortak deposunda tutulur; ofisteki herkes, hangi bilgisayardan girerse girsin aynı veriyi görür. İnternet yokken bu bilgisayarda çalışılır, değişiklikler bağlantı gelince gönderilir. Yapılan işlemler (kural ekleme / silme, Luca'ya kaydetme, banka işleme, sorgulama…) silinemeyen işlem günlüğüne kimin yaptığıyla yazılır.</p>
+        <div class="actions" style="margin:0"><span class="note" id="ovDurum">Durum alınıyor…</span><button class="btn small" type="button" id="ovEsitle">Şimdi eşitle</button><button class="btn" type="button" id="gunlukAc">İşlem günlüğünü aç</button></div>
+      </section>
       <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px" id="waSec">
         <h3 style="margin:0;font-family:var(--f-display);font-size:16px">WhatsApp Fiş Kutusu</h3>
         <p class="note" style="margin:0">Mükellefler ÖKC fişlerinin fotoğrafını ofisin WhatsApp Business numarasına gönderir; fotoğraflar sunucuda toplanır, Belgeden Fiş ekranında “WhatsApp'tan Al” ile gönderen numaraya göre firmaya düşer. Numara → firma eşlemesi aşağıdaki Firmalar listesindeki “WhatsApp no” alanından yapılır.</p>
@@ -2232,7 +2281,7 @@ const Desk=(()=>{
     $('#yzAnahtarSil').onclick=async()=>{if(!(await askConfirm('API anahtarı silinsin mi?','Yapay zekâ ile karşılaştırma anahtar yeniden girilene kadar kapalı olur.','Evet, sil')))return;
       try{await y.anahtarSil();yzAyarCiz('Anahtar silindi.');}catch(x){toast(cleanErr(x));}};}
   window.__yzAyarAc=()=>{openReg();setTimeout(()=>{const s=$('#yzSec');if(s)s.scrollIntoView({block:'start'});},120);};
-  function openReg(){const cb=document.querySelector('#regModal [data-rgclose]');if(cb)cb.hidden=setupMode;$('#regModal').hidden=false;document.documentElement.style.overflow='hidden';renderReg();setTimeout(()=>{const i=$('#rg_buro');if(i)i.focus();},40);}
+  function openReg(){const cb=document.querySelector('#regModal [data-rgclose]');if(cb)cb.hidden=setupMode;$('#regModal').hidden=false;document.documentElement.style.overflow='hidden';renderReg();try{GUNLUK.durumCiz();}catch(e){}setTimeout(()=>{const i=$('#rg_buro');if(i)i.focus();},40);}
   function closeReg(){if(setupMode){toast('Devam etmek için büro bilgilerini doldurup Kaydet\'e basın.');return;}$('#regModal').hidden=true;document.documentElement.style.overflow='';}
   function collectReg(){const r={...regData()};regAlanlar().forEach(([k])=>{const el=$('#rg_'+k);r[k]=el?el.value.trim():'';});
     if(calisanMi()){r.buro=ofisBilgi.name||r.buro||'';if(acct&&acct.email)r.eposta=acct.email;}delete r.kullanici;return r;}
@@ -6010,7 +6059,7 @@ const YARDIM=(()=>{
 /* ---------- Esc = geri: açık pencere / menü / liste yoksa bir önceki ekrana ----------
    Muhasebe İşlemleri alt sayfası → Toplu Kontrol; Çek / Senet → Ofisinize Özel Çözümler; modül → Modüller ekranı. */
 const ESC_ACIK='#mwAra:not([hidden]),.modal:not([hidden]),#mmPanel:not([hidden]),#fkKayit:not([hidden]),#hsDrop:not([hidden]),#kzMenu,.mmmenu:not([hidden]),.thememenu:not([hidden]),#mwBusy:not([hidden]),#authGate:not([hidden]),#licGate:not([hidden]),#modGate:not([hidden]),#popForm,dialog[open]';
-const ESC_KAPAT={admModal:'[data-admx]',okcModal:'[data-okx]',cekModal:'[data-cx]',bmutModal:'[data-bmutx]',ozetModal:'[data-ozetx]'};
+const ESC_KAPAT={gunlukModal:'[data-gunlukx]',admModal:'[data-admx]',okcModal:'[data-okx]',cekModal:'[data-cx]',bmutModal:'[data-bmutx]',ozetModal:'[data-ozetx]'};
 const yaziKutusu=t=>!!t&&(t.isContentEditable||t.tagName==='TEXTAREA'||(t.tagName==='INPUT'&&!/^(checkbox|radio|button|submit|reset|file|range|color|image)$/i.test(t.type||'')));
 /* Görev 47: veri girilen pencerede / ekranda imleç bir giriş kutusundayken (ya da açılır listedeyken) Esc yalnız kutudan çıkarır;
    yazılan durur, pencere / ekran kapanmaz. kap verilirse yalnız o kutunun içindeki alan sayılır. Kutudan çıkıldıysa true. */

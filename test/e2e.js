@@ -1520,6 +1520,43 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
     let du = null; for (let i = 0; i < 10 && !(du && du.tur); i++) { du = await fr2.evaluate(() => fetch('/api/toplu/durum').then(r => r.json())).catch(() => null); if (!(du && du.tur)) await new Promise(r => setTimeout(r, 500)); }
     console.log('DURUM', JSON.stringify(du).slice(0, 300), await fr2.evaluate(() => document.querySelector('#hata') && document.querySelector('#hata').textContent).catch(() => ''));
     check(du && (du.tur === 'toplu' || du.calisiyor !== undefined) && du.tur === 'toplu', 'muavin kontrolü başlatıldı (' + (du && du.tur) + ')');
+    // ---- Görev 51: ofis ortak verisi (Supabase ofis_veri) ve işlem günlüğü ----
+    { const fid = await w.evaluate(() => Object.values(window.__app.Store.local().firms).find(f => f.name === 'EXPO İNŞ').id);
+      const sahip = fake.state.office ? fake.state.office.id : 'u1';
+      await w.evaluate(fid => window.desktop.dataOp('addRule', { fid, rule: { id: 'g51', k: 'ESKİŞEHİR KİRA', dir: 'out', acc: '770.01' } }), fid);
+      await w.evaluate(() => window.desktop.ofisVeri.esitle());
+      const sat = [...fake.state.ofisVeri.values()];
+      check(sat.some(x => x.tur === 'firma' && x.anahtar === fid && x.veri.name === 'EXPO İNŞ') && sat.some(x => x.tur === 'kural' && x.firma === fid && x.anahtar === 'g51'),
+        'ofis deposu: firma ve yeni banka kuralı Supabase\'e (sahte) gönderildi (' + sat.length + ' satır)');
+      // başka bilgisayarın eklediği kural birkaç saniyede bu bilgisayarda görünür
+      fake.state.surum++; fake.state.ofisVeri.set('uzak', { sahip, tur: 'kural', firma: fid, anahtar: 'uzak1', veri: { id: 'uzak1', k: 'UZAK KİRA', dir: 'in', acc: '120.01' }, silindi: false, surum: fake.state.surum });
+      await w.evaluate(() => window.desktop.ofisVeri.esitle()); await w.waitForTimeout(400);
+      const uz = await w.evaluate(fid => !!((window.__app.Store.local().rules || {})[fid] || {}).uzak1, fid);
+      check(uz, 'başka bilgisayarın kuralı bu bilgisayara geldi ve arayüz verisi yenilendi');
+      await w.evaluate(fid => window.desktop.dataOp('delRule', { fid, rid: 'g51' }), fid);
+      await w.evaluate(() => window.desktop.ofisVeri.esitle());
+      const g = fake.state.gunluk.map(x => x.tur + ':' + x.ozet);
+      check(g.some(x => /^kural_ekle:Banka kuralı: ESKİŞEHİR KİRA → 770\.01/.test(x)) && g.some(x => /^kural_sil:Banka kuralı: ESKİŞEHİR KİRA/.test(x)),
+        'işlem günlüğü: kural ekleme ve silme kimin yaptığıyla ofis günlüğüne yazıldı (' + g.length + ' kayıt)');
+      // Ayarlar › İşlem günlüğü ekranı: süzgeçli liste
+      await w.click('#fkkClose').catch(() => {}); await w.waitForTimeout(300);
+      await w.click('#ayarlarBtn'); await w.waitForSelector('#regModal:not([hidden]) #gunlukAc');
+      await w.waitForFunction(() => !/alınıyor/.test(document.getElementById('ovDurum').textContent), null, { timeout: 5000 }).catch(() => {});
+      const ovd = await w.textContent('#ovDurum');
+      await w.click('#gunlukAc'); await w.waitForSelector('#gunlukModal:not([hidden]) tbody tr[data-gid]', { timeout: 10000 });
+      const satirlar = await w.$$eval('#gunlukModal tbody tr[data-gid]', t => t.map(x => x.textContent));
+      await w.selectOption('#gsT', 'kural_sil'); await w.click('#gsUygula'); await w.waitForTimeout(500);
+      const suzulen = await w.$$eval('#gunlukModal tbody tr[data-gid]', t => t.map(x => x.textContent));
+      await w.keyboard.press('Escape'); await w.waitForTimeout(200);
+      check(/eşit/.test(ovd) && satirlar.some(x => /Kural eklendi/.test(x) && /test@ornek\.com/.test(x) && /EXPO İNŞ/.test(x)) && suzulen.length >= 1 && suzulen.every(x => /Kural silindi/.test(x)) && await w.isHidden('#gunlukModal'),
+        'Ayarlar › İşlem günlüğü: kullanıcı, işlem, firma görünür; işlem süzgeci çalışır; Esc kapatır (' + ovd + ' · ' + satirlar.length + ' / ' + suzulen.length + ')');
+      // internetsiz: değişiklik bu bilgisayarda kalır, bağlantı gelince gönderilir
+      fake.state.agYok = true;
+      await w.evaluate(fid => window.desktop.dataOp('addRule', { fid, rule: { id: 'g51b', k: 'İNTERNETSİZ', dir: 'out', acc: '770.02' } }), fid);
+      const d1 = await w.evaluate(() => window.desktop.ofisVeri.esitle());
+      fake.state.agYok = false;
+      const d2 = await w.evaluate(() => window.desktop.ofisVeri.esitle());
+      check(d1.bekleyen >= 1 && d1.hata && d2.bekleyen === 0 && [...fake.state.ofisVeri.values()].some(x => x.anahtar === 'g51b'), 'internetsiz: kural yerelde kaydedildi ve kuyrukta bekledi, bağlantı gelince gönderildi (' + JSON.stringify({ d1: d1.bekleyen, d2: d2.bekleyen }) + ')'); }
   } catch (e) { bad.push('HATA (5): ' + e.message.split('\n')[0]); await w.screenshot({ path: OUT + '/hata5.png' }).catch(() => {}); }
   finally { await app.close().catch(() => {}); fake.server.close(); }
 

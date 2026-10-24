@@ -428,7 +428,7 @@ def calisma_sonuc_sil(ad: str, b: SonucSil):
             except OSError as e:
                 raise HTTPException(409, f"{r.get('ad')} klasörü silinemedi (dosya açık olabilir): {e}")
     try:
-        T.ozet_yaz(kalan, bas, bit, k)
+        T.ozet_yaz(kalan, bas, bit, k, birlestir=False)
     except PermissionError:
         raise HTTPException(409, "toplu_ozet.xlsx Excel'de açık; kapatıp tekrar deneyin.")
     return {"silinen": len(silinen), "klasor_silinen": klasor_silinen, "kalan": len(kalan)}

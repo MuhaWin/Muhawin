@@ -18,6 +18,9 @@ contextBridge.exposeInMainWorld('desktop', {
     on: fn => ipcRenderer.on('update-event', (e, st) => fn(st))
   },
   dataOp: (op, args) => ipcRenderer.invoke('store-op', op, args),
+  // Görev 51: ofis ortak verisi (eşitleme durumu) ve işlem günlüğü
+  ofisVeri: { durum: () => ipcRenderer.invoke('ofis-veri-durum'), esitle: () => ipcRenderer.invoke('ofis-veri-esitle'),
+    gunlukEkle: k => ipcRenderer.invoke('ofis-gunluk-ekle', k), gunluk: (suzgec, once) => ipcRenderer.invoke('ofis-gunluk-liste', suzgec, once) },
   getMizan: fid => ipcRenderer.invoke('store-mizan', fid),
   openDataFolder: () => ipcRenderer.invoke('open-data-folder'),
   openMail: url => ipcRenderer.invoke('open-mail', url),
