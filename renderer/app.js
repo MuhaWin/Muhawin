@@ -10,6 +10,33 @@ const SKINS=[
   ['grafit','Grafit','Koyu · mavi vurgu',['#111317','#191c22','#7aa7ff']],
   ['kontrast','Yüksek kontrast','Okunabilirlik için güçlü renkler',['#ffffff','#f0f0f0','#0039b3']]
 ];
+/* ---------- Görev 54: düğme renkleri ----------
+   Kapat düğmeleri turuncu-kırmızı, Yenile düğmeleri yeşil (style.css › .kapat / .yenile). Sınıf düğmenin metninden verilir;
+   sonradan çizilen ve metni değişen düğmeler de izlenir. */
+function dugmeTur(b){
+  const t=(b.textContent||'').replace(/\s+/g,' ').trim(),al=b.getAttribute('aria-label')||'';
+  if(/^[✕×]?\s*kapat$/i.test(t)||(/^[✕×]$/.test(t)&&/^kapat$/i.test(al)))return 'kapat';
+  if(/(^|[\s'’])yenile$|^[⟳↻]/i.test(t))return 'yenile';
+  return '';
+}
+function dugmeRenk(b){
+  const tur=dugmeTur(b),eski=b.dataset.renk||'';
+  if(tur===eski)return;
+  if(eski)b.classList.remove(eski);
+  if(tur){b.classList.add(tur);b.dataset.renk=tur;}else delete b.dataset.renk;
+}
+function dugmeRenkTara(kok){
+  if(!kok||kok.nodeType!==1)return;
+  if(kok.classList.contains('btn'))dugmeRenk(kok);
+  for(const b of kok.querySelectorAll('.btn'))dugmeRenk(b);
+}
+new MutationObserver(L=>{for(const m of L){
+  if(m.type==='characterData'){const b=m.target.parentElement&&m.target.parentElement.closest('.btn');if(b)dugmeRenk(b);continue;}
+  const b=m.target.closest&&m.target.closest('.btn');if(b){dugmeRenk(b);continue;}
+  for(const n of m.addedNodes)dugmeRenkTara(n);
+}}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+document.addEventListener('DOMContentLoaded',()=>dugmeRenkTara(document.body));
+if(document.body)dugmeRenkTara(document.body);
 function applySkin(id){if(id)document.documentElement.setAttribute('data-skin',id);else document.documentElement.removeAttribute('data-skin');}
 let curSkin='muhawin';try{const v=localStorage.getItem('ekstre-luca-skin');if(v!==null)curSkin=v;}catch(e){}
 // birbirine yakın temalar kaldırıldı (Görev 17): eski seçim en yakın kalan temaya düşer
@@ -1058,7 +1085,7 @@ function renderSide(){
 function renderToolbar(){
   const f=S.firm;const banks=accts().filter(b=>b.code).length;
   const sum=`${banks} ${ML().accs} · ${S.miz?S.miz.leaf.size+' hesaplık mizan':'mizan yok'} · askı ${esc(f.askiIn||'—')} / ${esc(f.askiOut||'—')}`;
-  const btns=`<button class="btn ic-sync" data-luca="mizan">Mizanları güncelle</button><button class="btn ic-db" data-dataopen="1">Veri ve yedek</button><span class="tsep"></span><button class="btn ic-firm" data-open="firm">Firma ayarları</button><button class="btn ic-plus" data-open="add">Kural ekle</button><button class="btn ic-list" data-open="list">Kurallar <span class="count">${S.rules.length}</span></button>`;
+  const btns=`<button class="btn ic-sync" data-luca="mizan">Mizanları güncelle</button><span class="tsep"></span><button class="btn ic-firm" data-open="firm">Firma ayarları</button><button class="btn ic-plus" data-open="add">Kural ekle</button><button class="btn ic-list" data-open="list">Kurallar <span class="count">${S.rules.length}</span></button>`;
   $('#toolbar').innerHTML=`${btns}<span class="sum">${isExample()?'<b>Örnek firma</b> · ':''}${sum}</span>`;
   $('#bottombar').innerHTML=`${btns}<button class="btn ghost" data-top="1">↑ Başa dön</button>`;
   Desk.renderLicenseFoot();
@@ -2165,7 +2192,7 @@ const Desk=(()=>{
           <p class="note" style="margin:6px 0">Luca'da elle yaptığınız bir işlemin (ör. hesap planına hesap ekleme) Luca'ya nasıl gönderildiğini kaydeder; dosyayı MuhaWin geliştiricisine iletirsiniz. Yalnız Luca'ya giden isteklerin adresi ve gönderilen alanlar tutulur; çerez ve parola kaydedilmez. Kayıt yalnız MuhaWin'in Luca penceresindeki işlemleri görür.</p>
           <div class="actions" style="margin:0"><button class="btn small" type="button" id="lkBaslat">Kaydı Başlat</button><button class="btn small" type="button" id="lkDurdur" disabled>Kaydı Durdur ve Dosyaya Yaz</button><span class="note" id="lkMsg"></span></div></details>
       </section>
-      <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px">
+      <section style="display:grid;gap:10px;border-top:1px solid var(--line);padding-top:16px" id="veriYedekSec">
         <h3 style="margin:0;font-family:var(--f-display);font-size:16px">Veri ve yedek</h3>
         <p class="note" style="margin:0">Programın verilerinin (firmalar, kurallar, mizanlar, fişler) bulunduğu klasör, ortak veri klasörü, yedek alma ve geri yükleme.</p>
         <div class="actions" style="margin:0"><button class="btn" type="button" data-dataopen="1" data-regkapat="1">Veri ve yedek ayarlarını aç</button></div>
@@ -6004,6 +6031,8 @@ const KOMUT=(()=>{
       {g:'Veri',b:'Luca\'dan firma ekle',d:'Luca firma listesinden ekle (Ayarlar › Firmalar)',f:()=>Desk.openLuca('firms')},
       {g:'Luca',b:'Luca\'ya bağlan / pencereyi göster',d:'Luca giriş penceresi',f:()=>{const b=$('#lucaTopBtn');if(b)b.click();else window.__mwApi.luca.open();}},
       {g:'Ayarlar',b:'Ayarlar',d:'Lisans, büro, Luca giriş, WhatsApp, yedek, firmalar',f:()=>openReg(),k:'Ctrl+S'},
+      // Görev 54: Veri ve yedek yalnız Ayarlar'da bir bölüm; palet oraya götürür
+      {g:'Ayarlar',b:'Veri ve yedek',d:'Veri klasörü, ofis deposu, Fatura Kontrol verileri, yedek',f:()=>{openReg();setTimeout(()=>{const x=document.getElementById('veriYedekSec');if(x)x.scrollIntoView({block:'start'});},80);}},
       {g:'Ayarlar',b:'Yedek al',d:'Tüm verileri bir klasöre kopyala',f:async()=>{try{const r=await mwBusy.run('Yedek alınıyor…','',()=>window.__mwApi.yedek.al());if(r&&r.ok)toast('Yedek alındı: '+r.path);}catch(e){toast(cleanErr(e));}}},
       {g:'Ayarlar',b:'Hata günlüğünü aç',d:'Belgeler\\MuhaWin Günlük\\hatalar.log',f:()=>window.__mwApi.hata.ac()},
       {g:'Ayarlar',b:'Güncellemeleri denetle',d:'Yeni sürüm var mı?',f:()=>{openReg();setTimeout(()=>{const b=$('#updBtn');if(b)b.click();},400);}},

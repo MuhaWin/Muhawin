@@ -63,7 +63,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
 .donem{display:grid;gap:6px;border:1px solid var(--line);border-radius:10px;padding:8px}
 .donem .yil{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}.donem .yil select{width:auto;min-height:28px;padding:0 6px}
 .aylar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.aylar button{min-height:28px;border-radius:6px;border:1px solid var(--line);background:var(--panel);font:inherit;font-size:12px;color:inherit;cursor:pointer;padding:0}
-.aylar button:hover{background:var(--accent,#e7eefb)}.aylar button[aria-pressed=true]{background:var(--brand-2,#1f4aa8);border-color:var(--brand-2,#1f4aa8);color:#fff;font-weight:600}
+.aylar button:hover{background:var(--accent,#e7eefb)}.aylar button[aria-pressed=true]{background:var(--brand-2,#1f4aa8);border-color:var(--brand-2,#1f4aa8);color:#fff;text-shadow:0 0 .55px currentColor,0 0 .55px currentColor}
 #kontrolPen{position:fixed;inset:0;background:var(--bg,#f4f6fa);display:none;z-index:55;flex-direction:column}#kontrolPen.acik{display:flex}
 #kontrolPen .kbas{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;min-width:0}
 #kontrolPen .kbas b{overflow-wrap:anywhere}
@@ -79,7 +79,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
 .kararlar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.btn.yesil{background:#13804f;border-color:#13804f;color:#fff;font-weight:600}.btn.kirmizi{background:#b42318;border-color:#b42318;color:#fff;font-weight:600}
 .kbd{font-size:10.5px;border:1px solid rgba(255,255,255,.6);border-radius:4px;padding:0 4px;margin-left:2px}
 .d-kural,.d-gecmis,.d-uygun{background:#dff5ea;color:#13694a}.d-uygun_degil{background:#fde7e7;color:#a3262c}.d-bekliyor{background:#fff1d6;color:#8a5a00}
-.oz.secili{outline:2px solid var(--brand-2,#1f4aa8)}
+.oz.secili{border-color:var(--brand-2,#1f4aa8);box-shadow:inset 0 0 0 1px var(--brand-2,#1f4aa8)}
 .yzk{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;background:var(--panel)}.yzk .ust{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .yz-uygun{background:#dff5ea;color:#13694a}.yz-supheli{background:#fff1d6;color:#8a5a00}.yz-uygun_degil{background:#fde7e7;color:#a3262c}
 #yzPen{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;place-items:center;z-index:70}#yzPen.acik{display:grid}

@@ -7,7 +7,7 @@ const { _electron: electron } = require('playwright');
 const path = require('path'), fs = require('fs'), os = require('os');
 const APP = process.env.MUHAWIN_APP || path.resolve(__dirname, '..');
 const sb = require(path.join(APP, 'test', 'sahte_sb'));
-const { cakisma } = require('./cakisma');
+const { cakisma, seciliTasma } = require('./cakisma');
 const OUT = process.env.OUT || path.join(os.tmpdir(), 'muhawin-ekran');
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -51,8 +51,10 @@ async function olc(w, ekran) {
   const yatay = ekran.yatay && await w.evaluate(() => innerWidth >= 1280);
   const ana = await w.evaluate(cakisma, yatay ? { kok: ekran.kok || null, yatay: ekran.yatay } : (ekran.kok || null));
   const sonuc = { cakisan: ana.cakisan, tasan: [...ana.tasan, ...ana.kesik.map(x => 'kesik metin: ' + x)], sayfaTasma: ana.sayfaTasma ? ['sayfa ' + ana.sayfaTasma] : [], n: ana.n, boy: await w.evaluate(() => innerWidth + '×' + innerHeight + ' @' + devicePixelRatio) };
+  sonuc.tasan.push(...await w.evaluate(seciliTasma, ekran.kok || null));        // Görev 54: seçili sekme / çip taşmıyor
   if (ekran.cerceve && await w.isVisible('#fkFrame')) {
     const fr = await fkFrame(w); const c = await fr.evaluate(cakisma, null);
+    sonuc.tasan.push(...(await fr.evaluate(seciliTasma, null)).map(x => 'çerçeve: ' + x));
     sonuc.cakisan.push(...c.cakisan.map(x => 'çerçeve: ' + x)); sonuc.tasan.push(...c.tasan.map(x => 'çerçeve: ' + x), ...c.kesik.map(x => 'çerçeve: kesik metin: ' + x)); if (c.sayfaTasma) sonuc.sayfaTasma.push('çerçeve ' + c.sayfaTasma); sonuc.n += c.n;
   }
   return sonuc;

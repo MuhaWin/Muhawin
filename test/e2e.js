@@ -6,6 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const http = require('http');
 const sb = require('./sahte_sb');
+const { seciliTasma } = require('./cakisma');
 
 const APP = process.env.MUHAWIN_APP || path.resolve(__dirname, '..');
 const OUT = process.env.OUT || path.join(os.tmpdir(), 'muhawin-e2e');
@@ -80,6 +81,12 @@ async function oturum(fatura, o = {}) {
       check(odak && !s1.gate && !s1.inp && await w.isVisible('#modGate'), 'Esc: metin kutusunda önce kutudan çıkar, ikinci Esc modül seçimine döner (' + JSON.stringify(s1) + ')');
       await w.click('.modcard[data-mod=ekstre]'); await w.waitForSelector('#modGate', { state: 'hidden' }); await w.waitForTimeout(400);
     }
+    check(!(await w.$('[data-dataopen]:not(#regModal [data-dataopen])')), 'Görev 54: Veri ve yedek düğmesi modüllerde yok (yalnız Ayarlar\'da)');
+    { const r = await w.evaluate(() => { const k = [...document.querySelectorAll('.btn')].filter(b => /^✕?\s*Kapat$/.test(b.textContent.trim()));
+        const y = [...document.querySelectorAll('.btn')].filter(b => /Yenile$/.test(b.textContent.trim()));
+        return { k: k.length, kOk: k.every(b => b.classList.contains('kapat')), y: y.length, yOk: y.every(b => b.classList.contains('yenile')),
+          renk: getComputedStyle(document.querySelector('#mmClose')).color }; });
+      check(r.k > 5 && r.kOk && r.y >= 1 && r.yOk, 'Görev 54: Kapat düğmeleri (' + r.k + ') turuncu-kırmızı, Yenile düğmeleri (' + r.y + ') yeşil sınıfta (Kapat rengi ' + r.renk + ')'); }
     check(!(await w.$('#newFirmBtn')) && !(await w.$('#toolbar [data-luca="firms"], #bottombar [data-luca="firms"], header.top [data-luca="firms"]')), 'Yeni firma ve Luca\'dan firma ekle üst şeritte / araç çubuğunda yok');
     const sekmeler = await w.$$eval('#modeTabs [data-mode]', b => b.map(x => x.dataset.mode));
     check(sekmeler.join(',') === 'bank,card', 'Ekstre modülünde yalnız banka/kredi kartı sekmeleri');
@@ -316,6 +323,12 @@ wb.save(${JSON.stringify(ex)})`]);
       await w.screenshot({ path: OUT + '/7c-kdv-sorumlu-tahakkuk.png' }); }
     await w.click('#fkNav [data-fksayfa=toplu]');
     fr = await fkFrame(); await fr.waitForSelector('#sekmeler', { timeout: 20000 });
+    // Görev 54: seçili sekme / "Tümü" kutusu boyut değiştirmiyor, çerçeveden taşmıyor (her düğme seçilip ölçülür)
+    { await fr.evaluate(() => { const k = document.querySelector('#kutular'); k.dataset.e2e = '1'; k.closest('[hidden]') && (k.closest('[hidden]').dataset.e2eAcik = '1', k.closest('[hidden]').hidden = false);
+        k.innerHTML = '<button type="button" class="kutu tumu secili"><div class="sayi">12</div><div class="ad">Tümü</div></button>' + ['Temiz', 'Sorun var', 'Eksik indirme', 'Hata'].map((a, i) => '<button type="button" class="kutu" data-k="' + i + '"><div class="sayi">' + (i + 1) + '</div><div class="ad">' + a + '</div></button>').join(''); });
+      const s1 = await fr.evaluate(seciliTasma, null);
+      await fr.evaluate(() => { const k = document.querySelector('#kutular'); k.innerHTML = ''; const h = document.querySelector('[data-e2e-acik]'); if (h) { h.hidden = true; delete h.dataset.e2eAcik; } });
+      check(!s1.length, 'Görev 54: Toplu kontrol sekmeleri ve "Tümü" süzgeç kutuları seçili hâlde de büyümüyor, çerçeveden taşmıyor' + (s1.length ? ' (' + s1.slice(0, 3).join(' ; ') + ')' : '')); }
     // firmalar: MuhaWin'den eşitleme
     const r = await w.evaluate(() => window.desktop.fk.setFirms([{ id: '11', ad: 'EXPO İNŞ' }, { id: '12', ad: 'UKİ MADEN' }], false));
     check(r && r.eklenen === 2, 'MuhaWin firmaları Fatura Kontrol listesine eklendi');
@@ -741,7 +754,13 @@ c.save()`]);
     await w.keyboard.press('Control+k'); await w.waitForSelector('#komutModal:not([hidden])');
     await w.fill('#komutQ', 'fiş liste'); await w.waitForTimeout(100);
     check(/Fiş Listesi/.test(await w.textContent('#komutL .ki[aria-selected=true]')), 'Ctrl+K komut paleti: arama ilk sonuç Fiş Listesi');
-    await w.keyboard.press('Escape'); await w.waitForSelector('#komutModal', { state: 'hidden' });
+    // Görev 54: Veri ve yedek yalnız Ayarlar'da; palet oradaki bölüme götürür
+    await w.fill('#komutQ', 'veri ve yedek'); await w.waitForTimeout(100);
+    check(/Veri ve yedek/.test(await w.textContent('#komutL .ki[aria-selected=true]')), 'Ctrl+K: "Veri ve yedek" komutu var');
+    await w.keyboard.press('Enter'); await w.waitForSelector('#regModal:not([hidden]) #veriYedekSec');
+    await w.waitForTimeout(250);
+    check(await w.$eval('#veriYedekSec', x => { const r = x.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight; }), 'Ctrl+K › Veri ve yedek: Ayarlar açıldı, Veri ve yedek bölümü görünür');
+    await w.click('#regModal [data-rgclose]'); await w.waitForSelector('#regModal', { state: 'hidden' });
     await w.keyboard.press('F1'); await w.waitForSelector('#yardimModal:not([hidden])');
     check(/Alt\+K/.test(await w.textContent('#yardimB')), 'F1 yardım: kısayollar listeleniyor');
     await w.click('[data-yardimx]'); await w.waitForTimeout(150);
