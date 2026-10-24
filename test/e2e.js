@@ -425,6 +425,18 @@ wb.save(${JSON.stringify(mzx)})`]);
     const fisT = await w.textContent('#mmFisT'); const fisN = await w.$$eval('#mmFisB tbody tr', t => t.length);
     check(/Fiş 1 /.test(fisT) && fisN === 2, 'fiş no tıklanınca fişin tüm satırları açıldı (' + fisT + ', ' + fisN + ' satır)');
     await w.screenshot({ path: OUT + '/8b-fis.png' });
+    // Görev 55: fiş penceresinde "Luca'da aç" PDF / Excel düğmelerinin solunda; mevcut akışla (fisGoster) doğru fiş no / yıl gider
+    { const yer = await w.evaluate(() => { const l = document.querySelector('#mmFisLuca'), p = document.querySelector('#mmFisPdf'), x = document.querySelector('#mmFisXls');
+        return { var: !!l, solda: !!(l && p && x && (l.compareDocumentPosition(p) & 4) && (l.compareDocumentPosition(x) & 4) && l.getBoundingClientRect().right <= p.getBoundingClientRect().left + 1),
+                 pasif: l ? l.disabled : null, ipucu: l ? l.title : '' }; });
+      let istek = null;
+      if (yer.var && !yer.pasif) {
+        await w.evaluate(() => { window.__fgEski = window.__mwApi.luca.fisGoster; window.__fgIstek = null; window.__mwApi.luca.fisGoster = a => { window.__fgIstek = a; return Promise.resolve({ ok: true }); }; });
+        await w.click('#mmFisLuca'); await w.waitForTimeout(1500);
+        istek = await w.evaluate(() => { const a = window.__fgIstek; window.__mwApi.luca.fisGoster = window.__fgEski; const r = MMUI._st.fisAcik.r; return a && { ...a, beklenen: { fisNo: String(r.fis_no), year: String(r.tarih).slice(0, 4) } }; });
+      }
+      check(yer.var && yer.solda && (yer.pasif ? /Luca karşılığı yok/.test(yer.ipucu) : !!istek && istek.fisNo === istek.beklenen.fisNo && istek.year === istek.beklenen.year),
+        'Görev 55: fiş penceresinde "Luca\'da aç" PDF / Excel düğmelerinin solunda; ' + (yer.pasif ? 'firmanın Luca karşılığı yok: pasif, nedeni ipucunda' : 'Luca\'da aç isteği doğru fiş / yılla gitti (' + JSON.stringify(istek) + ')')); }
     await w.click('#mmFisX');
     // muavini Excel'den yükle: önce program sorulur
     await w.click('[data-mmyukle=muavin]'); await w.waitForSelector('#mmYk:not([hidden])');

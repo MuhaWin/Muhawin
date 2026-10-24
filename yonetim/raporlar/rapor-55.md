@@ -44,6 +44,14 @@ Derleme yapılmadı.
   - Sıralama ve süzgeç tercihi korunuyor ve bakiye yeni hesap için yeniden hesaplanıyor.
   - "← Mizana dön" son gezilen hesabı işaretleyerek açılıyor.
 
+## Ek 3 – Muavin fiş penceresinde "Luca'da aç"
+- **Yer:** Muavinde fiş no'ya tıklanınca açılan pencerede, "PDF Yazdır" ve "Excel'e Aktar"ın solunda.
+- **Akış:** Yeni akış yazılmadı; Görev 37 ve 48'deki akış kullanılıyor (`FKUI.lucaFisAc` → `luca.fisGoster`).
+  - Luca'da Fiş Listesi o fiş numarasıyla süzülmüş açılıyor; yıl fişin tarihinden alınıyor.
+  - Fiş hazır olunca Luca penceresi `oneGetir` ile öne geliyor (`fisGoster` zaten yapıyor).
+  - "Luca'da açılıyor…" bekleme göstergesi ve hata iletileri aynı.
+- **Pasif durumlar:** Firmanın Luca karşılığı yoksa (ya da satırın fiş no'su yoksa) düğme pasif ve nedeni ipucunda yazıyor.
+
 ## Testler
 - **`node test/hesap_dh.js` (yeni):** 8 kontrol, CI'ye (`surum.yml`) eklendi.
   - 102 / 102.01 / 102.01.07 / 102.01.07.01 örneğinde yalnız sonuncusu E.
@@ -54,5 +62,6 @@ Derleme yapılmadı.
   - Mizan kutusunda yatay kaydırma yok.
   - 102 örneği doğru çıkıyor.
   - Muavinde → ile sonraki hesap, ← ile önceki açılıyor; listenin başında duruyor; arama kutusu odaktayken → hesabı değiştirmiyor; "sonraki >" düğmesi var.
+  - Fiş penceresinde "Luca'da aç" PDF / Excel düğmelerinin solunda. Basınca `fisGoster`'a doğru fiş no ve yıl gidiyor (testte istek yakalanıyor, Luca'ya gidilmiyor). Luca karşılığı yoksa düğme pasif ve ipucunda neden yazıyor.
   - Alacağa göre azalan sıralayınca her satırın bakiyesi görünen sıranın yürüyen toplamı ve son satır "Toplam" bakiyesine eşit (örnek hesapta en az iki hareket varsa).
 - **Görünüm:** Programın stil dosyasıyla örnek tablo tarayıcıda denendi; H satırları kalın, E normal.

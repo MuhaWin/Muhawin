@@ -2789,7 +2789,7 @@ const FKUI=(()=>{
   });
   // tema değişince Fatura Kontrol de uysun
   document.addEventListener('click',e=>{if(e.target.closest('[data-skin]'))setTimeout(()=>post({tip:'tema',tema:fkTheme()}),50);});
-  return {show,hide,onFirm,reset,syncFirms,muavinYenile,sonucYenile,sayfaAc,_sayfa:()=>sayfa};
+  return {show,hide,onFirm,reset,syncFirms,muavinYenile,sonucYenile,sayfaAc,lucaFisAc,_sayfa:()=>sayfa};
 })();
 
 /* ---------- başlangıç ---------- */
@@ -3212,13 +3212,17 @@ const MMUI=(()=>{
     const tb=fis.reduce((t,x)=>t+x.borc,0),ta=fis.reduce((t,x)=>t+x.alacak,0),denk=Math.abs(tb-ta)<0.005;
     st.fisAcik={r,fis,tb,ta,firma:m.firma||''};
     $('#mmFisT').textContent=`Fiş ${r.fis_no} · ${r.fis_tipi||''} · ${trd(r.tarih)}`;
-    $('#mmFisB').innerHTML=`<div class="actions" style="margin-bottom:8px"><span class="chip ${denk?'cari':'aski'}">${denk?'Borç = alacak':'Fark '+n2(tb-ta)}</span><span class="note">${fis.length} satır · ${esc(m.firma||'')}${fis.length<2?' · muavinde bu fişin diğer satırları yok (muavin 100–999 indirilmemiş olabilir)':''}</span><span style="flex:1"></span><button class="btn small" id="mmFisPdf">PDF Yazdır</button><button class="btn small" id="mmFisXls">Excel'e Aktar</button></div>
+    $('#mmFisB').innerHTML=`<div class="actions" style="margin-bottom:8px"><span class="chip ${denk?'cari':'aski'}">${denk?'Borç = alacak':'Fark '+n2(tb-ta)}</span><span class="note">${fis.length} satır · ${esc(m.firma||'')}${fis.length<2?' · muavinde bu fişin diğer satırları yok (muavin 100–999 indirilmemiş olabilir)':''}</span><span style="flex:1"></span>${(()=>{const fo=storeFirmalar().find(y=>y.id===st.firm);const lid=fo&&fo.lucaId;
+        return `<button class="btn small" id="mmFisLuca" ${lid&&r.fis_no?'':'disabled'} title="${lid?(r.fis_no?'Luca\'da Fiş Listesi bu fiş numarasıyla açılır; fiş hazır olunca Luca penceresi öne gelir':'Bu satırın fiş numarası yok'):'Firmanın Luca karşılığı yok (Ayarlar › Firmalar › Luca\'dan firma ekle)'}">Luca'da aç</button>`;})()}<button class="btn small" id="mmFisPdf">PDF Yazdır</button><button class="btn small" id="mmFisXls">Excel'e Aktar</button></div>
       <div class="tablewrap"><table style="width:100%;font-size:13px"><thead><tr><th>Hesap kodu</th><th>Hesap adı</th><th>Açıklama</th><th>Belge no</th><th style="text-align:right">Borç</th><th style="text-align:right">Alacak</th></tr></thead>
       <tbody>${fis.map(x=>`<tr class="${x._j===+i?'sec':''}"><td class="mono">${esc(x.hesap_kodu)}</td><td>${esc(x.hesap_adi)}</td><td>${esc(x.aciklama)}</td><td class="mono">${esc(x.belge_no||'')}</td><td class="n mono" style="text-align:right">${x.borc?n2(x.borc):''}</td><td class="n mono" style="text-align:right">${x.alacak?n2(x.alacak):''}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="4"><b>Toplam</b></td><td class="mono" style="text-align:right"><b>${n2(tb)}</b></td><td class="mono" style="text-align:right"><b>${n2(ta)}</b></td></tr></tfoot></table></div>`;
     $('#mmFis').hidden=false;$('#mmFisX').focus();
   }
   $('#mmFisX').onclick=()=>{$('#mmFis').hidden=true;};
+  // Görev 55: fiş penceresinde "Luca'da aç" — rapordaki / Fiş Listesi'ndeki akışın aynısı (FKUI.lucaFisAc → luca.fisGoster)
+  $('#mmFisB').addEventListener('click',e=>{if(!e.target.closest('#mmFisLuca')||!st.fisAcik)return;const r=st.fisAcik.r;
+    const fo=storeFirmalar().find(y=>y.id===st.firm);FKUI.lucaFisAc({lucaId:fo&&fo.lucaId,yil:String(r.tarih||'').slice(0,4),fisNo:r.fis_no});});
   // PDF için sade sayfa (görüntüleyicide yazdır / kaydet)
   function pdfSayfa(baslik,alt,basliklar,satirlar,sag,toplam){
     const e=esc;return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>${e(baslik)}</title><style>
