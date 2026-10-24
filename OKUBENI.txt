@@ -1,4 +1,4 @@
-MuhaWin 2.9.14  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Belgeden Fiş · Ofisinize Özel Çözümler · (yakında: Denetim ve Analiz · Geçici Vergi · Personel)
+MuhaWin 2.9.15  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Belgeden Fiş · Ofisinize Özel Çözümler · (yakında: Denetim ve Analiz · Geçici Vergi · Personel)
 =========================================================================================================================================================
 
 ÖNCE SUNUCU (bir kez)
@@ -15,7 +15,7 @@ MuhaWin 2.9.14  ·  Modüller: Muhasebe İşlemleri · Banka İşlemleri · Belg
    temel lisans işlemleri çalışır, ekranda uyarı görünür.
 
 KURULUM
-1. MuhaWin-Kurulum-2.9.14.exe dosyasını çalıştırın. Python gerekmez. Kurulu 2.9.5 ve sonrası sürümler 2.9.14'ü kendiliğinden bulur.
+1. MuhaWin-Kurulum-2.9.15.exe dosyasını çalıştırın. Python gerekmez. Kurulu 2.9.5 ve sonrası sürümler 2.9.15'i kendiliğinden bulur.
 2. İlk açılışta önceki "Ekstre Luca" verileri MuhaWin'e kopyalanır (eski klasör silinmez).
 
 KULLANIM
@@ -34,7 +34,30 @@ KULLANIM
 - Fatura Kontrol verilerini silmek / klasörünü açmak: Ekstre modülü → Veri ve yedek.
 - Sorun olursa günlük: %APPDATA%\MuhaWin\hesaplar\<hesap>\fatura_kontrol\muhawin-modul.log
 
+2.9.15 YENİLİKLER
+- Muhasebe Denetimi muhasebe programından bağımsız: Mikro, Elektra ya da Luca muavini seçilir. Dönem tablosu (yıl ve
+  ay düğmeleri); KDV kontrolünde KDV oranı ile hesap kodunun uyumu ve KDV fişi denetlenir.
+- Muhasebe Denetimi'nde bütün listelerde fiş düğmesinin yanında "📄 Fatura" düğmesi: faturanın GİB görünümü açılır
+  (fatura dosyası yoksa "Fatura yok").
+- Detay denetim: Gider kontrolü ve Gelir kontrolü (her faturanın kaydı, fişi ve carisi; geçmiş aylara göre otomatik
+  değerlendirme), Kontrol kuralları ve Denetim raporu.
+- Muhtasar ve Prim Hizmet Beyannamesi (1003A PDF) ile muavin karşılaştırması.
+- Yönetici raporu: aylık grafikler, ayın özeti ve rasyolar; yazdırılabilir, PDF olarak kaydedilebilir.
+- Detay denetimde yapay zekâ ile karşılaştırma (isteğe bağlı, öneri): Ayarlar'da kendi Anthropic API anahtarınızla
+  açılır, ilk açılışta onay istenir. Gönderilen özet maskelenir (VKN/TCKN, IBAN, adres, kişi adları gönderilmez);
+  "Gönderilecek veriyi göster" ile görülebilir. Yapay zekâ kayıt yapmaz, kararı siz verirsiniz.
+- Muhasebe Denetimi sitede de: muhawin.com.tr (giriş gerekir). Kartta ve ekranda "Sitede Aç" düğmesi.
+- Faturaları Luca'ya kaydet: tablo her ekranda yatay kaydırmasız sığar (tarih/belge no ve matrah/KDV tek hücrede,
+  uzun ünvanlar kısaltılır, tamamı fareyle görünür).
+- Faturaları Luca'ya kaydet ekranı ESC ile kapanmaz (yalnız "✕ Kapat" ile); kutudayken ESC yalnız kutudan çıkarır,
+  açık küçük pencereyi kapatır. Yazdıklarınız kaybolmaz.
+- Kod tanımlarında "Luca'dan çek" ve "Luca'ya kaydet"teki "firma bulunamadı" hatası giderildi: firma Luca listesinde
+  yoksa dönem bilgisinden bulunur, seçilen firma Luca'da doğrulanır.
+- Luca penceresinde "MuhaWin'e git" düğmesi: Luca'nın üst şeridinde, Luca'yı küçültmeden MuhaWin'i öne getirir.
+- 2.9.14 ayrıca yayınlanmadı; 2.9.12 ve öncesinden güncelleyenler için aşağıdaki 2.9.14 ve 2.9.13 yenilikleri de geçerlidir.
+
 2.9.14 YENİLİKLER
+- 2.9.14 ayrıca yayınlanmadı (yalnız deneme sürümü); yenilikleri 2.9.15 ile gelir.
 - Muavinde harfli cari kodları (ör. 320.P.0006, 120.Ş.001) doğru okunur. Önceden bu carilerin hareketleri muavinde bir
   önceki hesaba (çoğu zaman 302) yazılıyor, fiş ve cari önerisi bu yüzden yanlış çıkıyordu.
 - Kurallarda çoklu şart (VE) ve "Hiç kaydetme" eylemi.

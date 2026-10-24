@@ -718,3 +718,8 @@ tr.fiscikan td:last-child{opacity:1}
 #fkKayit thead tr.flt input{min-width:44px}
 #fkKayit td,#fkKayit thead th{padding-left:8px;padding-right:8px}
 #fkKayit .fk-fisac{margin:0 0 8px}
+
+/* Görev 32: Muhasebe Denetimi › "Sitede aç" bandı (hub kartlarının altında ve denetim ekranının üstünde) */
+.sitebag{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 0;color:var(--muted);font-size:13px}
+.sitebag .btn{text-decoration:none}
+.mdsite{margin:0 0 8px}

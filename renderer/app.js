@@ -4812,6 +4812,7 @@ const HUB=(()=>{
   function show(id){aktif=id;const x=ISLER[id];$('#hubT').textContent=x.t;$('#hubP').textContent=x.p;
     const kartlar=id==='ozel'?x.k.filter(k=>(window.__ozelListe||[]).includes(k.id)):x.k;
     $('#hubGrid').innerHTML=(kartlar.length?'':'<p class="note">Ofisinize henüz özel çözüm tanımlanmamış.</p>')+kartlar.map(k=>`<button class="modcard" data-hub="${k.id}" ${k.dev?'disabled aria-disabled="true"':''}><span class="mi">${k.i}</span><h2>${esc(k.ad)}</h2><p>${esc(k.d)}</p><span class="ms ${k.dev?'dev':'ok'}">${k.dev?'Geliştiriliyor':'Aç'}</span></button>`).join('');
+    {const s=$('#hubSite');if(s){const mikroVar=kartlar.some(k=>k.id==='mikro');s.hidden=!mikroVar;s.innerHTML=mikroVar?siteBag():'';}}
     $('#hubPanel').hidden=false;}
   function hide(){aktif=null;$('#hubPanel').hidden=true;}
   $('#hubGrid').addEventListener('click',e=>{const b=e.target.closest('[data-hub]');if(!b||b.disabled||!aktif)return;const k=ISLER[aktif].k.find(x=>x.id===b.dataset.hub);if(aktif==='ozel'&&!(window.__ozelListe||[]).includes(k&&k.id))return;if(k&&k.ac)k.ac();});
@@ -5434,6 +5435,8 @@ const FKAYIT=(()=>{
      ya da "Luca'dan çek" ile Luca'nın KDV hesap listesinden gelir. Elle yazılan hücre işaretli kalır, Luca'dan çekmek onu ezmez:
      Luca'daki farklıysa farklar gösterilip sorulur. Kaydedince öneriler yeniden kurulur. */
   const planda=c=>st.acc.has(c)||!!(st.planM&&st.planM.has(c));
+  // Luca firma no: firma kartındaki; yoksa Fatura Kontrol raporundaki (Toplu Kontrol'ün Luca listesinden)
+  const kodLuca=()=>String((st.firm&&st.firm.lucaId)||(st.data&&st.data.luca_id)||'');
   function kodTanim(y){
     if(!st.firm){toast('Firma bulunamadı.');return;}
     const T=JSON.parse(JSON.stringify(((st.firm.fkKod||{})[y])||{}));
@@ -5444,7 +5447,7 @@ const FKAYIT=(()=>{
     $('#fkkModalB').innerHTML=`<div id="kodForm" style="display:grid;gap:10px"><p class="note" style="margin:0">${y==='ALIS'?'Alış faturaları (ve müşterinin size kestiği iade faturaları)':'Satış faturaları (ve satıcıya kestiğiniz iade faturaları)'} bu tabloya göre doldurulur: faturanın KDV oranının sütununda, işlemin satırındaki hesap. Yalnız hesap planında olan detay hesaplar yazılabilir. Elle yazdığınız hücreleri “Luca'dan çek” değiştirmez.</p>
       <div class="tablewrap"><table id="fkkKodTablo" class="mini"><thead><tr><th>İşlem</th>${KOD_ORAN.map(o=>`<th>%${o}</th>`).join('')}</tr></thead><tbody></tbody></table></div>
       <div class="note" id="kodDurum" role="status"></div>
-      <div class="actions"><button class="btn" id="kodCek"${st.firm.lucaId?'':' disabled title="Firmanın Luca karşılığı yok"'}>Luca'dan çek</button><span style="flex:1"></span><button class="btn" data-kx="1">Vazgeç</button><button class="btn primary" id="kodKaydet">Kaydet ve uygula</button></div></div>`;
+      <div class="actions"><button class="btn" id="kodCek"${kodLuca()?'':' disabled title="Firmanın Luca karşılığı yok"'}>Luca'dan çek</button><span style="flex:1"></span><button class="btn" data-kx="1">Vazgeç</button><button class="btn primary" id="kodKaydet">Kaydet ve uygula</button></div></div>`;
     ciz();$('#fkkModal').hidden=false;
     const B=$('#kodForm');
     B.addEventListener('change',e=>{const t=e.target;if(t.dataset.kodh==null)return;const [is,o]=t.dataset.kodh.split('|');const v=t.value.trim();
@@ -5452,7 +5455,7 @@ const FKAYIT=(()=>{
     $('#kodCek').onclick=async()=>{
       const yil=String((st.data.donem[0]||'').slice(0,4)||new Date().getFullYear());
       try{await LucaBag.bekle();}catch(x){toast(clean(x));return;}
-      let res;try{res=await mwBusy.run('Kod tanımları çekiliyor…','Luca\'nın KDV hesap listesi okunuyor',()=>window.desktop.luca.kdvHesaplari({lucaId:st.firm.lucaId,year:yil}));}
+      let res;try{res=await mwBusy.run('Kod tanımları çekiliyor…','Luca\'nın KDV hesap listesi okunuyor',()=>window.desktop.luca.kdvHesaplari({lucaId:kodLuca(),year:yil}));}
       catch(x){$('#kodDurum').textContent='Luca\'dan çekilemedi: '+clean(x);return;}
       const sonuc=kodBirlestir(T,y,(res&&res.tablo)||{});
       if(sonuc.fark.length&&await askConfirm('Elle yazdığınız hücreler Luca\'dakinden farklı',`${sonuc.fark.map(x=>`• ${x.ad} %${x.oran}: sizin ${x.elle} · Luca ${x.luca}`).join('\n')}\n\nElle yazdıklarınız korunuyor. Bu hücrelerde Luca'dakini kullanmak ister misiniz?`,'Luca\'dakini kullan'))
@@ -5791,6 +5794,11 @@ const FKAYIT=(()=>{
 window.__fkayit=FKAYIT;
 
 /* ---------- Ofisinize Özel Çözümler › Muhasebe Denetimi: Fatura Kontrol yan sürecinde çalışan sayfa (denetim.html) ---------- */
+/* Görev 32: Muhasebe Denetimi sitede de var (program ve site birlikte; eski kayıtlar taşınmaz). Bağlantı varsayılan tarayıcıda açılır
+   (target=_blank → ana süreçteki setWindowOpenHandler → shell.openExternal). Programdaki denetim aynen çalışır. */
+const SITE_DENETIM='https://muhawin.com.tr/giris.html?geri=/denetim/';
+const siteBag=()=>`<span>Muhasebe Denetimi artık sitemizden de kullanılabilir; belgeleriniz bilgisayarınızdan çıkmaz.</span> <a class="btn small" href="${SITE_DENETIM}" target="_blank" rel="noopener noreferrer" data-sitede="1">Sitede Aç ↗</a>`;
+{const m=document.getElementById('mdSite');if(m)m.innerHTML=siteBag();}
 const MDENET=(()=>{
   let url=null;
   const fr=()=>$('#mdFrame');
