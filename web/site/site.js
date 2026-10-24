@@ -1,4 +1,4 @@
-/* MuhaWin tanıtım sitesi: indirme bağlantısı ve sürüm notları.
+/* MuhaWin tanıtım sitesi: indirme bağlantısı ve son sürümün notları (önceki sürümler gösterilmez).
    surum.json (tools/site_uret.js) her zaman okunur; GitHub'daki son sürüm erişilebilirse indirme onunla güncellenir. */
 'use strict';
 (function () {
@@ -16,11 +16,12 @@
   }
 
   function notlariYaz(notlar) {
-    if (!notlar || !notlar.length) { $('#notlar').innerHTML = '<p class="not">Sürüm notu bulunamadı.</p>'; return; }
-    $('#notlar').innerHTML = notlar.map((n, i) => `<details${i === 0 ? ' open' : ''}>
-      <summary>MuhaWin ${esc(n.surum)}${i === 0 ? '<small>son sürüm</small>' : ''}</summary>
+    const n = notlar && notlar[0];
+    if (!n) { $('#notlar').innerHTML = '<p class="not">Sürüm notu bulunamadı.</p>'; return; }
+    $('#notlar').innerHTML = `<article class="surum-notu">
+      <h3>MuhaWin ${esc(n.surum)}<small>son sürüm</small></h3>
       <ul>${n.maddeler.map(m => `<li>${esc(m.metin)}${m.alt.length ? `<ul>${m.alt.map(a => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}</li>`).join('')}</ul>
-    </details>`).join('');
+    </article>`;
   }
 
   async function githubSonSurum(depo) {
@@ -39,7 +40,6 @@
       notlariYaz(v.notlar);
       if (v.yakinda && v.yakinda.length) $('#yakinda').textContent = 'Yakında: ' + v.yakinda.join(' · ');
       if (v.depo) {
-        $('#tumSurumler').href = `https://github.com/${v.depo}/releases`;
         $('#indirDugme').href = `https://github.com/${v.depo}/releases/latest`;
         return githubSonSurum(v.depo)
           .then(s => indirmeyiYaz(s.surum, s.url, s.dosya, s.boyut))
