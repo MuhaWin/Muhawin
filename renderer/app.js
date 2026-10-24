@@ -2622,7 +2622,7 @@ const FKUI=(()=>{
       <iframe id="fkFrame" title="Fatura Kontrol" hidden></iframe>`;
     document.body.appendChild(sec);
     $('#fkRetry').addEventListener('click',()=>{started=false;start(true);});
-    window.addEventListener('resize',place);
+    window.addEventListener('resize',place);window.addEventListener('mw-hiza',place);
     $('#fkNav').addEventListener('click',e=>{const b=e.target.closest('[data-fksayfa]');if(b)sayfaAc(b.dataset.fksayfa);});
   }
   // Muhasebe İşlemleri alt sayfaları: Toplu Kontrol / Tek Firma (Fatura Kontrol penceresi), Fiş Girişi, KDV Beyannamesi
@@ -2636,7 +2636,9 @@ const FKUI=(()=>{
     if(ifSayfa!==k){ifSayfa=k;f.src=url+SAYFA_YOL[k];}}
   const SAYFA_YOL={toplu:'/toplu',tek:'/',kdv:'/beyanname'};
   let ifSayfa='toplu';
-  function place(){const p=$('#fkPanel');if(!p||p.hidden)return;p.style.right=sagPay()+'px';const t=document.body.classList.contains('mod-fatura')?($('#modSekme')||$('header.top')):$('#modeTabs');const r=t?t.getBoundingClientRect():{bottom:0};p.style.top=Math.max(0,Math.round(r.bottom+6))+'px';}
+  function place(){const p=$('#fkPanel');if(!p||p.hidden)return;const h=hizaKutu();
+    if(h&&document.body.classList.contains('mod-fatura')){p.style.left=h.sol+'px';p.style.right=h.sag+'px';p.style.top=(h.alt+12)+'px';return;}
+    p.style.left='';p.style.right=sagPay()+'px';const t=$('#modeTabs');const r=t?t.getBoundingClientRect():{bottom:0};p.style.top=Math.max(0,Math.round(r.bottom+6))+'px';}
   function wait(t,n,err){$('#fkWait').hidden=false;$('#fkFrame').hidden=true;$('#fkWaitT').textContent=t;$('#fkWaitN').textContent=n||'';$('#fkWaitA').hidden=!err;$('#fkWaitN').classList.toggle('mono',!!err);}
   async function start(restart){
     if(started&&url)return;
@@ -5452,18 +5454,27 @@ const MDENET=(()=>{
 // sağdaki kaydırma çubuğu payı (scrollbar-gutter): sabit paneller sayfa içeriğiyle aynı sağ kenarda biter
 // Ö7 (Görev 25): örnek firma seçiliyken "Üstten firma seçin" yerine ne yapılacağı söylenir
 function firmaYokUyari(){return (typeof isExample==='function'&&isExample())?'Örnek firmada kullanılamaz — Ayarlar › Firmalar\'dan firma ekleyin':'Üstten firma seçin';}
+// Görev 33: tek hiza kuralı — üst şerit, modül sekmeleri ve tüm alt menüler aynı sol / sağ çizgide (sayfa sütunu = modül sekme satırı).
+// Sabit konumlu paneller (Muhasebe, Mizan / Muavin / Hesap Planı, fatura kaydı) bu sütuna oturur; üst bölümün boyu değişince
+// (yazı tipi geç yüklenmesi, Luca düğmesi yazısı, pencere boyu) yeniden yerleşir: 'mw-hiza' olayı.
+function hizaKutu(){const t=document.getElementById('modSekme');if(!t||!t.getClientRects().length)return null;const r=t.getBoundingClientRect();
+  return {sol:Math.round(r.left),sag:Math.max(0,Math.round(window.innerWidth-r.right)),alt:Math.round(r.bottom)};}
+{let bek=0;const tetik=()=>{if(bek)return;bek=requestAnimationFrame(()=>{bek=0;window.dispatchEvent(new Event('mw-hiza'));});};
+  try{const ro=new ResizeObserver(tetik);['header.top','#modSekme','#modeTabs'].forEach(s=>{const e=document.querySelector(s);if(e)ro.observe(e,{box:'border-box'});});}catch(e){}
+  window.addEventListener('resize',tetik);try{document.fonts.ready.then(tetik);}catch(e){}}
 function sagPay(){return Math.max(0,Math.round(window.innerWidth-document.body.getBoundingClientRect().right));}
 /* ---------- Tam ekran paneller (Mizan / Muavin / Hesap Planı, Faturaları Luca'ya kaydet) üst şeridi örtmez ----------
    Panel açılınca sayfa başa alınır ve panel modül sekme satırının hemen altından başlar; kapanınca kaydırma yeri geri gelir.
    Böylece üst şerit ve modül sekmeleri her ekranda aynı yerde görünür. */
 const UstPanel=(()=>{const P=['#mmPanel','#fkKayit'];
-  const alt=()=>{const t=$('#modSekme');if(!t||!t.getClientRects().length||!$('#modGate').hidden)return 0;return Math.max(0,Math.round(t.getBoundingClientRect().bottom+6));};
-  function yerlestir(el){el.style.top=alt()+'px';el.style.right=sagPay()+'px';}
+  // en alttaki görünür menü satırı: Muhasebe alt menüsü (#fkNav) ya da Banka alt sekmeleri (#modeTabs); yoksa modül sekmeleri
+  const alt=()=>{if(!$('#modGate').hidden)return 0;let b=0;for(const s of ['#modSekme','#modeTabs','#fkNav']){const t=$(s);if(!t||!t.getClientRects().length||t.closest('[hidden]'))continue;const r=t.getBoundingClientRect();if(r.height)b=Math.max(b,r.bottom);}return Math.max(0,Math.round(b+6));};
+  function yerlestir(el){const h=hizaKutu();el.style.top=alt()+'px';el.style.left=h?h.sol+'px':'';el.style.right=(h?h.sag:sagPay())+'px';}
   const gozle=el=>{let acik=!el.hidden,y=0;
     new MutationObserver(()=>{if(el.hidden===!acik)return;acik=!el.hidden;
-      if(acik){y=window.scrollY;window.scrollTo(0,0);yerlestir(el);}else{el.style.top='';el.style.right='';if(y)window.scrollTo(0,y);}}).observe(el,{attributes:true,attributeFilter:['hidden']});};
+      if(acik){y=window.scrollY;window.scrollTo(0,0);yerlestir(el);}else{el.style.top='';el.style.left='';el.style.right='';if(y)window.scrollTo(0,y);}}).observe(el,{attributes:true,attributeFilter:['hidden']});};
   P.forEach(s=>{const el=$(s);if(el)gozle(el);});
-  window.addEventListener('resize',()=>P.forEach(s=>{const el=$(s);if(el&&!el.hidden)yerlestir(el);}));
+  window.addEventListener('mw-hiza',()=>P.forEach(s=>{const el=$(s);if(el&&!el.hidden)yerlestir(el);}));
   // modül sekmesiyle başka modüle geçerken açık panel kapanır (yarım iş varsa kendi Kapat düğmesi kuralına uyar)
   function kapatHepsi(){if(!$('#mmPanel').hidden)$('#mmClose').click();if(!$('#fkKayit').hidden)$('#fkkClose').click();return $('#mmPanel').hidden&&$('#fkKayit').hidden;}
   return {kapatHepsi};})();
@@ -5472,7 +5483,9 @@ const UstPanel=(()=>{const P=['#mmPanel','#fkKayit'];
 const MOD_SEKME=[['ekstre','Banka'],['fatura','Muhasebe'],['okc','Belgeden Fiş'],['denetim','Denetim'],['ozel','Ofisinize Özel'],['gecici','Geçici Vergi'],['personel','Personel']];
 function modSekmeCiz(){const el=$('#modSekme');if(!el)return;
   const mods=Desk.modlar()||[];
-  const L=MOD_SEKME.map(([id,ad])=>{const m=mods.find(x=>x.id===id);
+  // sıra modül seçim ekranıyla aynı (Görev 33): modül listesinin sırası; listede olmayanlar sonda
+  const sira=id=>{const i=mods.findIndex(x=>x.id===id);return i<0?99:i;};
+  const L=MOD_SEKME.slice().sort((a,b)=>sira(a[0])-sira(b[0])).map(([id,ad])=>{const m=mods.find(x=>x.id===id);
     if(id==='ozel'&&(!m||m.type==='gizli'))return '';                       // ofise tanımlı değilse görünmez
     if(!m||Desk.modState(m)[0]==='soon')return '';                           // "Yakında" modüller yalnız modül seçim ekranında
     return `<button class="modsek" role="tab" data-modsekme="${id}" aria-selected="${S.module===id}">${esc(ad)}</button>`;});
