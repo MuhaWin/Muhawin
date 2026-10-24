@@ -206,9 +206,65 @@ def logo() -> None:
     logo_xlsx("logo_kendi.xlsx", "SAVOR ÖRNEK LTD. ŞTİ. – KENDİ ÇEK/SENET LİSTESİ", kendi)
 
 
+# ---------------------------------------------------------------- KDV1 beyannamesi PDF'i (e2e: KDV Beyannamesi › "PDF'ten oku", pdf.js)
+def beyanname_pdf(ad: str = "kdv1_beyanname.pdf") -> None:
+    """GİB e-Beyanname çıktısına benzeyen tek sayfalık KDV1 PDF'i: etiket solda, tutar sağda, aynı satırda.
+    MuhaWin pdf.js ile metni çıkarır (satırları y konumuna göre birleştirir), fatura_kontrol.beyanname.gib_metin_coz kutuları okur.
+    Tutarlar uydurmadır: Toplam Matrah 125.000,00 · Hesaplanan KDV 25.000,00 · Bu Döneme Ait İndirilecek KDV 18.400,00 ·
+    İndirimler Toplamı 18.400,00 · Ödenmesi Gereken KDV 6.600,00 · Sonraki Döneme Devreden KDV 0,00."""
+    from reportlab.lib.pagesizes import A4          # yalnız bu dosya için gerekir (pip install reportlab)
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfgen import canvas
+    pdfmetrics.registerFont(TTFont("DejaVu", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+    c = canvas.Canvas(str(KLASOR / ad), pagesize=A4, invariant=1)   # invariant: her üretimde aynı bayt
+    c.setTitle("KDV1 örnek (uydurma)")
+    w, h = A4
+    c.setFont("DejaVu", 13)
+    c.drawString(40, h - 50, "KATMA DEĞER VERGİSİ BEYANNAMESİ (UYDURMA ÖRNEK)")
+    c.setFont("DejaVu", 10)
+    c.drawString(40, h - 75, "Yıl: 2026    Ay: Eylül")
+    c.drawString(40, h - 92, "Vergi Kimlik No: 1111111114    Soyadı / Unvanı: ÖRNEK TİCARET LTD. ŞTİ.")
+    satirlar = [
+        ("MATRAH", None),
+        ("Teslim ve Hizmetlerin Karşılığını Teşkil Eden Bedel (Aylık)", "125.000,00"),
+        ("Toplam Matrah", "125.000,00"),
+        ("Hesaplanan Katma Değer Vergisi", "25.000,00"),
+        ("Toplam Katma Değer Vergisi", "25.000,00"),
+        ("İNDİRİMLER", None),
+        ("Bu Döneme Ait İndirilecek KDV Tutarı", "18.400,00"),
+        ("İndirimler Toplamı", "18.400,00"),
+        ("SONUÇ HESAPLARI", None),
+        ("Ödenmesi Gereken Katma Değer Vergisi", "6.600,00"),
+        ("Sonraki Döneme Devreden Katma Değer Vergisi", "0,00"),
+    ]
+    y = h - 130
+    for etiket, tutar in satirlar:
+        if tutar is None:
+            c.setFont("DejaVu", 10.5)
+            c.drawString(40, y, etiket)
+            c.setFont("DejaVu", 10)
+        else:
+            c.drawString(52, y, etiket)
+            c.drawRightString(w - 50, y, tutar)
+        y -= 22
+    c.showPage()
+    c.save()
+
+
 if __name__ == "__main__":
-    fisler()
-    mizanlar()
-    mikro()
-    logo()
-    print("Yazıldı:", ", ".join(sorted(p.name for p in KLASOR.iterdir() if p.suffix in (".jpg", ".xlsx", ".xls"))))
+    import sys
+    # yalnız belirli üreticiler: python3 test/ornek/uret.py beyanname   (diğer dosyalar yeniden yazılmaz)
+    istenen = set(sys.argv[1:])
+    hepsi = not istenen
+    if hepsi or "fis" in istenen:
+        fisler()
+    if hepsi or "mizan" in istenen:
+        mizanlar()
+    if hepsi or "mikro" in istenen:
+        mikro()
+    if hepsi or "logo" in istenen:
+        logo()
+    if hepsi or "beyanname" in istenen:
+        beyanname_pdf()
+    print("Yazıldı:", ", ".join(sorted(p.name for p in KLASOR.iterdir() if p.suffix in (".jpg", ".xlsx", ".xls", ".pdf"))))

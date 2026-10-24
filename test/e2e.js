@@ -263,6 +263,19 @@ wb.save(${JSON.stringify(ex)})`]);
     else check(true, 'fiş listesi: bu firmada muavin yok (atlandı)');
     if (flN) await w.click('.fl-detaybas b'); await w.keyboard.press('Escape'); await w.waitForTimeout(500);
     check(await w.getAttribute('#fkNav [data-fksayfa=toplu]', 'aria-pressed') === 'true' && await w.isHidden('#modGate'), 'Esc: Fiş Listesi\'nden Toplu Kontrol\'e dönüldü');
+    // Görev 31: KDV Beyannamesi › GİB PDF'i ile karşılaştır ("PDF'ten oku"): çerçevedeki sayfa PDF'i MuhaWin'e gönderir,
+    // MuhaWin pdf.js 5 ile metni çıkarır (satırlar y konumuna göre), sunucudaki gib_metin_coz kutuları okur
+    { await w.click('#fkNav [data-fksayfa=kdv]'); const kf = await fkFrame();
+      await kf.waitForFunction(() => typeof pdfMetin === 'function', null, { timeout: 20000 }).catch(() => {});
+      const b64 = fs.readFileSync(path.join(__dirname, 'ornek', 'kdv1_beyanname.pdf')).toString('base64');
+      const metin = await kf.evaluate(async b => { const u = Uint8Array.from(atob(b), c => c.charCodeAt(0)); try { return await pdfMetin(u.buffer); } catch (e) { return 'HATA ' + e.message; } }, b64);
+      const satirBirlesik = /Toplam Matrah\s+125\.000,00/.test(metin) && /Ödenmesi Gereken Katma Değer Vergisi\s+6\.600,00/.test(metin);
+      const kutular = JSON.parse(require('child_process').execFileSync('python3', ['-c', 'import sys,json; sys.path.insert(0, sys.argv[1]); from fatura_kontrol.beyanname import gib_metin_coz; print(json.dumps(gib_metin_coz(sys.stdin.read(), "kdv1")))', path.join(APP, 'fk')], { input: metin }).toString());
+      const bek = { toplam_matrah: 125000, hesaplanan_kdv: 25000, toplam_kdv: 25000, bu_donem_indirim: 18400, indirimler_toplami: 18400, odenecek: 6600, devreden: 0, bedel_aylik: 125000 };
+      const fark = Object.entries(bek).filter(([k, v]) => kutular[k] !== v).map(([k]) => k + '=' + kutular[k]);
+      check(!/^HATA/.test(metin) && satirBirlesik, 'KDV beyannamesi PDF metni pdf.js 5 ile çıkarıldı; etiket ve tutar aynı satırda (' + metin.split('\n').length + ' satır)');
+      check(!fark.length && kutular._vkn === '1111111114' && /2026/.test(kutular._donem || ''), 'GİB PDF\'inden KDV1 kutuları okundu (matrah, hesaplanan, indirim, ödenecek, devreden, dönem, VKN)' + (fark.length ? ' · farklı: ' + fark.join(', ') : '')); }
+    await w.click('#fkNav [data-fksayfa=toplu]');
     fr = await fkFrame(); await fr.waitForSelector('#sekmeler', { timeout: 20000 });
     // firmalar: MuhaWin'den eşitleme
     const r = await w.evaluate(() => window.desktop.fk.setFirms([{ id: '11', ad: 'EXPO İNŞ' }, { id: '12', ad: 'UKİ MADEN' }], false));
