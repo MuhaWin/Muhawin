@@ -89,3 +89,20 @@ test('Kurulum adımları: dosya adı yazmaz, "Bilgilerinizi girin" adımında Lu
   assert.ok(kurulum.includes('<b>Bilgilerinizi girin</b>') && !/Luca/.test(kurulum));
   assert.ok(!/dosyaAdi/.test(js));                       // kaldırılan öğeye yazılmıyor
 });
+
+test('ana sayfada program görüntüleri: 1x PNG + 2x WebP, Türkçe alt metin, kahraman dışında tembel yükleme; eski çizim yok', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const SITE = path.join(__dirname, '..', 'web', 'site');
+  const index = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8'), css = fs.readFileSync(path.join(SITE, 'style.css'), 'utf8');
+  const imgs = [...index.matchAll(/<img\b[^>]*gorsel\/program-[^>]*>/g)].map(m => m[0]);
+  const adlar = imgs.map(i => /program-(\w+)\.png/.exec(i)[1]);
+  assert.deepStrictEqual(adlar, ['anasayfa', 'banka', 'toplu', 'mizan', 'kaydet']);
+  for (const [k, i] of imgs.entries()) {
+    const ad = adlar[k];
+    assert.ok(i.includes(`gorsel/program-${ad}@2x.webp 2x`) && /width="1440" height="900"/.test(i), i);
+    assert.ok(/alt="[^"]{20,}"/.test(i) && /ı|ş|ğ|ü|ö|ç/.test(/alt="([^"]*)"/.exec(i)[1]), i);
+    assert.strictEqual(/loading="lazy"/.test(i), k > 0, i);      // kahraman görseli hemen, diğerleri tembel
+    for (const d of [`program-${ad}.png`, `program-${ad}@2x.webp`]) assert.ok(fs.existsSync(path.join(SITE, 'gorsel', d)), d);
+  }
+  assert.ok(!/mini-kart|pencere-ic/.test(index + css));            // eski çizilmiş "ekran" kaldırıldı
+});
