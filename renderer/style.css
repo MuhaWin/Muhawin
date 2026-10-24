@@ -747,7 +747,7 @@ header.top .sub{display:none}
 header.top h1{font-size:21px;white-space:nowrap}
 header.top .h1mod{display:none}
 .firmbar{flex-wrap:nowrap;gap:6px;align-items:center;flex:1 1 auto;justify-content:flex-end;min-width:0}
-.firmbar>div{min-width:200px!important;flex:0 1 260px}
+.firmbar>div:first-child{min-width:200px!important;flex:0 1 260px}
 .firmbar label.lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .firmbar>.btn,.firmbar .themepick{align-self:center!important}
 .firmbar #komutBtn kbd{display:none}
@@ -762,7 +762,7 @@ body.fk-view .altsekme>.fknav{display:flex;border-bottom:0;margin:0 0 0 14px;pad
 .altsekme>.fknav .btn,.altsekme>.fknav .btn:hover{font-size:14px;padding:8px 13px 7px}
 @media (max-width:1200px){header.top,.firmbar{flex-wrap:wrap}.firmbar{justify-content:flex-start}
   .sekmesatir{flex-wrap:wrap}body.fk-view .altsekme>.fknav{margin-left:0;padding-left:0;border-left:0}}
-.firmbar>*{flex-shrink:0}.firmbar>div{flex:0 1 250px;min-width:170px!important}
+.firmbar>*{flex-shrink:0}.firmbar>div:first-child{flex:0 1 250px;min-width:170px!important}
 /* Görev 54: Faturaları Luca'ya kaydet — başlık ve araç çubuğu tek satır, satırlar iki satır (1366×768'de 12+ fatura) */
 #fkKayit .mmtop{padding-top:6px;padding-bottom:6px;gap:8px}
 #fkKayit .mmtop h2{font-size:17px;white-space:nowrap}
@@ -814,3 +814,19 @@ td.bankcol{max-width:110px;overflow:hidden;text-overflow:ellipsis}
 #fkKayit .fkk-ad{font-size:11px;line-height:1.2;margin:1px 0 0}
 #fkKayit td .note{line-height:1.25}
 .stat .k{white-space:normal;line-height:1.15;min-width:0}.stat .v{white-space:nowrap;flex:none}
+/* Banka alt sekmeleri de modül satırında; Muhasebe alt sekmeleriyle aynı hiza ve boy (Görev 33) */
+.altsekme>.modetabs{margin:0 0 0 14px;padding:0 0 0 14px;border-bottom:0;border-left:1px solid var(--line);flex-wrap:wrap}
+.altsekme>.modetabs:empty{display:none}
+.altsekme .modetab,.altsekme>.fknav .btn,.altsekme>.fknav .btn:hover{font-size:14px;line-height:1.5;padding:8px 13px 7px;border-bottom-width:3px}
+@media (max-width:1200px){.altsekme>.modetabs{margin-left:0;padding-left:0;border-left:0}}
+/* Luca'ya kaydet: kayıt engeli açıklaması tek satır; seçili sayısı Luca'ya kaydet düğmesinin yanında */
+#fkKayit .fkk-neden{flex-wrap:nowrap;white-space:nowrap;max-width:none}
+#fkkSecN{white-space:nowrap}
+header.top{flex-wrap:wrap}
+#fkKayit td.fk-karsi>.note.mono{display:flex;gap:4px;min-width:0}
+#fkKayit .fkk-kalem{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header.top>div:first-child{flex:0 0 auto;max-width:280px;min-width:0}
+.firmbar .themepick{width:auto;min-width:0;flex:0 0 auto}
+.thememenu[hidden]{display:none}
+#fkKayit td.fk-durum .note{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+#fkKayit .fkk-ad .chip,#fkKayit .fkk-hs .chip{font-size:10px;line-height:1.25;padding:0 5px}

@@ -1432,7 +1432,7 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
         await w.click('#fkkKod'); const acik = await w.evaluate(() => ({ menu: !document.querySelector('#fkkKodMenu').hidden, ogeler: [...document.querySelectorAll('#fkkKodMenu [role=menuitem]')].map(x => x.textContent), exp: document.querySelector('#fkkKod').getAttribute('aria-expanded'), doldurma: !!document.querySelector('#fkkKodMenu #fkkKaynak') && !document.querySelector('#fkkBar > label #fkkKaynak') && (() => { const r = document.querySelector('#fkkKodMenu').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })(), odak: document.activeElement.id }));
         await w.keyboard.press('ArrowDown'); const odak2 = await w.evaluate(() => document.activeElement.id);
         await w.keyboard.press('Escape'); await w.waitForTimeout(150); const esc = await w.evaluate(() => ({ menu: document.querySelector('#fkkKodMenu').hidden, panel: !document.querySelector('#fkKayit').hidden, odak: document.activeElement.id }));
-        await w.click('#fkkKod'); await w.click('#fkkBar .note'); const disari = await w.evaluate(() => document.querySelector('#fkkKodMenu').hidden);
+        await w.click('#fkkKod'); await w.click('#fkKayit .mmtop h2'); const disari = await w.evaluate(() => document.querySelector('#fkkKodMenu').hidden);
         check(ilk.dugme === 1 && ilk.gizli && !ilk.ayri && acik.menu && acik.ogeler.join('|').toLocaleLowerCase('tr') === 'alış kod tanımları|satış kod tanımları' && acik.doldurma && acik.exp === 'true' && acik.odak === 'fkkKodA' && odak2 === 'fkkKodS' && esc.menu && esc.panel && esc.odak === 'fkkKod' && disari,
           'Kod tanımları ▾ menüsü: Alış / Satış ve Doldurma seçimi (menü pencereye sığıyor); oklarla gezilir, Esc ve dışarı tıklama menüyü kapatır, ekran açık kalır (' + JSON.stringify({ ilk, acik, odak2, esc, disari }) + ')');
         const once = await w.evaluate(() => [innerWidth, innerHeight]);
@@ -1670,7 +1670,7 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
     let du = null; for (let i = 0; i < 10 && !(du && du.tur); i++) { du = await fr2.evaluate(() => fetch('/api/toplu/durum').then(r => r.json())).catch(() => null); if (!(du && du.tur)) await new Promise(r => setTimeout(r, 500)); }
     console.log('DURUM', JSON.stringify(du).slice(0, 300), await fr2.evaluate(() => document.querySelector('#hata') && document.querySelector('#hata').textContent).catch(() => ''));
     check(du && (du.tur === 'toplu' || du.calisiyor !== undefined) && du.tur === 'toplu', 'muavin kontrolü başlatıldı (' + (du && du.tur) + ')');
-  } catch (e) { bad.push('HATA (5): ' + e.message.split('\n')[0]); await w.screenshot({ path: OUT + '/hata5.png' }).catch(() => {}); }
+  } catch (e) { bad.push('HATA (5): ' + e.message.split('\n').filter((l, i) => !i || /waiting for/.test(l)).slice(0, 2).join(' | ')); await w.screenshot({ path: OUT + '/hata5.png' }).catch(() => {}); }
   finally { await app.close().catch(() => {}); fake.server.close(); }
 
   // ---------------- 6. Yönetim modülü (yalnız program sahibi) ----------------

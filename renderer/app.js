@@ -3621,7 +3621,7 @@ const MMUI=(()=>{
 window.__mmui=MMUI;   // testler için
 $('#mmBtn').addEventListener('click',()=>MMUI.open('mizan'));
 // Görev 54: tek satıra kısaltılan hücrelerin tamamı imleç ipucunda (muavin, mizan, Luca'ya kaydet)
-document.addEventListener('mouseover',e=>{const td=e.target.closest&&e.target.closest('#mmTable td,#fkkTable td .fkk-ad,#fkkTable td.fk-karsi .note,td.bankcol,.accname');
+document.addEventListener('mouseover',e=>{const td=e.target.closest&&e.target.closest('#mmTable td,#fkkTable td .fkk-ad,#fkkTable td.fk-durum .note,#fkkTable td.fk-karsi .note,td.bankcol,.accname');
   if(td&&!td.title&&td.scrollWidth>td.clientWidth+1)td.title=td.textContent.trim();});
 // Luca'da Çalış: kullanıcının kendi çalışacağı, programın sorgu yapmadığı tam ekran Luca penceresi (MuhaWin'in önünde)
 if(window.desktop&&window.desktop.luca&&window.desktop.luca.calis){$('#lucaCalisBtn').hidden=false;
@@ -5305,7 +5305,7 @@ const FKAYIT=(()=>{
       +(bad.length?` <button class="btn small ghost" type="button" id="fkkEksikGoster" title="Yalnız eksiği olan seçili faturaları göster">${st.hataF?'Tümünü göster':'Eksikleri göster'}</button><button class="btn small ghost" type="button" id="fkkEksikCikar" title="Eksiği olan faturalar seçimden çıkar; kalanlar kaydedilebilir">Eksikleri seçimden çıkar</button>`:'')
       +` <span class="fkk-neden-ac" tabindex="0" title="${esc(L.join('\n'))}" aria-label="Nedenler">ⓘ</span>`;}
   // cari kaynağı (VKN / ünvan / ön ek) ve uyarı; elle seçilen caride gösterilmez
-  const cariNot=r=>r.cariElle||r.logged?'':`${r.cari&&r.cariKaynak&&r.cariKaynak!=='kural'?`<span class="chip${r.cariKaynak==='VKN'?' cari':''}" title="Cari nasıl bulundu">${esc(r.cariKaynak)}</span>`:''}${r.cariUyari?`<div class="note fkk-cariuyari" style="color:var(--warn);max-width:220px">${esc(r.cariUyari)}</div>`:''}`;
+  const cariNot=r=>r.cariElle||r.logged?'':`${r.cari&&r.cariKaynak&&r.cariKaynak!=='kural'?`<span class="chip${r.cariKaynak==='VKN'?' cari':''}" title="Cari nasıl bulundu">${esc(r.cariKaynak)}</span>`:''}${r.cariUyari?`<span class="chip aski fkk-cariuyari" title="${esc(r.cariUyari)}" style="cursor:help">⚠ uyarı</span>`:''}`;
   // satırda hesabın kaynağını seçme: [Kod] [Geçmiş] [Kural]; basılı olan kullanılan kaynak
   const KS_TUR={'kod tablosu':'kod',kural:'kural','geçmiş':'gecmis','benzer kalem':'gecmis'};
   function ksDugme(r,i){if(r.logged||haricMi(r))return '';const ks=kaynaklar(r.f);const tur=r.elle?'':(KS_TUR[r.kaynak]||(r.f.gecmis&&r.kaynak===(r.f.gecmis.kaynak||'geçmiş')?'gecmis':''));
@@ -5333,7 +5333,6 @@ const FKAYIT=(()=>{
       ${(()=>{const L=st.rows.filter(r=>!r.logged&&!haricMi(r)&&!r.f.kayitli);const e=L.filter(eksikMi).length;return `<div class="mmtabs" title="Matrah hesabı ya da carisi boş faturalar — doldurdukça liste azalır">${[['','Hepsi',L.length],['eksik','Eksik',e],['dolu','Dolu',L.length-e]].map(([k,l,n])=>`<button class="btn small${k==='eksik'&&e?' uyar':''}" data-fkef="${k}" aria-pressed="${(st.ef||'')===k}">${l} <span class="mono">${n}</span></button>`).join('')}</div>`;})()}
       <button class="btn small primary" id="fkkKuralUygula" title="Kayıtlı kuralları şimdi tüm kayıtsız faturalara yeniden uygular">⟳ Kuralları Uygula</button>
       ${(()=>{const n=st.rows.filter(r=>!r.cari&&!r.logged&&!haricMi(r)&&(r.sec||st.filter!=='kayitsiz')).length;return n&&st.firm&&st.firm.lucaId?`<button class="btn small primary" id="fkkCariAc" title="Carisi bulunamayan seçili faturaların karşı tarafları için Luca'da cari hesap aç">＋ Eksik Carileri Aç (${n})</button>`:'';})()}
-      <span class="note" style="white-space:nowrap">Seçili: <b>${sec.length}</b>${bad.length?` · <span style="color:var(--out)">${bad.length} eksik</span>`:''}</span>
       ${bekleyen.length?`<button class="btn small primary" id="fkkHaricOnay" title="İşaretlenen faturalar kaydedilmeyecek; muavin kontrolünde eksik çıkmaz">Kaydedilmeyecekleri onayla (${bekleyen.length})</button>`:''}
       <span style="flex:1"></span>
       <button class="btn small" id="fkkSuzBtn" aria-expanded="${suzAcik}" title="Sütun süzgeçleri (tarih, belge, karşı taraf, tutar) ve kurallı / kuralsız seçimi">Süzgeç${suzN?` (${suzN})`:''} ${suzAcik?'▴':'▾'}</button>
@@ -5347,6 +5346,7 @@ const FKAYIT=(()=>{
         <div class="dmenuek"><label class="note dmenusec">Toplu hesap (seçililere) <input id="fkkTopluH" list="fkkAccList" class="mono" style="width:150px" placeholder="hesap kodu"></label>
         <label class="note dmenusec" style="margin-top:6px">Belge türü <input id="fkkBT" class="mono" style="width:80px" value="${esc(st.belgeTuru)}" placeholder="boş"></label></div></div></span>`;
     $('#fkKayit').classList.toggle('suz-acik',suzAcik);
+    {const n=$('#fkkSecN');if(n)n.innerHTML=`Seçili: <b>${sec.length}</b>${bad.length?` · <span style="color:var(--out)">${bad.length} eksik</span>`:''}`;}
     const SM=silinmisler();const silOf=r=>r.silindi||SM.get(r.f.anahtar)||SM.get('b:'+r.f.belge_no);
     const silChip=v=>v.neden==='muavin'?`<span class="chip aski" title="Programın kaydettiği Luca fişi${v.n?' '+esc(v.n):''} son çekilen muavinde yok; fiş Luca'dan silinmiş sayıldı. Fatura yeniden kaydedilebilir.">Luca'da bulunamadı (silinmiş)${v.n?' · fiş '+esc(v.n):''}</span>`
       :`<span class="chip aski" title="Luca'dan sildiğiniz işaretlendi; fatura yeniden kaydedilebilir">Luca'dan silindi${v.n?' · fiş '+esc(v.n):''}</span>`;

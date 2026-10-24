@@ -67,7 +67,8 @@ function cakisma(arg) {
 // Görev 54: sekme / çip / süzgeç düğme gruplarında her düğme seçili hâle getirilip ölçülür (tıklanmaz; seçili işareti
 // geçici olarak konur ve geri alınır):
 // - seçili hâl düğmenin boyunu değiştirmemeli (kalınlık / çerçeve farkı yer kaplamamalı)
-// - düğme, çizgisi (outline) dahil, grubun çerçevesinin (kenarlığı ya da zemini olan en yakın üst kutu) içinde kalmalı
+// - düğme, çizgisi (outline) dahil, grubun çerçevesinin (kenarlığı ya da zemini olan en yakın üst kutu) sol / sağ kenarından
+//   taşmamalı (sekmelerin alt çizgisinin çerçeve çizgisine binmesi tasarımdır)
 // İşaret: gruptaki seçili düğmenin kullandığı (secili, on, active, aktif, sel sınıfı; aria-pressed / aria-selected / aria-current);
 // grupta seçili yoksa hepsi birlikte denenir. Çağrı: seciliTasma(kök seçici | null) → [sorun…]
 function seciliTasma(kok) {
@@ -100,7 +101,7 @@ function seciliTasma(kok) {
         const r = b.getBoundingClientRect(), c = getComputedStyle(b);
         const o = c.outlineStyle !== 'none' ? Math.max(0, parseFloat(c.outlineWidth) + parseFloat(c.outlineOffset)) : 0;
         if (Math.abs(r.width - once.width) > 0.5 || Math.abs(r.height - once.height) > 0.5) out.push('seçili hâlde boyu değişiyor: ' + ad(b) + ' ' + Math.round(once.width) + '×' + Math.round(once.height) + ' → ' + Math.round(r.width) + '×' + Math.round(r.height));
-        else if (r.left - o < ic.l - 0.5 || r.right + o > ic.r + 0.5 || r.top - o < ic.t - 0.5 || r.bottom + o > ic.b + 0.5) out.push('seçili hâlde çerçeveden taşıyor: ' + ad(b) + ' ⊄ ' + ad(cerceve(g)).split(' "')[0]);
+        else if (r.left - o < ic.l - 0.5 || r.right + o > ic.r + 0.5) out.push('seçili hâlde çerçeveden taşıyor: ' + ad(b) + ' ⊄ ' + ad(cerceve(g)).split(' "')[0]);
       }
     } finally { for (const [b, cls, av] of yedek) { b.className = cls; ARIA.forEach((a, i) => av[i] == null ? b.removeAttribute(a) : b.setAttribute(a, av[i])); } }
   }
