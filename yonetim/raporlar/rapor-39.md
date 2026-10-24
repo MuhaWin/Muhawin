@@ -55,7 +55,7 @@
 - `yonetim/raporlar/rapor-39.md`
 
 ## Testler (Linux, xvfb; derleme yok)
-- `xvfb-run -a node test/e2e.js`: **315 ✓, 0 başarısız** (`main`, Görev 34 ve Görev 37 birleştirildikten sonra).
+- `xvfb-run -a node test/e2e.js`: **331 ✓, 0 başarısız** (`main`, Görev 34, 37 ve 36 birleştirildikten sonra).
 - `node test/mobil.js`: **45/45.**
 - **Yeni e2e denetimi**, Z raporu, ÖKC fişi, yurt dışı fatura ve FKAYIT fatura fişi için ayrı ayrı (FKAYIT'te hesap 770.01, borç 10,00; cari 600 → 610 → 600, − ile gider çıkınca 100). Her adımda ekrandaki eklenen / çıkarılan satır sayısı ve fiş dengesi ölçülüyor:
   1. ＋ Satır ekle → boş satır ekranda görünüyor, fişe girmiyor
