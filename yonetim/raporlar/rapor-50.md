@@ -61,7 +61,7 @@ Kullanıcı yeni sürümde nedeni artık ekranda görecek.
 | Test | Sonuç |
 |---|---|
 | `xvfb-run -a node test/e2e.js` | **377 geçti, 0 başarısız** |
-| `cd fk && pytest` | tümü geçti (kayıt adayları testi kararsızdı: firma VKN eşitliği; üçüncü satıcı eklendi) |
+| `cd fk && pytest` | 214 geçti, 2 atlandı (kayıt adayları testi kararsızdı: firma VKN eşitliği; üçüncü satıcı eklendi) |
 | `node test/mobil.js` | 45/45 |
 
 e2e Görev 50 bölümü (sahte faturalar):
