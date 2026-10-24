@@ -105,3 +105,78 @@ Bugün firma `id`'si her bilgisayarda rastgele üretiliyor (`uid()`). Aynı firm
 - Firma eşleme hatası, iki farklı firmayı birleştirebilir. Bu yüzden önce önizleme gösterilir, onayla birleştirilir, yedek alınır.
 - `aktarim` (mükerrer koruması) büyüyebilir: firma × ay bazında saklanır, eski aylar arşivlenir.
 - Gerçek Supabase'te deneme ancak SQL çalıştırıldıktan sonra yapılabilir. Testler sahte sunucuyla yapılır.
+
+---
+
+# Güncelleme – Görev 51 (24.10.2026): kullanıcı kararları ve aşamalar
+
+Bu bölüm yukarıdaki taslağın yerini alır; çelişen yerde bu bölüm geçerlidir. Sürüm: **2.9.17** (2.9.16 derlenene kadar main'e girmez).
+
+## A. Kullanıcı kararları
+1. **Supabase'de (ofis bazında) tutulanlar:** firmalar ve ofisin tüm kuralları.
+   - **Program tarafı:** banka kuralları, Luca'ya kaydet kuralları (`fkurallar`), ÖKC kuralları (`okckural`), kod tanımları (firmanın içinde), Luca çıktı ayarı.
+   - **Fatura Kontrol tarafı:** kaydedilmeyecekler ve kuralları, uygun kararları, denetim kontrol kuralları ve kararları, `firma.json`.
+   - **Davranış:** Ofise bağlı her kullanıcı, hangi bilgisayardan girerse girsin aynı veriyi görür. Değişiklik ötekilerde birkaç saniyede görünür. İnternet yoksa yerel önbellekle çalışılır; değişiklikler kuyruktan sonra gönderilir.
+2. **Silme ve değiştirme** tüm çalışanlara açık (`sunucu/yama-51-ofis-veri.sql`: `ofis_veri_silme = 'herkes'`). Yamayı canlıya Supabase işçisi, kullanıcı onayıyla uygular.
+3. **Büro bilgileri** Supabase esaslı.
+   - Her girişte sunucudaki kayıt gelir; bir bilgisayarda değişince ötekilere geçer (`tur='buro'`).
+   - **Luca giriş bilgileri** yalnız o bilgisayarda kalır.
+4. **Veri klasörü (yeni anlam):** Fatura–muavin kontrol verileri, yani indirilen e-faturalar, muavinler, raporlar ve toplu özetler, kullanıcının seçtiği klasörde durur.
+   - **Seçenekler:** kendi klasörü (varsayılan: hesap klasörü) ya da büronun ortak klasörü.
+   - **Ortak klasörde:** Bütün ofis aynı klasörü okur ve yazar. Bir kişinin sorgulaması ötekilerin "Sonuçlar" ekranında "kim sorguladı / ne zaman" bilgisiyle görünür.
+   - **Kurallar ve firmalar** bu klasörde değil, Supabase'dedir.
+   - **Eski kullanım:** Eski "firmalar/kurallar ortak klasörde" (`sharedDir`) kullananların verisi Supabase'e taşınır.
+5. **Güvenli yenileme:** Yeni sorgulama eski belgeleri silmez.
+   - Yeni belgeler geçici klasöre iner; sorgulama tam ve hatasız biterse eskisinin yerine geçer, eski ancak o zaman silinir. Yarıda kalırsa eski veri olduğu gibi kalır.
+   - Aynı fatura diskte birden fazla kopya tutmaz.
+   - Aynı firma ve dönemi iki kişi aynı anda sorgulayamaz (kilit).
+6. **İşlem günlüğü:** Supabase'de ofis bazında tutulur ve silinemez. Varsayılan olarak ofisteki herkes görür.
+   - **Kayda geçen işlemler:** fiş silme, Luca'ya kaydetme ve aktarma, rapor ve sorgulama, banka işleme, kural ekleme ve silme.
+   - **Ekran:** Ayarlar'da süzgeçli bir "İşlem günlüğü" ekranı.
+
+## B. Sunucu
+- **`ofis_veri`** (canlıda var, Görev 07) aynen kullanılır. `sahip` = ofis kimliği (ofissiz kullanıcıda kendi kimliği), satır = (`tur`, `firma`, `anahtar`), `veri` jsonb. Silme `silindi=true` ile yapılır. `surum` eşitleme imlecidir.
+
+| tur | firma | anahtar | veri |
+|---|---|---|---|
+| `firma` | – | firma id | firma nesnesi (bankalar, kod tanımları `fkKod`, ayarlar dahil; `mizanInfo` hariç) |
+| `kural` | firma id | kural id | banka kuralı |
+| `fkural` | firma id | kural id | Luca'ya kaydet kuralı |
+| `okckural` | firma id | kural id | ÖKC kuralı |
+| `cikti` | – | `cikti` | Luca çıktı ayarı |
+| `buro` | – | `buro` | büro bilgileri |
+| `fk_firma` | FK klasör adı | `firma` | `firma.json` |
+| `fk_haric`, `fk_uygun`, `fk_dkarar` | FK klasör adı | kayıt anahtarı | kaydedilmeyecek / uygun / denetim kararı |
+| `fk_hkural`, `fk_dkural` | FK klasör adı | kural id | kaydedilmeyecek kuralı / denetim kuralı |
+
+- **`ofis_gunluk`** (yeni, yama-51): `id`, `sahip`, `kullanici`, `eposta`, `zaman`, `tur`, `firma`, `ozet`, `ayrinti` jsonb, `cihaz`.
+  - Yalnız ekleme var (`ofis_gunluk_yaz`); güncelleme ve silme yok, RLS ve yetkilerle kapalı.
+  - Okuma `ofis_gunluk_liste(süzgeç)` ile; aynı ofisin üyeleri görür (ayar: `ofis_gunluk_gorunum` = `herkes` | `yonetici`).
+
+## C. Program
+- **Eşitleyici (`ofisveri.js`, Electron ana süreç):**
+  - **Yazma:** `datastore.apply(op)` yerel `veri.json`'a yazar (önbellek; internetsiz çalışır), sonra işlemin ürettiği satırları kalıcı kuyruğa (`giden.json`) koyar. Kuyruk `ofis_veri_yaz` ile gönderilir; başarısız olursa artan aralıkla yeniden denenir.
+  - **Okuma:** 5 sn'de bir `ofis_veri_degisenler(imleç)` çağrılır. Gelen satırlar yerel önbelleğe işlenir, arayüze `data-changed` gider.
+  - **Çakışma ve kimlik:** Satır düzeyinde son yazan kazanır. Ofis değişince imleç sıfırlanıp tam çekim yapılır.
+- **İlk geçiş:** Bu bilgisayardaki veri, ya da eski ortak klasördeki (`sharedDir`) veri, sunucudakiyle birleştirilip yüklenir.
+  - Önce yerel yedek alınır.
+  - Firmalar Luca firma no, sonra VKN, sonra ad ile eşlenir. Aynı firmanın kuralları birleşir.
+- **Fatura Kontrol dosyaları:** Eşitleyici, veri klasöründeki firma dosyalarını kayıt bazında iki yönlü eşitler. Son eşitlenen hâl saklanır; farkla gönderilir, gelen değişiklik dosyaya birleştirilir. Python kodu değişmez.
+- **Veri klasörü:** `ayarlar.json › fkVeriDir` (boşsa hesap klasörü). Python'a `FK_VERI` ve `FK_KULLANICI` (e-posta) verilir.
+- **Kim sorguladı:** `rapor.json` ve toplu özete `sorgulayan` ve `zaman` yazılır; Sonuçlar ekranında gösterilir.
+- **Güvenli yenileme (Python):**
+  - Dönem belgeleri `<dönem>/.yeni-<zaman>` klasörüne iner. Başarıda eski klasörle yer değiştirir; eski silinir. Hatada geçici klasör silinir, eski yerinde kalır.
+  - Firma-dönem kilidi `<dönem>.kilit` dosyasıdır: sahibi, zamanı ve yaşam sinyali içerir; bayatlarsa (10 dk) devralınır.
+- **İşlem günlüğü:** `gunlukYaz` yerelde kalır (günün özeti); ayrıca `ofis_gunluk` kuyruğuna girer. Ayarlar › İşlem günlüğü ekranında kullanıcı, işlem, firma ve tarih süzgeçleri var.
+
+## D. Aşamalar
+1. Tasarım (bu bölüm) ve SQL yaması (`yama-51-ofis-veri.sql`).
+2. Eşitleyici: firmalar, kurallar, çıktı, büro. Kuyruk, internetsiz çalışma, ilk geçiş. Sahte Supabase ile iki bilgisayar testi.
+3. İşlem günlüğü (sunucu, kuyruk, Ayarlar ekranı).
+4. Veri klasörü seçimi, kim sorguladı, kilit, güvenli yenileme. Fatura Kontrol dosyalarının eşitlenmesi. pytest ve ortak klasörde iki kullanıcı testi.
+5. e2e, rapor-51, taslak PR. Canlıya SQL yamasını Supabase işçisi uygular; program sürümü 2.9.17.
+
+## E. Açık noktalar (kullanıcıya sorulacaksa)
+- **Mizan / hesap planı:** Şimdilik her bilgisayarda Luca'dan çekilir; ortaklaştırma sonraya.
+- **Mükerrer koruması:** `aktarim` ve `fkayit` kayıtları da ofis ortak olmalı mı? Önerim evet; ilk sürümde eklenebilir.
+- **ÖKC belgeleri** (`okc`) ve görüntüleri yerelde kalır.
