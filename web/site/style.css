@@ -105,9 +105,9 @@ h1 { font-size: clamp(2rem, 5vw, 3.2rem); letter-spacing: -.02em; }
 .adimlar span { color: var(--yazi-2); font-size: .93rem; }
 
 .notlar { display: flex; flex-direction: column; gap: 10px; }
-.notlar details { background: var(--kart); border: 1px solid var(--cizgi); border-radius: 12px; padding: 14px 18px; }
-.notlar summary { cursor: pointer; font-weight: 600; }
-.notlar summary small { color: var(--yazi-2); font-weight: 400; margin-left: 8px; }
+.notlar .surum-notu { background: var(--kart); border: 1px solid var(--cizgi); border-radius: 12px; padding: 14px 18px; }
+.notlar h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.notlar h3 small { color: var(--yazi-2); font-weight: 400; margin-left: 8px; }
 .notlar ul { margin: 10px 0 0; padding-left: 20px; color: var(--yazi-2); font-size: .93rem; }
 .notlar li + li { margin-top: 6px; }
 .notlar ul ul { margin-top: 4px; }
