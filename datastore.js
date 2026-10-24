@@ -63,7 +63,40 @@ function makeDataStore(userDir) {
 
   // silinen firmanın saklanan kuralları/mizanı için anahtar: Luca firma no ya da ad
   const arsivAnahtari = f => f ? (f.lucaId ? 'luca:' + f.lucaId : 'ad:' + String(f.name || '').trim().toLocaleUpperCase('tr-TR')) : null;
-    let lastOwnRev = null;
+  // --- Görev 51: ofis deposu satırları (tur, firma, anahtar, veri, silindi) ---
+  // firma: mizanInfo bu bilgisayara aittir (mizan dosyası yerelde), uzaktan gelen firmaya yereldeki eklenir.
+  function uzakSatir(d, r, x) {
+    const sil = !!x.silindi || x.veri == null, v = x.veri;
+    const kume = (alan, fid) => { d[alan] = d[alan] || {}; return (d[alan][fid] = d[alan][fid] || {}); };
+    switch (x.tur) {
+      case 'firma': {
+        const eski = d.firms[x.anahtar];
+        if (sil) { delete d.firms[x.anahtar]; break; }
+        d.firms[x.anahtar] = { ...v, id: x.anahtar, ...(eski && eski.mizanInfo ? { mizanInfo: eski.mizanInfo } : {}) };
+        if (!d.firms[x.anahtar].mizanInfo) delete d.firms[x.anahtar].mizanInfo;
+        break; }
+      case 'kural': if (sil) { if (d.rules[x.firma]) delete d.rules[x.firma][x.anahtar]; } else kume('rules', x.firma)[x.anahtar] = v; break;
+      case 'fkural': if (sil) { if (d.fkurallar && d.fkurallar[x.firma]) delete d.fkurallar[x.firma][x.anahtar]; } else kume('fkurallar', x.firma)[x.anahtar] = v; break;
+      case 'okckural': if (sil) { if (d.okckural && d.okckural[x.firma]) delete d.okckural[x.firma][x.anahtar]; } else kume('okckural', x.firma)[x.anahtar] = v; break;
+      case 'cikti': d.output = sil ? null : v; break;
+      case 'buro': if (!sil) d.registration = v; break;
+      default: break;                                           // bilinmeyen tür (yeni sürüm): yok sayılır
+    }
+  }
+  function firmaKimlik(d, r, eski, yeni) {
+    if (!eski || !yeni || eski === yeni || !d.firms[eski]) return;
+    const tasi = alan => { if (d[alan] && d[alan][eski]) { d[alan][yeni] = { ...(d[alan][eski] || {}), ...(d[alan][yeni] || {}) }; delete d[alan][eski]; } };
+    d.firms[yeni] = { ...d.firms[eski], ...(d.firms[yeni] || {}), id: yeni }; delete d.firms[eski];
+    for (const alan of ['rules', 'fkurallar', 'okckural', 'okc']) tasi(alan);
+    for (const alan of ['aktarim', 'fkayit']) if (d[alan] && d[alan][eski]) {
+      const a = d[alan][eski], b = (d[alan][yeni] = d[alan][yeni] || { keys: {}, batches: [] });
+      Object.assign(b.keys, a.keys || {}); b.batches = [...(a.batches || []), ...(b.batches || [])].slice(0, 300); delete d[alan][eski];
+    }
+    for (const g of d.gunluk || []) if (g.fid === eski) g.fid = yeni;
+    try { const src = path.join(mizanDir(r), safeId(eski) + '.json'), hedef = path.join(mizanDir(r), safeId(yeni) + '.json');
+      if (fs.existsSync(src) && !fs.existsSync(hedef)) fs.renameSync(src, hedef); } catch (_) {}
+  }
+  let lastOwnRev = null;
   function apply(op, a) {
     const r = root();
     return withLock(r, () => {
@@ -123,6 +156,10 @@ function makeDataStore(userDir) {
         // Günlük iş özeti: Luca'ya kaydedilen fişler, indirilen muavinler vb. (en çok 5000 kayıt, eski olanlar düşer)
         case 'logGunluk': { const G = (d.gunluk = d.gunluk || []); if (a.kayit) G.unshift({ ...a.kayit, at: a.kayit.at || new Date().toISOString() }); if (G.length > 5000) G.length = 5000; break; }
         case 'unlogAktarim': { const x = d.aktarim && d.aktarim[a.fid]; if (x) for (const k of a.keys || []) delete x.keys[k]; break; }
+        // Görev 51: ofis deposundan (Supabase) gelen satırlar yerel önbelleğe işlenir (ofisveri.js); bu bilgisayara ait alanlar korunur
+        case 'uzakUygula': for (const x of a.satirlar || []) uzakSatir(d, r, x); break;
+        // Görev 51: aynı firma ofis deposunda başka kimlikle varsa yereldeki kimlik onunkine çevrilir (kurallar, mizan, kayıtlar taşınır)
+        case 'firmaKimlik': firmaKimlik(d, r, a.eski, a.yeni); break;
         default: throw new Error('Bilinmeyen işlem: ' + op);
       }
       d.rev = (d.rev || 0) + 1; d.savedAt = new Date().toISOString(); d.savedBy = os.hostname();

@@ -2,7 +2,7 @@
 //   fatura: 'yeni' (hiç açılmamış → açılınca deneme) | 'bitti' (süresi dolmuş; kod girilince açılır)
 const http = require('http');
 function start({ port = 0, fatura = 'yeni', admin = false, ekstre = 'lisansli' } = {}) {
-  const st = { fatura, ekstre, ekstreKod: false, faturaKod: false, office: null, invites: [], members: [], admin, adm: admin ? yonetimVerisi() : null, cihazlar: [] };
+  const st = { fatura, ekstre, ekstreKod: false, faturaKod: false, office: null, invites: [], members: [], admin, adm: admin ? yonetimVerisi() : null, cihazlar: [], ofisVeri: new Map(), gunluk: [] };
   const gun = n => new Date(Date.now() + n * 864e5).toISOString();
   function modules() {
     const f = st.faturaKod ? { valid: true, type: 'pool', expires: gun(365).slice(0, 10), daysLeft: 365, license_end: gun(365) }
@@ -51,6 +51,31 @@ function start({ port = 0, fatura = 'yeni', admin = false, ekstre = 'lisansli' }
         if (!st.admin) { r.statusCode = 400; return r.end(JSON.stringify({ message: 'Yetkisiz' })); }
         st.cagri = st.cagri || []; st.cagri.push([fn, j]);
         return r.end(JSON.stringify(yonetim(st.adm, fn, j)));
+      }
+      // Görev 51: ofis ortak verisi ve işlem günlüğü (sahip: ofis varsa ofis, yoksa kullanıcı). st.agYok: bağlantı kesik taklidi
+      if (fn && /^ofis_(veri|gunluk)_/.test(fn)) {
+        if (st.agYok) return q.socket.destroy();
+        const sahip = st.office ? st.office.id : 'u1';
+        if (fn === 'ofis_veri_yaz') { let son = 0;
+          for (const x of j.p_satirlar || []) {
+            const k = [sahip, x.tur, x.firma || '', x.anahtar || ''].join('|'); st.surum = (st.surum || 0) + 1; son = st.surum;
+            st.ofisVeri.set(k, { sahip, tur: x.tur, firma: x.firma || '', anahtar: x.anahtar || '', veri: x.silindi ? null : x.veri, silindi: !!x.silindi, surum: st.surum, guncellendi: new Date().toISOString() });
+          }
+          st.yazmaSayisi = (st.yazmaSayisi || 0) + 1;
+          return r.end(JSON.stringify({ sahip, yazilan: (j.p_satirlar || []).length, surum: son }));
+        }
+        if (fn === 'ofis_veri_degisenler') {
+          const lim = j.p_limit || 1000; const L = [...st.ofisVeri.values()].filter(x => x.sahip === sahip && x.surum > (j.p_surum || 0)).sort((a, b) => a.surum - b.surum).slice(0, lim);
+          return r.end(JSON.stringify({ sahip, satirlar: L, surum: L.length ? L[L.length - 1].surum : (j.p_surum || 0), devam: L.length === lim }));
+        }
+        if (fn === 'ofis_gunluk_yaz') { for (const x of j.p_kayitlar || []) if (!st.gunluk.some(g => g.istemci_id && g.istemci_id === x.id))
+          st.gunluk.push({ id: st.gunluk.length + 1, sahip, eposta: st.eposta || 'test@ornek.com', zaman: new Date().toISOString(), yerel_zaman: x.zaman, tur: x.tur, firma: x.firma || '', ozet: x.ozet || '', ayrinti: x.ayrinti || null, cihaz: x.cihaz || '', istemci_id: x.id || '' });
+          return r.end(JSON.stringify({ yazilan: (j.p_kayitlar || []).length })); }
+        if (fn === 'ofis_gunluk_liste') { const f = j.p_suzgec || {}; const lim = j.p_limit || 200;
+          const L = st.gunluk.filter(g => g.sahip === sahip && (!f.tur || g.tur === f.tur) && (!f.eposta || g.eposta === f.eposta) && (!f.firma || g.firma.toLocaleLowerCase('tr').includes(String(f.firma).toLocaleLowerCase('tr')))
+            && (!f.ara || (g.ozet + ' ' + g.firma).toLocaleLowerCase('tr').includes(String(f.ara).toLocaleLowerCase('tr'))) && (!j.p_once || g.id < j.p_once)
+            && (!f.bas || g.zaman.slice(0, 10) >= f.bas) && (!f.bit || g.zaman.slice(0, 10) <= f.bit)).sort((a, b) => b.id - a.id);
+          return r.end(JSON.stringify({ kayitlar: L.slice(0, lim), devam: L.length > lim })); }
       }
       if (fn === 'office_info') return r.end(JSON.stringify(info()));
       if (fn === 'office_create') { st.office = { id: 'o1', name: j.p_name, luca_uye_no: String(j.p_luca_uye_no).replace(/\D/g, '') }; return r.end(JSON.stringify(status())); }

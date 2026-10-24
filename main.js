@@ -2,14 +2,16 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const luca = require('./luca');
 const { makeYz } = require('./yz');
 const { makeDataStore } = require('./datastore');
+const { makeOfisVeri } = require('./ofisveri');
 const { makeCloud, kodUret, kodOzet, kodGrupla } = require('./cloud');
 const { makeKur } = require('./kur');
 const { makeSidecar } = require('./sidecar');
 const { makeGuncelleme } = require('./guncelleme');
-let ds, auth, fk;
+let ds, auth, fk, ov = null;     // ov: ofis ortak verisi eşitleyicisi (Görev 51)
 
 // Ekstre Luca'dan MuhaWin'e geçiş: eski program verisi (hesaplar, ayarlar, oturum) bir kez kopyalanır.
 // Eski klasör silinmez; Ekstre Luca kurulu kalırsa o da çalışmaya devam eder.
@@ -212,6 +214,19 @@ function fkEnv() {
 function fkConfigure() { if (fk) return fk.configure({ dir: acctDir ? path.join(acctDir, 'fatura_kontrol') : null, env: acctDir ? fkEnv() : {} }); }
 
 // --- program girişi ---
+// Hesabın veri deposu ve ofis ortak verisi eşitleyicisi (Görev 51). Firmalar / kurallar ortak klasörde (eski "sharedDir")
+// tutuluyorduysa önce bu bilgisayara alınır (yedekle); ortak veri artık ofis deposunda (Supabase), yerel veri.json önbellektir.
+function veriBaslat(dir) {
+  if (ds && ds.unwatch) ds.unwatch();
+  if (ov) { ov.durdur(); ov = null; }
+  ds = makeDataStore(dir);
+  try { if (ds.info().shared) { backup(); ds.useLocal(); } } catch (e) {}
+  try { ds.load(); } catch (e) {}
+  const degisti = () => { if (win && !win.isDestroyed()) win.webContents.send('data-changed'); };
+  ds.watch(degisti);
+  ov = makeOfisVeri({ dir, ds, rpc: (fn, a) => auth.ofis(fn, a), onChange: degisti, cihaz: os.hostname(), log: m => console.log('[ofis-veri] ' + m) });
+  ov.baslat();
+}
 // Her hesabın verisi ayrı klasörde: %APPDATA%/Ekstre Luca/hesaplar/<e-posta özeti>/
 const legacyFile = () => path.join(userDir(), 'veri.json');
 async function onAuthed(r) {
@@ -224,11 +239,8 @@ async function onAuthed(r) {
   const lastF = path.join(userDir(), 'son-hesap.txt'); let last = ''; try { last = fs.readFileSync(lastF, 'utf8'); } catch (e) {}
   if (last && last !== email) { try { await luca.logout(); } catch (e) {} }
   try { fs.writeFileSync(lastF, email); } catch (e) {}
-  if (ds && ds.unwatch) ds.unwatch();
-  acctDir = dir; ds = makeDataStore(dir);
-  try { ds.load(); } catch (e) {}
+  acctDir = dir; veriBaslat(dir);
   backup();
-  ds.watch(() => { if (win && !win.isDestroyed()) win.webContents.send('data-changed'); });
   fkConfigure();
   // önceki sürümden kalan (hesapsız) veri varsa ve bu hesabın verisi boşsa sor
   let legacy = null;
@@ -249,7 +261,7 @@ ipcMain.handle('auth-claim-legacy', (e, take) => {
   const mz = path.join(root, 'mizan'); if (fs.existsSync(mz)) { fs.mkdirSync(path.join(acctDir, 'mizan'), { recursive: true }); for (const n of fs.readdirSync(mz)) fs.copyFileSync(path.join(mz, n), path.join(acctDir, 'mizan', n)); }
   // eski konumdaki dosyalar "aktarıldı" olarak yeniden adlandırılır (silinmez)
   for (const n of ['veri.json', 'luca-giris.bin']) { const f = path.join(root, n); if (fs.existsSync(f)) fs.renameSync(f, path.join(root, n.replace(/(\.\w+)$/, '-aktarildi$1'))); }
-  if (ds && ds.unwatch) ds.unwatch(); ds = makeDataStore(acctDir); ds.load(); ds.watch(() => { if (win && !win.isDestroyed()) win.webContents.send('data-changed'); });
+  veriBaslat(acctDir);
   return { ok: true };
 });
 ipcMain.handle('auth-status', () => ({ ...auth.info(), lastEmail: auth.lastEmail() }));
@@ -268,7 +280,7 @@ ipcMain.handle('auth-recover', (e, a) => auth.recover(a || {}));
 ipcMain.handle('auth-newpw', async (e, a) => { const r = await auth.setNewPassword(a || {}); hatirlaSil(); return r; });
 ipcMain.handle('auth-change', async (e, a) => { const r = await auth.changePassword(a || {}); const c = hatirlaOku(); const y = a && a.next;
   if (c) { if (y) hatirlaYaz(c.email, String(y)); else hatirlaSil(); } return r; });
-ipcMain.handle('auth-logout', () => { admAcik = false; hatirlaSil(); auth.logout(); if (ds && ds.unwatch) ds.unwatch(); ds = null; acctDir = null; if (fk) { fk.stop(); fkConfigure(); } try { luca.logout(); } catch (err) {} if (win && !win.isDestroyed()) win.webContents.reload(); return true; });
+ipcMain.handle('auth-logout', () => { admAcik = false; hatirlaSil(); auth.logout(); if (ds && ds.unwatch) ds.unwatch(); ds = null; if (ov) { ov.durdur(); ov = null; } acctDir = null; if (fk) { fk.stop(); fkConfigure(); } try { luca.logout(); } catch (err) {} if (win && !win.isDestroyed()) win.webContents.reload(); return true; });
 const needAuth = () => { if (!auth || !auth.isAuthed()) throw new Error('Önce programa giriş yapın.'); };
 const _handle = ipcMain.handle.bind(ipcMain);
 ipcMain.handle = (ch, fn) => _handle(ch, /^(auth-|app-info$)/.test(ch) ? fn : (...a) => { needAuth(); return fn(...a); });
@@ -276,7 +288,10 @@ ipcMain.handle = (ch, fn) => _handle(ch, /^(auth-|app-info$)/.test(ch) ? fn : (.
 // --- veri ---
 const errText = e => String(e && e.message || e);
 ipcMain.on('store-load', e => { if (!auth || !auth.isAuthed()) { e.returnValue = { ok: false, error: 'Önce programa giriş yapın.', data: null }; return; } try { e.returnValue = { ok: true, data: ds.load() }; } catch (err) { e.returnValue = { ok: false, error: errText(err), data: null }; } });
-ipcMain.handle('store-op', (e, op, args) => ds.apply(op, args));
+ipcMain.handle('store-op', (e, op, args) => { const d = ds.apply(op, args); if (ov) ov.yerelDegisti(d); return d; });
+// Görev 51: ofis deposu eşitleme durumu (bekleyen değişiklik, son hata) ve hemen eşitle
+ipcMain.handle('ofis-veri-durum', () => ov ? ov.durum() : { etkin: false });
+ipcMain.handle('ofis-veri-esitle', async () => { if (ov) await ov.tur(); return ov ? ov.durum() : { etkin: false }; });
 
 // ---------- ÖKC fiş girişi: görüntü ekleme ve okuma (OCR, Türkçe; bilgisayarda çalışır, internete gönderilmez) ----------
 let ocrWorker = null, ocrSira = Promise.resolve(), ocrIptal = false;
@@ -383,14 +398,14 @@ ipcMain.handle('data-import-pick', async () => {
   const sum = ds.validateBundle(b); pendingImport = b;
   return { ok: true, file: path.basename(r.filePaths[0]), ...sum };
 });
-ipcMain.handle('data-import-apply', (e, mode) => { if (!pendingImport) throw new Error('Önce dosya seçin.'); const r = ds.importBundle(pendingImport, mode); pendingImport = null; return r; });
+ipcMain.handle('data-import-apply', (e, mode) => { if (!pendingImport) throw new Error('Önce dosya seçin.'); const r = ds.importBundle(pendingImport, mode); pendingImport = null; if (ov) ov.yerelDegisti(); return r; });
 ipcMain.handle('data-pick-shared', async () => {
   const r = await dialog.showOpenDialog(win, { title: 'Büronun ortak klasörünü seçin', properties: ['openDirectory', 'createDirectory'] });
   if (r.canceled || !r.filePaths[0]) return { ok: false };
   return { ok: true, dir: r.filePaths[0], ...ds.inspectShared(r.filePaths[0]) };
 });
 ipcMain.handle('data-use-shared', (e, dir, mode) => { const r = ds.useShared(dir, mode); ds.watch(); return r; });
-ipcMain.handle('data-use-local', () => { const r = ds.useLocal(); ds.watch(); return r; });
+ipcMain.handle('data-use-local', () => { const r = ds.useLocal(); ds.watch(); if (ov) ov.yerelDegisti(); return r; });
 
 // --- dosya kaydet ---
 // "Klasörde göster" yalnız programın kaydettiği dosyalar ve veri klasörü için (arayüzden gelen rastgele yol açılmaz)
@@ -486,7 +501,8 @@ ipcMain.handle('yedek-al', async () => { needAuth(); const r = await dialog.show
   const ad = 'MuhaWin-yedek-' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-'); const hedef = path.join(r.filePaths[0], ad); klasorKopyala(acctDir || userDir(), hedef); return { ok: true, path: hedef }; });
 ipcMain.handle('yedek-geri-yukle', async () => { needAuth(); const r = await dialog.showOpenDialog(win, { title: 'Geri yüklenecek yedek klasörü (MuhaWin-yedek-…)', properties: ['openDirectory'] }); if (r.canceled || !r.filePaths[0]) return { ok: false };
   const k = r.filePaths[0]; if (!fs.existsSync(path.join(k, 'veri.json')) && !fs.existsSync(path.join(k, 'firmalar')) && !fs.readdirSync(k).length) throw new Error('Bu klasör bir MuhaWin yedeği gibi görünmüyor.');
-  backup(); klasorKopyala(k, acctDir || userDir()); if (ds && ds.unwatch) ds.unwatch(); ds = makeDataStore(acctDir); ds.load(); ds.watch(() => { if (win && !win.isDestroyed()) win.webContents.send('data-changed'); });
+  backup(); klasorKopyala(k, acctDir || userDir()); try { fs.unlinkSync(path.join(acctDir || userDir(), 'bulut.json')); } catch (e) {}   // yedekten dönen veri ofis deposuyla yeniden birleştirilir
+  veriBaslat(acctDir);
   return { ok: true, path: k }; });
 
 // --- Luca ---

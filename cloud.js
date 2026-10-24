@@ -273,6 +273,13 @@ function makeCloud(dir, { version = '', safeStorage = null, _testUrl = null } = 
       if (['office_create', 'office_update', 'office_join', 'office_remove_member'].includes(fn)) { try { await refreshStatus(); } catch (e) {} }
       return r;
     },
+    // --- Görev 51: ofis ortak verisi (firmalar, kurallar, büro) ve işlem günlüğü ---
+    async ofis(fn, args) {
+      if (!['ofis_veri_yaz', 'ofis_veri_degisenler', 'ofis_gunluk_yaz', 'ofis_gunluk_liste'].includes(fn)) throw new Error('Geçersiz işlem.');
+      if (!sess) throw new NetErr('Önce programa giriş yapın.');
+      if (offline) throw new NetErr('Çevrimdışı çalışıyorsunuz.');
+      return rpc(fn, args || {});
+    },
     // --- WhatsApp fiş kutusu (Edge Function 'whatsapp-al': kullanıcı belirteciyle) ---
     async waBekleyenler() { if (offline) throw new NetErr('Çevrimdışı; WhatsApp kutusu için internet gerekli.'); return call('/functions/v1/whatsapp-al', { method: 'GET', token: await token(), timeout: 30000 }); },
     async waAlindi(ids) { return call('/functions/v1/whatsapp-al', { method: 'POST', body: { ids: ids || [] }, token: await token() }); },
