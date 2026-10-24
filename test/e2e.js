@@ -354,6 +354,16 @@ wb.save(${JSON.stringify(mzx)})`]);
     check(/Mizan \/ Muavin \/ Hesap Planı/.test(await w.textContent('#mmBtn')), 'üst şerit düğmesi: "Mizan / Muavin / Hesap Planı"');
     check(await w.getAttribute('[data-mmtab=mizan]', 'aria-pressed') === 'true', 'Mizan / Muavin / Hesap Planı penceresi Mizan sekmesiyle açıldı');
     check((await w.$$eval('[data-mmtab]', b => b.map(x => x.dataset.mmtab).join(','))) === 'mizan,muavin,plan', 'sekme sırası: Mizan, Muavin, Hesap Planı');
+    // Görev 55: DH (detay hesap) sütunu: E = en alt kırılım, H = altında hesap var (kalın, koyu); yatay kaydırma yok
+    { const mz = await w.evaluate(() => {
+        const th = [...document.querySelectorAll('#mmTable thead tr:first-child th')].map(x => x.textContent.trim());
+        const L = [...document.querySelectorAll('#mmTable tbody tr[data-kod]')].map(r => ({ k: r.dataset.kod, dh: (r.querySelector('td.dh') || {}).textContent, ust: r.classList.contains('ust'), fw: +getComputedStyle(r.cells[0]).fontWeight }));
+        const m = window.HesapDH.detayHesaplar(L.map(x => x.k)), wr = document.querySelector('#mmPanel .mmwrap');
+        const ornek = Object.fromEntries(window.HesapDH.detayHesaplar(['102', '102.01', '102.01.07', '102.01.07.01']));
+        return { dh: th.some(x => /^DH/.test(x)), n: L.length, tutarli: L.every(x => x.dh === m.get(x.k) && x.ust === (x.dh === 'H') && (x.dh === 'H' ? x.fw >= 700 : x.fw < 700)),
+                 yatay: !!wr && wr.scrollWidth > wr.clientWidth + 1, ornek }; });
+      check(mz.dh && mz.tutarli && !mz.yatay && mz.ornek['102.01.07.01'] === 'E' && ['102', '102.01', '102.01.07'].every(k => mz.ornek[k] === 'H'),
+        'Görev 55: mizanda DH sütunu (E / H), H satırları kalın, yatay kaydırma yok (' + mz.n + ' satır)'); }
     await w.click('[data-mmtab=muavin]'); await w.waitForTimeout(800);
     let n = await w.$$eval('#mmTable tbody tr', t => t.length);
     check(n === 3, 'muavin satırları listelendi (' + n + ')');

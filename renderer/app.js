@@ -2996,7 +2996,9 @@ const MMUI=(()=>{
     return N(String(v??'')).includes(N(f));
   }
   function planCols(){return [['kod','Hesap kodu'],['ad','Hesap adı'],['duzey','Düzey'],['alt','Alt hesap',1]];}
-  function mizanCols(){return [['kod','Hesap kodu'],['ad','Hesap adı'],['borc','Borç',1],['alacak','Alacak',1],['bb','Borç bakiye',1],['ab','Alacak bakiye',1]];}
+  // Görev 55: DH = detay hesap (E: en alt kırılım · H: altında hesap var, satır kalın)
+  function mizanCols(){return [['kod','Hesap kodu'],['ad','Hesap adı'],['dh','DH'],['borc','Borç',1],['alacak','Alacak',1],['bb','Borç bakiye',1],['ab','Alacak bakiye',1]];}
+  const dhIsaretle=rows=>{const m=HesapDH.detayHesaplar(rows.map(r=>r.kod));for(const r of rows){r.dh=m.get(r.kod)||'E';r._leaf=r.dh==='E';}return rows;};
   function muavinCols(){if(st.hesapF&&!st.grup)return [['tarih','Tarih'],['fis_tipi','Fiş tipi'],['fis_no','Fiş no'],['hesap_kodu','Hesap kodu'],['aciklama','Açıklama'],['belge_no','Belge no'],['borc','Borç',1],['alacak','Alacak',1],['bakiye','Bakiye',1]];
     return st.grup?[['kod','Hesap kodu'],['ad','Hesap adı'],['adet','Hareket',1],['borc','Borç',1],['alacak','Alacak',1],['bb','Borç bakiye',1],['ab','Alacak bakiye',1]]
     :[['tarih','Tarih'],['fis_tipi','Fiş tipi'],['fis_no','Fiş no'],['hesap_kodu','Hesap kodu'],['hesap_adi','Hesap adı'],['aciklama','Açıklama'],['belge_no','Belge no'],['borc','Borç',1],['alacak','Alacak',1]];}
@@ -3033,8 +3035,7 @@ const MMUI=(()=>{
     try{for(const r of await Store.getMizan(f.id,(f.mizanInfo||{}).parts)||[])if(r&&r[0]&&!plan.has(String(r[0])))plan.set(String(r[0]),String(r[1]||''));}catch(e){}
     const g=new Map();const ekle=(k,ad,b,a)=>{const x=g.get(k)||{kod:k,ad:ad||plan.get(k)||'',borc:0,alacak:0};if(!x.ad&&ad)x.ad=ad;x.borc+=b;x.alacak+=a;g.set(k,x);};
     for(const r of sat){const k=String(r.hesap_kodu);ekle(k,r.hesap_adi,r.borc||0,r.alacak||0);const p=k.split('.');for(let i=p.length-1;i>=1;i--)ekle(p.slice(0,i).join('.'),'',r.borc||0,r.alacak||0);}
-    const kodlar=new Set(g.keys());
-    st.rows=[...g.values()].map(x=>({...x,borc:Math.round(x.borc*100)/100,alacak:Math.round(x.alacak*100)/100,...bak(x.borc,x.alacak),_lv:x.kod.split('.').length,_leaf:![...kodlar].some(o=>o!==x.kod&&o.startsWith(x.kod+'.'))}))
+    st.rows=dhIsaretle([...g.values()].map(x=>({...x,borc:Math.round(x.borc*100)/100,alacak:Math.round(x.alacak*100)/100,...bak(x.borc,x.alacak),_lv:x.kod.split('.').length})))
       .sort((a,b)=>a.kod.localeCompare(b.kod,'tr',{numeric:true}));
     st.note=`Muavinden mizan · ${esc(m.firma||f.name)} · ${bas||bit?esc((trd(bas)||'dönem başı')+' – '+(trd(bit)||'dönem sonu')):'tüm yıl '+esc(yil)} · ${sat.length} hareket · muavin indirildi ${d.zaman?new Date(d.zaman).toLocaleString('tr-TR',{dateStyle:'short',timeStyle:'short'}):''}`;
   }
@@ -3062,8 +3063,7 @@ const MMUI=(()=>{
     const acc=await Store.getMizan(f.id,(f.mizanInfo||{}).parts)||[];
     const has=acc.some(x=>x.length>=4);
     st.rows=acc.map(([kod,ad,b,a])=>{const lv=String(kod).split(/[.\- ]/).length;return {kod,ad,borc:has?+b||0:null,alacak:has?+a||0:null,...(has?bak(+b||0,+a||0):{bb:null,ab:null}),_lv:lv};});
-    const kodlar=new Set(acc.map(x=>String(x[0]).split(/[.\- ]/).join('.')));
-    st.rows.forEach(r=>{const k=String(r.kod).split(/[.\- ]/).join('.');r._leaf=![...kodlar].some(o=>o!==k&&o.startsWith(k+'.'));});
+    dhIsaretle(st.rows);
     const mi=f.mizanInfo||{};
     st.note=(mi.source==='luca'?`Luca ${mi.year||''} dönemi`:esc((mi.program?PROG_AD(mi.program)+' · ':'')+(mi.file||'Excel')))+' · '+(mi.at?new Date(mi.at).toLocaleString('tr-TR',{dateStyle:'short',timeStyle:'short'}):'')+(has?'':' · <b>bakiyeler yok</b> (bu mizan eski sürümle çekildi; “Luca\'dan yeniden çek” ile bakiyeleriyle gelir)');
   }
@@ -3179,9 +3179,9 @@ const MMUI=(()=>{
       tr=rows.filter(r=>{const p=nk(r).split('.');for(let i=1;i<p.length;i++)if(shown.has(p.slice(0,i).join('.')))return false;return true;});}
     const tot={};cols.filter(c=>c[2]).forEach(([k])=>tot[k]=tr.reduce((t,r)=>t+(+r[k]||0),0));
     const cell=(k,v,num,r)=>k==='bakiye'?(v==null?'':`<span class="${v<-0.004?'bkA':'bkB'}">${n2(Math.abs(v))} ${v>0.004?'B':v<-0.004?'A':''}</span>`):num?(k==='adet'||k==='alt'?(v??''):n2(v)):k==='tarih'||k==='belge_tarihi'?trd(v):(k==='fis_no'&&st.tab==='muavin'&&!st.grup&&v)?`<button class="fislink" data-mmfis="${r._i}" title="Fişi göster">${esc(v)}</button>`:esc(v??'');
-    const satirHtml=r=>`<tr data-kod="${esc(r.kod||'')}"${st.tab==='mizan'||st.tab==='plan'?' data-mzhesap="1" title="Tıklayın: bu hesabın muavini"':''} class="${(st.tab==='mizan'||st.tab==='plan')&&st.level!=='leaf'?'lv'+Math.min(r._lv||3,3):''}${st.tab==='mizan'&&tersMi(r)?' ters':''}"${st.tab==='mizan'&&tersMi(r)?' title="Ters bakiye: bu hesap normalde '+(normalYon(r.kod)==='B'?'borç':'alacak')+' bakiyesi verir"':''}>${cols.map(([k,,num])=>`<td class="${num?'n':''}">${cell(k,r[k],num,r)}</td>`).join('')}</tr>`;
-    $('#mmTable').innerHTML=`<thead><tr>${cols.map(([k,l,num])=>`<th class="${num?'n':''}"><button data-mmsort="${k}" title="Sırala">${esc(l)}${arrow(k)}</button></th>`).join('')}</tr>
-      <tr class="flt">${cols.map(([k,l,num])=>`<th><input data-mmf="${k}" value="${esc(st.f[k]||'')}" placeholder="${num?'>1000 · <500 · 1..9':'filtre'}" aria-label="${esc(l)} filtresi"></th>`).join('')}</tr></thead>
+    const satirHtml=r=>`<tr data-kod="${esc(r.kod||'')}"${st.tab==='mizan'||st.tab==='plan'?' data-mzhesap="1" title="Tıklayın: bu hesabın muavini"':''} class="${st.tab==='mizan'?(r.dh==='H'?'ust':''):st.tab==='plan'&&st.level!=='leaf'?'lv'+Math.min(r._lv||3,3):''}${st.tab==='mizan'&&tersMi(r)?' ters':''}"${st.tab==='mizan'&&tersMi(r)?' title="Ters bakiye: bu hesap normalde '+(normalYon(r.kod)==='B'?'borç':'alacak')+' bakiyesi verir"':''}>${cols.map(([k,,num])=>`<td class="${num?'n':k==='dh'?'dh':''}">${cell(k,r[k],num,r)}</td>`).join('')}</tr>`;
+    $('#mmTable').innerHTML=`<thead><tr>${cols.map(([k,l,num])=>`<th class="${num?'n':k==='dh'?'dh':''}"><button data-mmsort="${k}" title="${k==='dh'?'Detay hesap: E = en alt kırılım, H = altında hesap var (kalın). Tıklayın: sırala':'Sırala'}">${esc(l)}${arrow(k)}</button></th>`).join('')}</tr>
+      <tr class="flt">${cols.map(([k,l,num])=>`<th><input data-mmf="${k}" value="${esc(st.f[k]||'')}" placeholder="${num?'>1000 · <500 · 1..9':k==='dh'?'E/H':'filtre'}" aria-label="${esc(l)} filtresi"></th>`).join('')}</tr></thead>
       <tbody>${rows.slice(0,PARCA).map(satirHtml).join('')||`<tr><td colspan="${cols.length}" class="bosliste">${st.note&&!st.rows.length?st.note:'Bu görünümde kayıt yok. Süzgeçleri temizleyin ya da Luca\'dan çekin.'}</td></tr>`}</tbody>
       ${rows.length?`<tfoot><tr>${cols.map(([k,,num],i)=>`<td class="${num?'n':''}">${i===0?`Toplam · ${rows.length} satır`:k==='bakiye'?(()=>{const v=Math.round(((tot.borc||0)-(tot.alacak||0))*100)/100;return `<b>${n2(Math.abs(v))} ${v>0.004?'B':v<-0.004?'A':''}</b>`;})():num?(k==='adet'?tot[k]:k==='alt'?'':n2(tot[k])):''}</td>`).join('')}</tr></tfoot>`:''}`;
     const tn=st.tab==='mizan'?rows.filter(tersMi).length:0;
