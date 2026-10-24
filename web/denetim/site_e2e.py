@@ -165,6 +165,15 @@ def main():
         kontrol("Tutar farkı" in icerik, "sorunlu kayıtlar listelenir")
         pg.screenshot(path=os.environ.get("EKRAN", "/tmp") + "/site-denetim.png")
 
+        with pg.expect_popup() as pp:                           # fiş düğmesinin yanındaki "Fatura"
+            pg.click("#icerik td a.fisbtn[data-pdfbelge] >> nth=0")
+        fat = pp.value
+        fat.wait_for_selector("iframe")
+        fat.frame_locator("iframe").locator("body").wait_for()
+        kontrol(fat.get_attribute("iframe", "sandbox") == "allow-scripts allow-modals" and
+                "2026" in fat.frame_locator("iframe").locator("body").inner_text(), "fatura görünümü tarayıcıda, kum havuzlu çerçevede")
+        fat.close()
+
         print("Çıktılar")
         pg.click("#nav [data-g=beyan]")
         with pg.expect_download() as d:

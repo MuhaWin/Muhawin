@@ -223,6 +223,14 @@ def test_tarayicida_program_donem_ve_fis(tmp_path):
         pg.set_input_files("#xml", str(z)); pg.set_input_files("#muavin", str(m))
         pg.click("#basla")
         pg.wait_for_selector("#nav [data-g=muhtasar]:not([disabled])", timeout=30000)
+        # fiş düğmesinin yanında "Fatura": faturanın görünümü yeni pencerede
+        pg.click("#nav [data-g=Matrah]")
+        pg.uncheck("#sorunlu")                                   # uyumlular da görünsün
+        with pg.expect_popup() as pp:
+            pg.click("#icerik td a.fisbtn[data-pdfbelge] >> nth=0")
+        pp.value.wait_for_load_state()
+        assert "EX02026000000001" in pp.value.content() or "AAA2026000000001" in pp.value.content()
+        pp.value.close()
         pg.click("#nav [data-g=muhtasar]")
         pg.click("#icerik details summary >> nth=0")
         pg.click("#icerik details .fisbtn >> nth=0")

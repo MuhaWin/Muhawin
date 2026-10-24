@@ -89,6 +89,14 @@ Fiş no / tarih düğmesine basınca Görev 19 / 34'teki fiş penceresi açılı
 - **Önceden de vardı:** KDV, matrah, cari, ÖİV listeleri.
 - **Yeni:** Faturası olmayan kayıtlar, red / iptal listesi, Muhtasar ayrıntıları ve türü bulunamayan 360 kayıtları. Muhtasar satırlarına `fis_tarihi` eklendi; önceki tarih alanı belge tarihi olabiliyordu.
 
+### 6. "Fatura" düğmesi (kullanıcı isteği, Faz 1'e ek)
+Bütün denetim listelerinde fiş düğmesinin yanında **📄 Fatura** düğmesi var: KDV, matrah, cari, özet, ÖİV, faturasız, red / iptal. Detay denetim (Faz 2) de bunu kullanacak.
+- **Tıklayınca:** Faturanın GİB şablonlu görünümü açılır (`/api/fatura/goruntu`, `goruntu.py`).
+  - Masaüstünde mevcut PDF penceresi kullanılır (`faturaPdf`).
+  - Sitede görünüm tarayıcıda, kum havuzlu çerçevede açılır; fatura sunucuya gitmez.
+- **Fatura dosyası yoksa** düğme pasif: "📄 Fatura yok". Bu, faturası olmayan kayıtlarda ve e-fatura dosyasında bulunmayan red / iptal satırlarında olur.
+- **Test:** Tarayıcı testinde açılan pencerede fatura numarası çıkıyor. Uçtan uca site testinde görünüm kum havuzlu çerçevede açılıyor.
+
 ### Değişen dosyalar (Faz 1)
 | Dosya | Değişiklik |
 |---|---|

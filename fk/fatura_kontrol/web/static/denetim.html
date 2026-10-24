@@ -49,7 +49,7 @@ table.dt .durum{white-space:normal;line-height:1.3}
 .yerel-bas{font-weight:600;font-size:12.5px;margin-bottom:4px}.yerel-satir{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:5px 0;border-top:1px dashed var(--line)}
 .yerel-satir:first-child{border-top:0}.yerel-satir .ipucu{font-size:11.5px}.yerel-dug{display:flex;gap:6px}.yerel-dug .btn{min-height:26px;padding:0 9px;font-size:12px}
 .fisbtn{white-space:nowrap;border:1px solid var(--line);background:var(--panel);color:var(--brand-2,#1f4aa8);border-radius:5px;padding:0 5px;font:inherit;font-size:11px;cursor:pointer;margin:1px 2px 0 0}
-.fisbtn:hover{background:var(--accent,#e7eefb)}
+.fisbtn:hover{background:var(--accent,#e7eefb)}a.fisbtn{text-decoration:none;display:inline-block}.fisbtn[disabled]{opacity:.5;cursor:default;color:var(--muted)}
 #fisPen{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;place-items:center;z-index:60}#fisPen.acik{display:grid}
 #fisPen .ic{background:var(--panel);color:inherit;border-radius:12px;width:min(980px,94vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)}
 #fisPen .bas{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}#fisPen .govde{overflow:auto;padding:12px 16px}
@@ -247,7 +247,7 @@ function tablo(L) {
     <tbody>${L.map(s => `<tr><td>${pdf(s)}</td><td><span class="durum ${sinif(s)}">${esc(s.durum)}</span></td><td>${esc(s.yon)}</td><td class="mono nw">${esc(s.belge_no)}</td><td class="nw">${tarih(s.tarih)}</td>
       <td><div class="kt" title="${esc(s.karsi_taraf)}">${esc(s.karsi_taraf)}</div><small style="color:var(--muted)">${esc(s.vkn || "")}${s.doviz ? " · " + esc(s.doviz) : ""}</small></td>
       <td class="n">${para(s.fatura_tutari)}</td><td class="n">${para(s.muavin_tutari)}</td><td class="n" style="${Math.abs(s.fark) > 0.05 ? "color:#a3262c;font-weight:600" : ""}">${para(s.fark)}</td>
-      <td><span class="mono">${esc(s.hesaplar)}</span><br>${fisDugmeleri(s.fisler)}</td><td>${esc(s.aciklama || "")}</td></tr>`).join("")}</tbody></table></div>`;
+      <td><span class="mono">${esc(s.hesaplar)}</span><br>${fisDugmeleri(s.fisler)}${faturaDugmesi(s.belge_no)}</td><td>${esc(s.aciklama || "")}</td></tr>`).join("")}</tbody></table></div>`;
 }
 // Hesap / fiş sütunu: "15619 (17.09.2026), 15620 (18.09.2026)" → fiş düğmeleri (muavinden fiş penceresi)
 function fisDugmeleri(fisler) {
@@ -256,6 +256,10 @@ function fisDugmeleri(fisler) {
     return m ? `<button type="button" class="fisbtn" data-fis="${esc(m[1])}" data-tarih="${esc(m[2])}" title="Fişi aç">🧾 ${esc(m[1])} <span style="color:var(--muted)">(${esc(m[2])})</span></button>` : `<small style="color:var(--muted)">${esc(x)}</small>`;
   }).join("");
 }
+// faturanın görünümü (GİB şablonu; masaüstünde PDF penceresi, sitede tarayıcıda) — fiş düğmelerinin yanında
+const faturaDugmesi = (belge, var_ = true) => !belge ? "" : var_ && veri && veri.rapor_id
+  ? `<a class="fisbtn" title="Faturayı aç (${esc(belge)})" target="_blank" data-pdfid="${esc(veri.rapor_id)}" data-pdfbelge="${esc(belge)}" href="/api/fatura/goruntu?id=${encodeURIComponent(veri.rapor_id)}&belge=${encodeURIComponent(belge)}">📄 Fatura</a>`
+  : `<button type="button" class="fisbtn" disabled title="Bu kaydın faturası yüklenen e-fatura dosyalarında yok">📄 Fatura yok</button>`;
 // tek fiş (fiş no + ISO tarih) → aynı düğme; tarih yoksa düz metin
 const fisDugmesi = (no, iso) => no && iso ? fisDugmeleri(`${no} (${tarih(iso)})`) : esc(no || "");
 let acikFis = null;
@@ -317,21 +321,21 @@ function ciz() {
       <p class="ipucu">${gor === "KDV" ? "Faturadaki KDV ↔ muavindeki 191 / 391 tutarı. KDV oranı hesabın adındaki ya da kodundaki orana (191.01.20 = %20) uymalı; KDV kaydı faturanın (cari / gider kaydıyla aynı) fişinde olmalı. Binek araçta KDV'nin %70'i, dövizli faturalarda TL karşılığı, tevkifatlı satışta tahsil edilen KDV beklenir." : gor === "Matrah" ? "Alışta gider / stok / duran varlık hesaplarının (binek araç KKEG ve indirilemeyen KDV dahil) toplamı, satışta 60x / 64x / 67x gelir hesapları faturanın matrahıyla karşılaştırılır. İade faturaları bu kontrole girmez." : "Faturanın ödenecek (tahsil edilecek) tutarı, faturanın fişindeki cari / ödeme hesaplarının (alışta alacak, satışta borç) toplamıyla karşılaştırılır; tevkifatta tevkif sonrası tutar beklenir."}</p>${tablo(L)}`;
   } else if (gor === "faturasiz") {
     const L = veri.faturasi_olmayanlar || [];
-    govde = L.length ? `<div class="tk"><table><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Fiş tarihi</th><th>Fiş no</th><th>Belge no</th><th>Ünvan</th><th class="n">Tutar</th></tr></thead><tbody>${L.map(s => `<tr><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)}</td><td>${tarih(s.fis_tarihi)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}</td><td class="mono">${esc(s.belge_no || "")}</td><td>${esc(s.unvan || "")}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Faturası bulunamayan kayıt yok.</div>';
+    govde = L.length ? `<div class="tk"><table><thead><tr><th>Hesap</th><th>Hesap adı</th><th>Fiş tarihi</th><th>Fiş no</th><th>Belge no</th><th>Ünvan</th><th class="n">Tutar</th></tr></thead><tbody>${L.map(s => `<tr><td class="mono">${esc(s.hesap)}</td><td>${esc(s.hesap_adi)}</td><td>${tarih(s.fis_tarihi)}</td><td>${fisDugmesi(s.fis_no, s.fis_tarihi)}${faturaDugmesi(s.belge_no, false)}</td><td class="mono">${esc(s.belge_no || "")}</td><td>${esc(s.unvan || "")}</td><td class="n">${para(s.tutar)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Faturası bulunamayan kayıt yok.</div>';
   } else if (gor === "OIV") {
     const L = (veri.oiv || []).filter(x => !yalnizSorun || x.sorunlu);
     govde = `<p class="ipucu">Faturadaki Özel İletişim Vergisi (ÖİV), faturanın fişindeki 689 hesap kayıtlarıyla karşılaştırılır (adında ÖİV / iletişim geçen 689 alt hesabı varsa yalnız o).</p>
       ${L.length ? `<div class="tk"><table class="dt"><colgroup><col style="width:120px"><col style="width:50px"><col style="width:150px"><col style="width:88px"><col style="width:180px"><col style="width:92px"><col style="width:92px"><col style="width:92px"><col style="width:68px"><col style="width:120px"><col></colgroup><thead><tr><th>Durum</th><th>Yön</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Matrah</th><th class="n">Fatura ÖİV</th><th class="n">689 kaydı</th><th class="n">Fark</th><th>Hesap / fiş</th><th>Açıklama</th></tr></thead>
       <tbody>${L.map(x => `<tr><td><span class="durum ${x.sorunlu ? "d-hata" : "d-ok"}">${esc(x.durum)}</span></td><td>${esc(x.yon)}</td><td class="mono nw">${esc(x.belge_no)}</td><td class="nw">${tarih(x.tarih)}</td>
         <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td><td class="n">${para(x.oiv)}</td><td class="n">${para(x.muavin)}</td>
-        <td class="n" style="${Math.abs(x.fark) > 0.05 ? "color:#a3262c;font-weight:600" : ""}">${para(x.fark)}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}</td><td>${esc(x.aciklama)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Kayıt yok.</div>'}`;
+        <td class="n" style="${Math.abs(x.fark) > 0.05 ? "color:#a3262c;font-weight:600" : ""}">${para(x.fark)}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}${faturaDugmesi(x.belge_no)}</td><td>${esc(x.aciklama)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Kayıt yok.</div>'}`;
   } else if (gor === "red") {
     const L = veri.red_iptal || [];
     govde = `<p class="ipucu">Red / iptal listesindeki faturalar muavinde kayıtlı olmamalı. Kayıtlıysa kayıt iptal edilmeli ya da ters kayıt yapılmalı.</p>
       ${L.length ? `<div class="tk"><table class="dt" style="min-width:1000px"><thead><tr><th>Sonuç</th><th>Red / iptal</th><th>Belge no</th><th>Tarih</th><th>Karşı taraf</th><th class="n">Matrah</th><th class="n">KDV</th><th>Döviz</th><th>e-Fatura dosyasında</th><th>Hesap / fiş</th><th>Liste durumu</th></tr></thead>
       <tbody>${L.map(x => `<tr><td><span class="durum ${x.muavinde ? "d-hata" : "d-ok"}">${x.muavinde ? "Muavinde kayıtlı" : "Kayıt yok – uyumlu"}</span></td><td>${esc(x.ne)}</td><td class="mono nw">${esc(x.belge_no)}</td><td class="nw">${tarih(x.tarih)}</td>
         <td><div class="kt" title="${esc(x.karsi_taraf)}">${esc(x.karsi_taraf)}</div><small style="color:var(--muted)">${esc(x.vkn || "")}</small></td><td class="n">${para(x.matrah)}</td><td class="n">${para(x.kdv)}</td><td>${esc(x.doviz)}</td>
-        <td>${x.faturada ? "var" : "yok"}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}</td><td>${esc(x.durum)}<br><small style="color:var(--muted)">${esc(x.dosya)}</small></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Red / iptal listesi yüklenmedi.</div>'}`;
+        <td>${x.faturada ? "var" : "yok"}</td><td><span class="mono">${esc(x.hesaplar)}</span><br>${fisDugmeleri(x.fisler)}${faturaDugmesi(x.belge_no, x.faturada)}</td><td>${esc(x.durum)}<br><small style="color:var(--muted)">${esc(x.dosya)}</small></td></tr>`).join("")}</tbody></table></div>` : '<div class="bos">Red / iptal listesi yüklenmedi.</div>'}`;
   } else if (gor === "muhtasar") {
     const m = veri.muhtasar || {satirlar: []};
     govde = `<div class="uyari">${esc(m.not || "")}</div>
