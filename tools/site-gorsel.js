@@ -8,13 +8,21 @@ const APP = path.resolve(__dirname, '..');
 const sb = require(path.join(APP, 'test', 'sahte_sb'));
 const OUT = path.resolve(process.argv[2] || path.join(APP, 'web', 'site', 'gorsel'));
 const PY = fs.existsSync(path.join(APP, 'fk', '.venv', 'bin', 'python')) ? path.join(APP, 'fk', '.venv', 'bin', 'python') : 'python3';
-const GEN = 1440, YUK = 900, OLCEK = 2;
+// Görev 54: GORSEL_BOY=1366x768 GORSEL_OLCEK=1 ile başka boyda; GORSEL_EK=<dosya.js> çekimden önce sayfada (ve Fatura Kontrol
+// çerçevesinde) çalıştırılır (önce/sonra taslakları); GORSEL_ONEK dosya adlarının önüne eklenir; GORSEL_PNG=1 yalnız PNG (küçültmeden)
+const [GEN, YUK] = (process.env.GORSEL_BOY || '1440x900').split('x').map(Number), OLCEK = +(process.env.GORSEL_OLCEK || 2);
+const EK = process.env.GORSEL_EK ? fs.readFileSync(path.resolve(process.env.GORSEL_EK), 'utf8') : '', ONEK = process.env.GORSEL_ONEK || '';
 fs.mkdirSync(OUT, { recursive: true });
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'mw-gorsel-'));
 const py = kod => cp.execFileSync(PY, ['-c', kod], { stdio: ['ignore', 'pipe', 'inherit'] }).toString();
 
 // çekilen 2x görüntüden: 2x WebP ve 1x PNG (boyut sınırı ~400 KB)
 function kaydet(ham, ad) {
+  ad = ONEK + ad;
+  if (process.env.GORSEL_PNG) { py(`
+from PIL import Image
+Image.open(${JSON.stringify(ham)}).convert('RGB').save(${JSON.stringify(path.join(OUT, ad + '.png'))}, optimize=True)
+`); console.log('  ' + ad + '.png  ' + Math.round(fs.statSync(path.join(OUT, ad + '.png')).size / 1024) + ' KB'); return; }
   py(`
 from PIL import Image
 im = Image.open(${JSON.stringify(ham)}).convert('RGB')
@@ -31,7 +39,9 @@ k.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE
   const app = await electron.launch({ executablePath: require(path.join(APP, 'node_modules/electron')), args: [APP, '--no-sandbox', '--force-device-scale-factor=' + OLCEK],
     env: { ...process.env, EKSTRE_TEST_SB: fake.url, XDG_CONFIG_HOME: cfg, MUHAWIN_NO_SPLASH: '1' } });
   const w = await app.firstWindow();
-  const cek = async ad => { await w.waitForTimeout(700); const ham = path.join(TMP, ad + '.png'); await w.screenshot({ path: ham }); console.log(ad); kaydet(ham, ad); };
+  const cek = async ad => {
+    if (EK) { const r = await w.evaluate(EK).catch(e => console.error('ek: ' + e.message)); if (typeof r === 'string' && r) console.log(r); const fe = await w.$('#fkFrame:not([hidden])'); const f = fe && await fe.contentFrame(); if (f) await f.evaluate(EK).catch(e => console.error('ek (çerçeve): ' + e.message)); }
+    await w.waitForTimeout(700); const ham = path.join(TMP, ad + '.png'); await w.screenshot({ path: ham }); console.log(ad); kaydet(ham, ad); };
   try {
     await app.evaluate(({ BrowserWindow }, [g, y]) => { const b = BrowserWindow.getAllWindows()[0]; if (b.isMaximized()) b.unmaximize(); b.setContentSize(g, y); }, [GEN, YUK]);
     // Luca bağlı görünsün (taklit; gerçek Luca'ya bağlanılmaz)
@@ -144,6 +154,10 @@ F = [('GTA2026000000418', '2026-09-03', '6111111110', 'GAMA TOPTAN GIDA SAN. Tİ
      ('TCL2026000452210', '2026-09-10', '6444444446', 'ÖRNEK İLETİŞİM HİZMETLERİ A.Ş.', '983.54', 'Mobil hat kullanım bedeli'),
      ('AKY2026000019876', '2026-09-16', '6555555554', 'YOL AKARYAKIT PETROL ÜRÜNLERİ LTD.', '2875.67', 'Motorin'),
      ('GTA2026000000452', '2026-09-11', '6111111110', 'GAMA TOPTAN GIDA SAN. TİC. A.Ş.', '12400.00', 'Gıda ürünleri (koli)')]
+# GORSEL_FATURA=n: liste uzun görünsün diye aynı satıcılardan uydurma ek faturalar (Görev 54 görselleri)
+for k in range(len(F), ${+(process.env.GORSEL_FATURA || 0)}):
+    no, t, vkn, ad, mat, kalem = F[k % 6]
+    F.append((no[:3] + '20260000%05d' % (900 + k), '2026-09-%02d' % (k % 28 + 1), vkn, ad, '%.2f' % (float(mat) * (1 + k % 5 / 10)), kalem))
 with zipfile.ZipFile(Path(${JSON.stringify(fk)}) / 'faturalar.zip', 'w') as z:
     for no, t, vkn, ad, mat, kalem in F:
         kdv = '%.2f' % (float(mat) * 0.2)

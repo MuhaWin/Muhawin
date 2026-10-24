@@ -132,3 +132,11 @@ table:has(> thead > tr.tg-filtre) > thead th{position:static}
 html.mw main{padding-left:0!important;padding-right:0!important;max-width:none!important}
 html.mw header{padding-left:0!important;padding-right:0!important}
 html.mw #raporPencere .rp-ust{padding-left:0;padding-right:0}
+/* Görev 54: düğme renkleri (MuhaWin ile aynı kural). Kapat: turuncu-kırmızı; Yenile: yeşil; birincil: ana renk; tehlike: kırmızı çerçeve.
+   Sınıflar düğme metninden kendiliğinden verilir (tema.js). */
+:root{--kapat:color-mix(in srgb,var(--bad) 68%,#e8590c);--yenile:var(--ok)}
+.btn.kapat,button.kapat{background:color-mix(in srgb,var(--kapat) 11%,var(--panel));border-color:color-mix(in srgb,var(--kapat) 45%,var(--line));color:var(--kapat);font-weight:600}
+.btn.kapat:hover,button.kapat:hover{background:var(--kapat);border-color:var(--kapat);color:var(--panel)}
+.btn.yenile,button.yenile{background:color-mix(in srgb,var(--yenile) 11%,var(--panel));border-color:color-mix(in srgb,var(--yenile) 45%,var(--line));color:var(--yenile);font-weight:600}
+.btn.yenile:hover,button.yenile:hover{background:var(--yenile);border-color:var(--yenile);color:var(--panel)}
+.btn.tehlike{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}

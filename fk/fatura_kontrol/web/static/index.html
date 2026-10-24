@@ -69,7 +69,7 @@ input:focus{outline:2px solid var(--accent);border-color:var(--brand-2)}
 .ikincil{border:1px solid var(--brand-2);color:var(--brand-2);background:var(--panel);padding:7px 14px;border-radius:6px;cursor:pointer;font:600 13px inherit;font-family:inherit;text-decoration:none}
 .ikincil:hover{background:var(--accent)}
 .ikincil.kucuk{padding:3px 9px;font-size:12px;white-space:nowrap}td.karar{white-space:nowrap}
-.kutular{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:14px}
+.kutular{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:14px;padding:3px}
 .kutu{border:1px solid var(--line);border-radius:8px;padding:9px 11px;cursor:pointer;background:var(--panel);color:var(--ink);text-align:left;font:inherit;transition:.12s;box-shadow:var(--golge)}
 .kutu .sayi{font-size:22px;font-weight:700;line-height:1.1}
 .kutu .ad{font-size:12px;color:var(--muted)}
@@ -78,10 +78,11 @@ input:focus{outline:2px solid var(--accent);border-color:var(--brand-2)}
 .kutu.sorunlu:not(.sifir) .sayi{color:var(--bad)}
 .kutu.uyumlu:not(.sifir){background:var(--ok-bg);border-color:var(--ok-bg)}
 .kutu.uyumlu .sayi{color:var(--ok)}
-.kutu.secili{outline:2px solid var(--brand-2);outline-offset:1px}
+/* Görev 54: seçili hâl boyutu değiştirmez ve çerçeveden taşmaz */
+.kutu.secili{outline:none;border-color:var(--brand-2);box-shadow:inset 0 0 0 1px var(--brand-2),var(--golge)}
 .sekmeler{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:10px;flex-wrap:wrap}
 .sekmeler button{border:0;background:none;padding:8px 12px;cursor:pointer;font:inherit;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
-.sekmeler button.aktif{color:var(--brand-2);border-color:var(--brand-2);font-weight:600}
+.sekmeler button.aktif{color:var(--brand-2);border-color:var(--brand-2);text-shadow:0 0 .55px currentColor,0 0 .55px currentColor}
 .sekmeler .rozet{background:var(--info-bg);border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
 .arac{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
 .arac input{max-width:320px}

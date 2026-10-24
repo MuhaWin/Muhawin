@@ -64,4 +64,47 @@ function cakisma(arg) {
     sonuc.tasan.push('yatay kaydırma: ' + sec + ' ' + e.scrollWidth + ' > ' + e.clientWidth + (en ? ' (en sağda: ' + ad(en) + ' ' + Math.round(enR - sag) + ' px)' : '')); }
   return sonuc;
 }
-module.exports = { cakisma };
+// Görev 54: sekme / çip / süzgeç düğme gruplarında her düğme seçili hâle getirilip ölçülür (tıklanmaz; seçili işareti
+// geçici olarak konur ve geri alınır):
+// - seçili hâl düğmenin boyunu değiştirmemeli (kalınlık / çerçeve farkı yer kaplamamalı)
+// - düğme, çizgisi (outline) dahil, grubun çerçevesinin (kenarlığı ya da zemini olan en yakın üst kutu) sol / sağ kenarından
+//   taşmamalı (sekmelerin alt çizgisinin çerçeve çizgisine binmesi tasarımdır)
+// İşaret: gruptaki seçili düğmenin kullandığı (secili, on, active, aktif, sel sınıfı; aria-pressed / aria-selected / aria-current);
+// grupta seçili yoksa hepsi birlikte denenir. Çağrı: seciliTasma(kök seçici | null) → [sorun…]
+function seciliTasma(kok) {
+  const R = kok ? document.querySelector(kok) : document.body; const out = [];
+  if (!R) return out;
+  const SINIF = ['secili', 'on', 'active', 'aktif', 'sel', 'selected'], ARIA = ['aria-pressed', 'aria-selected', 'aria-current'];
+  const UYE = 'button,[role=tab],.chip,.kutu,.seg>*,.tab';
+  const gorunur = e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden';
+  const ad = e => e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : '') + ' "' + (e.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 24) + '"';
+  const isaretli = b => SINIF.some(c => b.classList.contains(c)) || ARIA.some(a => /^(true|page)$/.test(b.getAttribute(a) || ''));
+  const cerceve = g => { for (let x = g; x && x !== document.documentElement; x = x.parentElement) { const c = getComputedStyle(x);
+    if (parseFloat(c.borderLeftWidth) > 0 || parseFloat(c.borderTopWidth) > 0 || (c.backgroundColor !== 'rgba(0, 0, 0, 0)' && c.backgroundColor !== 'transparent') || c.overflowX !== 'visible') return x; } return document.body; };
+  const gruplar = new Set();
+  for (const b of R.querySelectorAll(UYE)) { const g = b.parentElement; if (!g || gruplar.has(g) || !gorunur(g)) continue;
+    const uyeler = [...g.children].filter(x => x.matches(UYE) && gorunur(x)); if (uyeler.length >= 2 && (uyeler.some(isaretli) || g.matches('[role=tablist],.seg,.sekmeler,.kutular,.chips,.cipler,.ozetler'))) gruplar.add(g); }
+  for (const g of gruplar) {
+    const uyeler = [...g.children].filter(x => x.matches(UYE) && gorunur(x));
+    const ornek = uyeler.find(isaretli);
+    const siniflar = ornek ? SINIF.filter(c => ornek.classList.contains(c)) : ['secili'];
+    const arialar = ornek ? ARIA.filter(a => /^(true|page)$/.test(ornek.getAttribute(a) || '')).map(a => [a, ornek.getAttribute(a)]) : [];
+    const yedek = uyeler.map(b => [b, b.className, ARIA.map(a => b.getAttribute(a))]);
+    const cr = cerceve(g).getBoundingClientRect(), cs = getComputedStyle(cerceve(g));
+    const ic = { l: cr.left + parseFloat(cs.borderLeftWidth), r: cr.right - parseFloat(cs.borderRightWidth), t: cr.top + parseFloat(cs.borderTopWidth), b: cr.bottom - parseFloat(cs.borderBottomWidth) };
+    const sec = (b, on) => { for (const c of siniflar) b.classList.toggle(c, on); for (const [a, v] of arialar) b.setAttribute(a, on ? v : 'false'); };
+    try {
+      for (const b of uyeler) {
+        for (const x of uyeler) sec(x, false);
+        const once = b.getBoundingClientRect();
+        sec(b, true);
+        const r = b.getBoundingClientRect(), c = getComputedStyle(b);
+        const o = c.outlineStyle !== 'none' ? Math.max(0, parseFloat(c.outlineWidth) + parseFloat(c.outlineOffset)) : 0;
+        if (Math.abs(r.width - once.width) > 0.5 || Math.abs(r.height - once.height) > 0.5) out.push('seçili hâlde boyu değişiyor: ' + ad(b) + ' ' + Math.round(once.width) + '×' + Math.round(once.height) + ' → ' + Math.round(r.width) + '×' + Math.round(r.height));
+        else if (r.left - o < ic.l - 0.5 || r.right + o > ic.r + 0.5) out.push('seçili hâlde çerçeveden taşıyor: ' + ad(b) + ' ⊄ ' + ad(cerceve(g)).split(' "')[0]);
+      }
+    } finally { for (const [b, cls, av] of yedek) { b.className = cls; ARIA.forEach((a, i) => av[i] == null ? b.removeAttribute(a) : b.setAttribute(a, av[i])); } }
+  }
+  return out;
+}
+module.exports = { cakisma, seciliTasma };

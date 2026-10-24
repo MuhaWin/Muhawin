@@ -29,6 +29,21 @@ aside{min-height:0;overflow:auto;padding-right:2px;scrollbar-width:thin}
 .kart{padding:16px}
 .kart+.kart{margin-top:14px}
 @media (max-width:1280px){main{grid-template-columns:250px minmax(0,1fr);gap:12px;padding:12px}.kart{padding:14px}}
+/* Görev 54: sonuç listesi genişliğe sığar (yatay kaydırma yok): sol panel dar ve istenirse kapatılır, sütun başlıkları alt satıra
+   geçer, firma adı tek satır (tamamı imleç ipucunda), durum kutuları ince */
+main{grid-template-columns:236px minmax(0,1fr)}
+@media (max-width:1280px){main{grid-template-columns:224px minmax(0,1fr)}}
+main.yan-kapali{grid-template-columns:40px minmax(0,1fr)}
+aside{position:relative}
+.yan-dugme{position:absolute;top:2px;right:4px;z-index:3;width:28px;height:26px;padding:0!important;justify-content:center}
+main.yan-kapali aside>*:not(.yan-dugme){display:none}
+main.yan-kapali .yan-dugme{position:static;margin:2px auto}
+#sonucTablo th{white-space:normal;line-height:1.15;vertical-align:bottom}
+#sonucTablo td.firma-ad{white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+#sonucTablo td,#sonucTablo th{padding-left:7px;padding-right:7px}
+.kutular{gap:6px;margin-bottom:10px}
+.kutular .kutu{display:flex;align-items:baseline;gap:6px;padding:5px 12px;min-width:0;border-radius:999px;box-shadow:none}
+.kutular .kutu .sayi{font-size:16px}.kutular .kutu .ad{font-size:12.5px;color:var(--ink)}
 @media (max-height:800px){header{height:48px!important}main{padding:10px;gap:10px}.kart{padding:12px}
   .kutu{padding:7px 12px}.kutu .sayi{font-size:19px}.sekmeler button.s{padding:8px 12px}}
 @media (max-width:900px){body{overflow:auto;height:auto;display:block}main{display:block}aside{overflow:visible}
@@ -85,7 +100,7 @@ aside input[type=month]{width:100%}
 .sekmeler button.s{border:0;background:none;padding:10px 14px;cursor:pointer;font:inherit;font-size:13.5px;color:var(--muted);
   border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:6px}
 .sekmeler button.s:hover{color:var(--ink)}
-.sekmeler button.s.aktif{color:var(--brand-2);border-color:var(--brand-2);font-weight:600}
+.sekmeler button.s.aktif{color:var(--brand-2);border-color:var(--brand-2);text-shadow:0 0 .55px currentColor,0 0 .55px currentColor}
 .sekmeler .sag{margin-left:auto}
 .donem-kutu{display:flex;align-items:center;gap:8px;margin:0 8px 4px 0;font-size:12.5px;color:var(--muted)}
 .donem-kutu select{padding:5px 8px;font-weight:600;color:var(--ink);min-width:150px}
@@ -99,13 +114,14 @@ aside input[type=month]{width:100%}
 .kontrol-suz{display:inline-flex;gap:4px}.kontrol-suz .btn[aria-pressed="true"]{background:var(--brand-2,#1f4aa8);color:#fff;border-color:var(--brand-2,#1f4aa8)}
 .secim-cubuk label{display:flex;gap:5px;align-items:center;margin-left:4px}
 #sonucTablo td.sec,#sonucTablo th.sec{width:28px;text-align:center;padding-left:6px;padding-right:2px}
-.kutular{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.kutular{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:3px}
 .kutu{border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px;background:var(--panel);cursor:pointer;
   text-align:left;font:inherit;color:var(--ink);box-shadow:var(--golge);transition:transform .1s}
 .kutu:hover{transform:translateY(-1px)}
 .kutu .sayi{font-size:22px;font-weight:700;line-height:1.1}
 .kutu .ad{font-size:12px;color:var(--muted)}
-.kutu.secili{outline:2px solid var(--brand-2);outline-offset:1px}
+/* Görev 54: seçili hâl boyutu değiştirmez ve çerçeveden taşmaz (outline yerine iç gölge) */
+.kutu.secili{outline:none;border-color:var(--brand-2);box-shadow:inset 0 0 0 1px var(--brand-2),var(--golge)}
 .tablo-kap{min-height:120px}
 td.sayi{text-align:right;font-variant-numeric:tabular-nums}
 td.sayi.kirmizi{color:var(--bad);font-weight:700}
@@ -186,6 +202,7 @@ tr.toplam td{font-weight:700;background:var(--th)!important}
 
 <main>
   <aside>
+    <button type="button" class="btn kucuk yan-dugme" id="yanDugme" title="Soldaki paneli daralt / aç (sonuç listesi genişler)" aria-expanded="true">◂</button>
     <section class="kart">
       <h2>Yeni toplu kontrol</h2>
       <label class="baslik" for="ay">Kontrol edilecek ay</label>
@@ -536,6 +553,10 @@ async function baslat(idler = null, klasor = null, adim = null) {
   } catch (e) { hata(e.message); }
 }
 $("#baslatBtn").onclick = () => baslat();
+// Görev 54: sol panel daraltılabilir (bu bilgisayarda hatırlanır)
+{ const yan = k => { document.querySelector("main").classList.toggle("yan-kapali", k); const b = $("#yanDugme"); b.textContent = k ? "▸" : "◂"; b.setAttribute("aria-expanded", String(!k)); };
+  let k = false; try { k = localStorage.getItem("fk_yan_kapali") === "1"; } catch (e) {}
+  yan(k); $("#yanDugme").onclick = () => { k = !k; yan(k); try { localStorage.setItem("fk_yan_kapali", k ? "1" : "0"); } catch (e) {} }; }
 $("#durdurBtn").onclick = async () => {
   if (!confirm("Çalışan işlem durdurulsun mu? Bitmiş firmaların sonuçları korunur.")) return;
   await api("/api/toplu/durdur", {method: "POST"}); durumSor();
@@ -645,7 +666,7 @@ function calismaGoster(c) {
   $("#sonucTablo").innerHTML = `<thead><tr><th class="sec"><input type="checkbox" id="sonucHepsi" title="Görünen firmaların tümünü seç / kaldır" aria-label="Tümünü seç"></th><th>Firma</th><th>VKN/TCKN</th><th>Durum</th><th style="text-align:right">Fatura</th>` +
     SUTUNLAR.map(([ad, k]) => `<th style="text-align:right" title="${esc(k.join(", "))}">${esc(ad)}</th>`).join("") +
     `<th style="text-align:right">KDV2</th><th>İndirme Hataları</th><th class="islem-b">İşlemler</th></tr></thead><tbody>` +
-    (satirlar.map(r => `<tr><td class="sec">${r.durum === "Çalışıyor" ? "" : `<input type="checkbox" class="sonucSec" data-k="${esc(anahtar(r))}" aria-label="${esc(r.ad)} seç" ${seciliSonuc.has(anahtar(r)) ? "checked" : ""}>`}</td><td><b>${esc(r.ad)}</b></td><td class="mono">${esc(r.vkn)}</td>
+    (satirlar.map(r => `<tr><td class="sec">${r.durum === "Çalışıyor" ? "" : `<input type="checkbox" class="sonucSec" data-k="${esc(anahtar(r))}" aria-label="${esc(r.ad)} seç" ${seciliSonuc.has(anahtar(r)) ? "checked" : ""}>`}</td><td class="firma-ad" title="${esc(r.ad)}"><b>${esc(r.ad)}</b></td><td class="mono">${esc(r.vkn)}</td>
       <td><span class="durum ${r.durum === "Çalışıyor" ? "d-Bekliyor" : sinif(r.durum)}">${esc(r.durum)}</span></td>
       <td class="sayi">${r.fatura ?? ""}</td>` +
       SUTUNLAR.map(([, k]) => { const so = r.sorunlar || {}, n = k.reduce((t, x) => t + (so[x] || 0), 0);

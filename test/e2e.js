@@ -6,6 +6,7 @@ const fs = require('fs');
 const os = require('os');
 const http = require('http');
 const sb = require('./sahte_sb');
+const { seciliTasma } = require('./cakisma');
 
 const APP = process.env.MUHAWIN_APP || path.resolve(__dirname, '..');
 const OUT = process.env.OUT || path.join(os.tmpdir(), 'muhawin-e2e');
@@ -80,6 +81,12 @@ async function oturum(fatura, o = {}) {
       check(odak && !s1.gate && !s1.inp && await w.isVisible('#modGate'), 'Esc: metin kutusunda önce kutudan çıkar, ikinci Esc modül seçimine döner (' + JSON.stringify(s1) + ')');
       await w.click('.modcard[data-mod=ekstre]'); await w.waitForSelector('#modGate', { state: 'hidden' }); await w.waitForTimeout(400);
     }
+    check(!(await w.$('[data-dataopen]:not(#regModal [data-dataopen])')), 'Görev 54: Veri ve yedek düğmesi modüllerde yok (yalnız Ayarlar\'da)');
+    { const r = await w.evaluate(() => { const k = [...document.querySelectorAll('.btn')].filter(b => /^✕?\s*Kapat$/.test(b.textContent.trim()));
+        const y = [...document.querySelectorAll('.btn')].filter(b => /Yenile$/.test(b.textContent.trim()));
+        return { k: k.length, kOk: k.every(b => b.classList.contains('kapat')), y: y.length, yOk: y.every(b => b.classList.contains('yenile')),
+          renk: getComputedStyle(document.querySelector('#mmClose')).color }; });
+      check(r.k > 5 && r.kOk && r.y >= 1 && r.yOk, 'Görev 54: Kapat düğmeleri (' + r.k + ') turuncu-kırmızı, Yenile düğmeleri (' + r.y + ') yeşil sınıfta (Kapat rengi ' + r.renk + ')'); }
     check(!(await w.$('#newFirmBtn')) && !(await w.$('#toolbar [data-luca="firms"], #bottombar [data-luca="firms"], header.top [data-luca="firms"]')), 'Yeni firma ve Luca\'dan firma ekle üst şeritte / araç çubuğunda yok');
     const sekmeler = await w.$$eval('#modeTabs [data-mode]', b => b.map(x => x.dataset.mode));
     check(sekmeler.join(',') === 'bank,card', 'Ekstre modülünde yalnız banka/kredi kartı sekmeleri');
@@ -316,6 +323,12 @@ wb.save(${JSON.stringify(ex)})`]);
       await w.screenshot({ path: OUT + '/7c-kdv-sorumlu-tahakkuk.png' }); }
     await w.click('#fkNav [data-fksayfa=toplu]');
     fr = await fkFrame(); await fr.waitForSelector('#sekmeler', { timeout: 20000 });
+    // Görev 54: seçili sekme / "Tümü" kutusu boyut değiştirmiyor, çerçeveden taşmıyor (her düğme seçilip ölçülür)
+    { await fr.evaluate(() => { const k = document.querySelector('#kutular'); k.dataset.e2e = '1'; k.closest('[hidden]') && (k.closest('[hidden]').dataset.e2eAcik = '1', k.closest('[hidden]').hidden = false);
+        k.innerHTML = '<button type="button" class="kutu tumu secili"><div class="sayi">12</div><div class="ad">Tümü</div></button>' + ['Temiz', 'Sorun var', 'Eksik indirme', 'Hata'].map((a, i) => '<button type="button" class="kutu" data-k="' + i + '"><div class="sayi">' + (i + 1) + '</div><div class="ad">' + a + '</div></button>').join(''); });
+      const s1 = await fr.evaluate(seciliTasma, null);
+      await fr.evaluate(() => { const k = document.querySelector('#kutular'); k.innerHTML = ''; const h = document.querySelector('[data-e2e-acik]'); if (h) { h.hidden = true; delete h.dataset.e2eAcik; } });
+      check(!s1.length, 'Görev 54: Toplu kontrol sekmeleri ve "Tümü" süzgeç kutuları seçili hâlde de büyümüyor, çerçeveden taşmıyor' + (s1.length ? ' (' + s1.slice(0, 3).join(' ; ') + ')' : '')); }
     // firmalar: MuhaWin'den eşitleme
     const r = await w.evaluate(() => window.desktop.fk.setFirms([{ id: '11', ad: 'EXPO İNŞ' }, { id: '12', ad: 'UKİ MADEN' }], false));
     check(r && r.eklenen === 2, 'MuhaWin firmaları Fatura Kontrol listesine eklendi');
@@ -819,7 +832,16 @@ c.save()`]);
     await w.keyboard.press('Control+k'); await w.waitForSelector('#komutModal:not([hidden])');
     await w.fill('#komutQ', 'fiş liste'); await w.waitForTimeout(100);
     check(/Fiş Listesi/.test(await w.textContent('#komutL .ki[aria-selected=true]')), 'Ctrl+K komut paleti: arama ilk sonuç Fiş Listesi');
-    await w.keyboard.press('Escape'); await w.waitForSelector('#komutModal', { state: 'hidden' });
+    // Görev 54: Veri ve yedek yalnız Ayarlar'da; palet oradaki bölüme götürür
+    await w.fill('#komutQ', 'veri ve yedek'); await w.waitForTimeout(100);
+    check(/Veri ve yedek/.test(await w.textContent('#komutL .ki[aria-selected=true]')), 'Ctrl+K: "Veri ve yedek" komutu var');
+    await w.keyboard.press('Enter'); await w.waitForSelector('#regModal:not([hidden]) #veriYedekSec');
+    await w.waitForTimeout(250);
+    check(await w.$eval('#veriYedekSec', x => { const r = x.getBoundingClientRect(); return r.top >= 0 && r.top < innerHeight; }), 'Ctrl+K › Veri ve yedek: Ayarlar açıldı, Veri ve yedek bölümü görünür');
+    await w.click('#regModal [data-rgclose]'); await w.waitForSelector('#regModal', { state: 'hidden' });
+    await w.click('#okcPanel h2'); await w.keyboard.press('Control+s'); await w.waitForSelector('#regModal:not([hidden])', { timeout: 5000 });
+    check(true, 'Ctrl+S Ayarlar\'ı açıyor');
+    await w.click('#regModal [data-rgclose]'); await w.waitForSelector('#regModal', { state: 'hidden' });
     await w.keyboard.press('F1'); await w.waitForSelector('#yardimModal:not([hidden])');
     check(/Alt\+K/.test(await w.textContent('#yardimB')), 'F1 yardım: kısayollar listeleniyor');
     await w.click('[data-yardimx]'); await w.waitForTimeout(150);
@@ -1123,11 +1145,14 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
     check(/YYY/.test(await w.textContent('#fkkTable tbody tr[data-i] >> nth=0')), 'toplam büyükten küçüğe sıralandı');
     await w.click('[data-fksort=tarih]'); await w.waitForTimeout(150);
     check(/YYY/.test(await w.textContent('#fkkTable tbody tr[data-i] >> nth=0')), 'tarih eskiden yeniye sıralandı');
+    check(!(await w.isVisible('[data-fkfl=toplam]')), 'Görev 54: sütun süzgeçleri varsayılan kapalı (Süzgeç ▾)');
+    await w.click('#fkkSuzBtn'); await w.waitForSelector('[data-fkfl=toplam]', { state: 'visible' });
     await w.fill('[data-fkfl=toplam]', '<100'); await w.waitForTimeout(150);
     satir = await w.$$eval('#fkkTable tbody tr[data-i]', t => t.map(x => x.textContent));
     check(satir.length === 1 && satir[0].includes('ZZZ'), 'başlık altındaki filtre (Toplam <100)');
     // kaydetme: işaretle → onayla → kontrolde eksik sayılmaz
-    await w.click('[data-haric]'); await w.waitForSelector('#fkkHaricOnay');
+    await w.click('#fkkTable tbody tr[data-i] [data-menu]'); await w.click('.satirmenu:not([hidden]) [data-haric]'); await w.waitForSelector('#fkkHaricOnay');
+    check(await w.isHidden('.satirmenu:not([hidden])').catch(() => true), 'Görev 54: satır ⋯ menüsünden "Kaydetme" seçildi, menü kapandı');
     await w.fill('[data-fkfl=toplam]', ''); await w.waitForTimeout(150);
     await w.click('#fkkHaricOnay'); await w.waitForSelector('#askModal:not([hidden])'); await w.click('#askYes'); await w.waitForTimeout(2500);
     const hj = path.join(hd, 'firmalar', 'EXPO İNŞ', 'kaydedilmeyecek.json');
@@ -1146,13 +1171,13 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
       await w.click('[data-fkef=eksik]'); await w.waitForTimeout(150); const ne = await w.$$eval('#fkkTable tbody tr[data-i]', t => t.length);
       check(nd === 0 && ne === n0 && n0 >= 1, 'Eksik / Dolu filtresi: matrah hesabı boş fatura "Eksik"te, "Dolu" boş (' + ne + '/' + nd + ')');
       await w.click('[data-fkef=""]'); await w.waitForTimeout(150); }
-    await w.click('[data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kHesap');
+    await w.click('#fkkTable tbody tr[data-i] [data-menu]'); await w.click('.satirmenu:not([hidden]) [data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kHesap');
     await w.fill('#kHesap', '770.01'); await w.click('#kKaydet'); await w.waitForTimeout(400);
-    check(/kural/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'kural uygulandı');
-    check(/Ünvan içerir/.test(await w.textContent('#fkkTable tbody tr[data-i]')), 'listede uygulanan kural görünüyor (eski tek şartlı kural)');
+    check(await w.$eval('#fkkTable tbody tr[data-i]', tr => !!tr.querySelector('[data-ks][data-v=kural][aria-pressed=true]')), 'kural uygulandı (satırda Kural seçili)');
+    check(/Ünvan içerir/.test(await w.getAttribute('#fkkTable tbody tr[data-i] [data-h]', 'title') || ''), 'listede uygulanan kural görünüyor (eski tek şartlı kural; hesap kutusunun ipucunda)');
     // Görev 34 · 7: bu ekranın "Kural yap"ı çoklu şart (VE) ve "Hiç kaydetme"
     { const sec0 = await w.evaluate(() => window.__fkayit._st.rows[0].sec);
-      await w.click('#fkkTable tbody tr[data-i] [data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kSartEkle');
+      await w.click('#fkkTable tbody tr[data-i] [data-menu]'); await w.click('.satirmenu:not([hidden]) [data-kural]'); await w.waitForSelector('#fkkModal:not([hidden]) #kSartEkle');
       await w.click('#kSartEkle'); const n2 = await w.$$eval('#kSartlar .ksart', l => l.length);
       const ikinci = await w.$eval('#kSartlar .ksart:nth-child(2) [data-kalan]', e => e.value);
       await w.fill('#kSartlar .ksart:nth-child(2) [data-kdeger]', 'BU KALEM YOK'); await w.waitForTimeout(100);
@@ -1168,7 +1193,7 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
       check(n2 === 2 && ikinci === 'icerik' && /^0 fatura/.test(say0) && /^[1-9]\d* fatura/.test(say1) && gizli, '"+ Şart ekle" 2. şart açtı (VE), sayaç şartlarla daralıyor; "Hiç kaydetme"de hesap alanları gizli (' + say0 + ' / ' + say1 + ')');
       check(r.atla && !r.sec && r.k && r.k.ek.length === 1 && r.k.eylem === 'atla' && !r.k.hesap, '"Hiç kaydetme" kuralı: fatura seçilmedi, fişe alınmayacak (' + JSON.stringify(r) + ')');
       check(/kaydedilmeyecek \(kural\)/.test(metin), 'listede "kaydedilmeyecek (kural)" görünüyor');
-      await w.click('#fkkKurallar'); await w.waitForSelector('#fkkKuralTablo');
+      await w.click('#fkkDiger'); await w.click('#fkkKurallar'); await w.waitForSelector('#fkkKuralTablo');
       const kt = await w.textContent('#fkkKuralTablo');
       check(/ VE /.test(kt) && /hiç kaydetme/.test(kt), 'kural listesinde şartlar VE ile ve sonuç "hiç kaydetme"');
       // çok şartlı kuralı sil: eski tek şartlı kural yeniden uygulanır
@@ -1204,7 +1229,7 @@ with zipfile.ZipFile(k / 'faturalar.zip', 'w') as z:
       if (await w.$(tut)) { await w.click(tut); await w.keyboard.press('Escape'); await w.waitForTimeout(200); d3 = !(await w.isHidden('#fkKayit')); }
       check(d1.acik && !d1.kutu && d2 && d3 && await w.$eval(H, x => x.value) === v0, 'Esc: Luca\'ya kaydet ekranında kutudan çıkar, ekran kapanmaz (ikinci Esc ve fiş kutusunda da) (' + JSON.stringify({ d1, d2, d3 }) + ')');
       const i0 = await w.$eval('#fkkTable tbody tr[data-i]', t => t.dataset.i);
-      await w.click(`[data-kural="${i0}"]`); await w.waitForSelector('#fkkModal:not([hidden]) [data-kdeger]');
+      await w.click(`[aria-controls="fkkSm${i0}"]`); await w.click(`[data-kural="${i0}"]`); await w.waitForSelector('#fkkModal:not([hidden]) [data-kdeger]');
       await w.click('#fkkModal [data-kdeger] >> nth=0'); await w.keyboard.press('End'); await w.keyboard.type(' ESC');
       await w.keyboard.press('Escape'); await w.waitForTimeout(200);
       const m1 = await w.evaluate(() => ({ pencere: !document.querySelector('#fkkModal').hidden, deger: document.querySelector('#fkkModal [data-kdeger]').value }));
@@ -1407,18 +1432,18 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
         await w.click('#fkkKod'); const acik = await w.evaluate(() => ({ menu: !document.querySelector('#fkkKodMenu').hidden, ogeler: [...document.querySelectorAll('#fkkKodMenu [role=menuitem]')].map(x => x.textContent), exp: document.querySelector('#fkkKod').getAttribute('aria-expanded'), doldurma: !!document.querySelector('#fkkKodMenu #fkkKaynak') && !document.querySelector('#fkkBar > label #fkkKaynak') && (() => { const r = document.querySelector('#fkkKodMenu').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })(), odak: document.activeElement.id }));
         await w.keyboard.press('ArrowDown'); const odak2 = await w.evaluate(() => document.activeElement.id);
         await w.keyboard.press('Escape'); await w.waitForTimeout(150); const esc = await w.evaluate(() => ({ menu: document.querySelector('#fkkKodMenu').hidden, panel: !document.querySelector('#fkKayit').hidden, odak: document.activeElement.id }));
-        await w.click('#fkkKod'); await w.click('#fkkBar .note'); const disari = await w.evaluate(() => document.querySelector('#fkkKodMenu').hidden);
+        await w.click('#fkkKod'); await w.click('#fkKayit .mmtop h2'); const disari = await w.evaluate(() => document.querySelector('#fkkKodMenu').hidden);
         check(ilk.dugme === 1 && ilk.gizli && !ilk.ayri && acik.menu && acik.ogeler.join('|').toLocaleLowerCase('tr') === 'alış kod tanımları|satış kod tanımları' && acik.doldurma && acik.exp === 'true' && acik.odak === 'fkkKodA' && odak2 === 'fkkKodS' && esc.menu && esc.panel && esc.odak === 'fkkKod' && disari,
           'Kod tanımları ▾ menüsü: Alış / Satış ve Doldurma seçimi (menü pencereye sığıyor); oklarla gezilir, Esc ve dışarı tıklama menüyü kapatır, ekran açık kalır (' + JSON.stringify({ ilk, acik, odak2, esc, disari }) + ')');
         const once = await w.evaluate(() => [innerWidth, innerHeight]);
         await app.evaluate(({ BrowserWindow }) => { const b = BrowserWindow.getAllWindows()[0]; if (b.isMaximized()) b.unmaximize(); b.setContentSize(1440, 900); }); await w.waitForFunction(() => innerWidth === 1440, null, { timeout: 5000 }).catch(() => {}); await w.waitForTimeout(400);
-        const satir = await w.evaluate(() => { const t = [...document.querySelector('#fkkBar').children].filter(x => x.getClientRects().length && x.offsetWidth).map(x => x.getBoundingClientRect().top).sort((a, b) => a - b);
+        const satir = await w.evaluate(() => { const t = [...document.querySelector('#fkkBar').children].filter(x => x.getClientRects().length && x.offsetWidth && x.offsetHeight).map(x => x.getBoundingClientRect().top).sort((a, b) => a - b);
           return t.reduce((n, y, i) => n + (i && y - t[i - 1] > 14 ? 1 : 0), t.length ? 1 : 0); });   // aynı satırdaki etiket / düğme birkaç px farklı yükseklikte durabilir
-        const ayniSatir = await w.evaluate(() => Math.abs(document.querySelector('#fkkKod').getBoundingClientRect().top - document.querySelector('#fkkKurallar').getBoundingClientRect().top) < 4 && Math.abs(document.querySelector('#fkkKurallar').getBoundingClientRect().top - document.querySelector('#fkkBosDoldur').getBoundingClientRect().top) < 4);
+        const ayniSatir = await w.evaluate(() => Math.abs(document.querySelector('#fkkKod').getBoundingClientRect().top - document.querySelector('#fkkDiger').getBoundingClientRect().top) < 4 && Math.abs(document.querySelector('#fkkKod').getBoundingClientRect().top - document.querySelector('#fkkKuralUygula').getBoundingClientRect().top) < 4);
         await w.click('#fkkKod'); await w.waitForTimeout(150); await w.screenshot({ path: OUT + '/41-kod-menu-1440.png' }); await w.keyboard.press('Escape');
         const st = await w.evaluate(() => ({ w: innerWidth, bar: Math.round(document.querySelector('#fkkBar').getBoundingClientRect().height) }));
         await app.evaluate(({ BrowserWindow }, [cw, ch]) => { BrowserWindow.getAllWindows()[0].setContentSize(cw, ch); }, once); await w.waitForTimeout(300);
-        check(satir === 2 && ayniSatir, 'Faturaları Luca\'ya kaydet araç çubuğu 1440 px\'de iki satır: süzgeçler + işlemler; Kod tanımları işlem satırında, Doldurma alta düşmüyor (' + JSON.stringify({ ...st, satir, ayniSatir }) + ')'); }
+        check(satir === 1 && ayniSatir, 'Görev 54: Faturaları Luca\'ya kaydet araç çubuğu 1440 px\'de tek satır: süzgeçler, Kuralları uygula, Kod tanımları ▾ ve Diğer ▾ yan yana (' + JSON.stringify({ ...st, satir, ayniSatir }) + ')'); }
       await w.click('#fkkKod'); await w.click('#fkkKodA'); await w.waitForSelector('#fkkModal:not([hidden]) #fkkKodTablo');
       const baslik = await w.textContent('#fkkModalT');
       await w.fill('[data-kodh="11|10"]', '153.01.10'); await w.press('[data-kodh="11|10"]', 'Tab');
@@ -1447,7 +1472,7 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
         await w.evaluate(() => { const st = window.__fkayit._st; st.firm = { ...st.firm, lucaId: st._lid }; st.data.luca_id = st.data._lid; delete st._lid; delete st.data._lid; });
         check(String(a1.lucaId) === String(lid) && a1.year === '2026' && acik && a2.lucaId === '4242', 'Luca\'dan çek: firmanın Luca no\'su ve raporun yılı gidiyor; firma kartında Luca no yoksa rapordaki Luca firma no kullanılıyor (' + JSON.stringify([a1, a2]) + ')'); }
       // kural penceresi: ana hesap açıklaması
-      await w.click(`[data-kural="${i0}"]`); await w.waitForSelector('#fkkModal:not([hidden]) #kAnaNot');
+      await w.click(`[aria-controls="fkkSm${i0}"]`); await w.click(`[data-kural="${i0}"]`); await w.waitForSelector('#fkkModal:not([hidden]) #kAnaNot');
       check((await w.textContent('#kAnaNot')).trim() === 'Ana hesap yazarsanız detay hesap kod tablosundan seçilir; detay hesap yazarsanız sizin yazdığınız geçerli olur.', 'kural penceresinde ana / detay hesap açıklaması');
       await w.click('#fkkModal [data-kx]');
       // mantık: ana hesap + KDV oranı → detay; detay öncelikli; boş oran uyarısı; kod tablosuna göre doldurma; KDV kod tablosundan
@@ -1479,7 +1504,7 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
       const once = await w.evaluate(i => { const r = window.__fkayit._st.rows[i]; return { hesap: r.hesap, kaynak: r.kaynak }; }, i0);
       await w.click(`[data-ks="${i0}"][data-v="kod"]`); await w.waitForTimeout(150);
       const kodR = await w.evaluate(i => { const r = window.__fkayit._st.rows[i]; const tr = document.querySelector(`#fkkTable tr[data-i="${i}"]`);
-        return { hesap: r.hesap, kaynak: r.kaynak, basili: tr.querySelector('[data-ks][aria-pressed="true"]').dataset.v, chip: /kod tablosu/.test(tr.textContent), gecmisKapali: tr.querySelector('[data-ks][data-v="gecmis"]').disabled }; }, i0);
+        return { hesap: r.hesap, kaynak: r.kaynak, basili: tr.querySelector('[data-ks][aria-pressed="true"]').dataset.v, chip: /kod tablosu/.test(tr.textContent) || !!tr.querySelector('[data-ks][data-v=kod][aria-pressed=true]'), gecmisKapali: tr.querySelector('[data-ks][data-v="gecmis"]').disabled }; }, i0);
       await w.click(`[data-ks="${i0}"][data-v="kural"]`); await w.waitForTimeout(150);
       const kuralR = await w.evaluate(i => { const r = window.__fkayit._st.rows[i]; return { hesap: r.hesap, kaynak: r.kaynak, basili: document.querySelector(`#fkkTable tr[data-i="${i}"] [data-ks][aria-pressed="true"]`).dataset.v }; }, i0);
       check(once.kaynak === 'kural' && kodR.kaynak === 'kod tablosu' && kodR.basili === 'kod' && kodR.chip && kodR.hesap === '153.01.99', '[Kod] düğmesi: hesap kod tablosundan, satırda kaynak "kod tablosu" (' + JSON.stringify(kodR) + ')');
@@ -1645,7 +1670,7 @@ print(json.dumps({"tam": aday(xml_oku(oiv_ubl(), "a.xml")), "fark": aday(xml_oku
     let du = null; for (let i = 0; i < 10 && !(du && du.tur); i++) { du = await fr2.evaluate(() => fetch('/api/toplu/durum').then(r => r.json())).catch(() => null); if (!(du && du.tur)) await new Promise(r => setTimeout(r, 500)); }
     console.log('DURUM', JSON.stringify(du).slice(0, 300), await fr2.evaluate(() => document.querySelector('#hata') && document.querySelector('#hata').textContent).catch(() => ''));
     check(du && (du.tur === 'toplu' || du.calisiyor !== undefined) && du.tur === 'toplu', 'muavin kontrolü başlatıldı (' + (du && du.tur) + ')');
-  } catch (e) { bad.push('HATA (5): ' + e.message.split('\n')[0]); await w.screenshot({ path: OUT + '/hata5.png' }).catch(() => {}); }
+  } catch (e) { bad.push('HATA (5): ' + e.message.split('\n').filter((l, i) => !i || /waiting for/.test(l)).slice(0, 2).join(' | ')); await w.screenshot({ path: OUT + '/hata5.png' }).catch(() => {}); }
   finally { await app.close().catch(() => {}); fake.server.close(); }
 
   // ---------------- 6. Yönetim modülü (yalnız program sahibi) ----------------

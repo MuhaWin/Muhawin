@@ -14,6 +14,26 @@
   function oku() { try { return localStorage.getItem("fk_tema") || VARSAYILAN; } catch (e) { return VARSAYILAN; } }
   function uygula(t) { document.documentElement.setAttribute("data-tema", TEMALAR[t] ? t : "lacivert"); }
   uygula(oku());
+  // Görev 54: Kapat düğmeleri turuncu-kırmızı, Yenile düğmeleri yeşil (tema.css › .kapat / .yenile); sınıf metinden verilir
+  function dugmeTur(b) {
+    const t = (b.textContent || "").replace(/\s+/g, " ").trim(), al = b.getAttribute("aria-label") || "";
+    if (/^[✕×]?\s*kapat$/i.test(t) || (/^[✕×]$/.test(t) && /^kapat$/i.test(al))) return "kapat";
+    if (/(^|[\s'’])yenile$|^[⟳↻]/i.test(t)) return "yenile";
+    return "";
+  }
+  function dugmeRenk(b) {
+    const tur = dugmeTur(b), eski = b.dataset.renk || "";
+    if (tur === eski) return;
+    if (eski) b.classList.remove(eski);
+    if (tur) { b.classList.add(tur); b.dataset.renk = tur; } else delete b.dataset.renk;
+  }
+  const tara = k => { if (!k || k.nodeType !== 1) return; if (k.matches("button,.btn")) dugmeRenk(k); k.querySelectorAll("button,.btn").forEach(dugmeRenk); };
+  new MutationObserver(L => { for (const m of L) {
+    const el = m.type === "characterData" ? m.target.parentElement : m.target;
+    const b = el && el.closest && el.closest("button,.btn"); if (b) { dugmeRenk(b); continue; }
+    m.addedNodes.forEach(tara);
+  } }).observe(document.documentElement, {childList: true, subtree: true, characterData: true});
+  document.addEventListener("DOMContentLoaded", () => tara(document.body));
   // MuhaWin içinde (çerçevede) açıldıysa üst bant MuhaWin'in sekmeleri gibi açık renkli olur
   if (window.parent !== window) document.documentElement.classList.add("mw");
   // MuhaWin içinde sayfalar arası geçiş MuhaWin'in üstündeki Muhasebe İşlemleri sekmelerinden yapılır
